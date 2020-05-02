@@ -1,16 +1,10 @@
 package com.barneyb.cdccovid.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
-import java.time.LocalDate;
-
 @Data
 public class CdcJurisdiction {
-
-    @JsonIgnore
-    private LocalDate date;
 
     @JsonProperty("Jurisdiction")
     private String name;

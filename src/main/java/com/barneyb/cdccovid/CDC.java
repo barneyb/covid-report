@@ -17,22 +17,23 @@ import java.util.List;
 public class CDC {
 
     public static final String DEFAULT_JSON_URL = "https://www.cdc.gov/coronavirus/2019-ncov/json/us-cases-map-data.json";
-    public static final Path DEFAULT_CACHE_PATH = Path.of("cdc-data.json");
 
+    private final LocalDate asOf;
     private final String jsonUrl;
     private final Path cachePath;
 
-    public CDC() {
-        this(DEFAULT_JSON_URL, DEFAULT_CACHE_PATH);
+    public CDC(LocalDate asOf) {
+        this(asOf, DEFAULT_JSON_URL, Path.of("cdc-data-" + asOf + ".json"));
     }
 
-    public CDC(String jsonUrl, Path cachePath) {
+    public CDC(LocalDate asOf, String jsonUrl, Path cachePath) {
+        this.asOf = asOf;
         this.jsonUrl = jsonUrl;
         this.cachePath = cachePath;
     }
 
-    public void update(Store store, LocalDate asOf) {
-        loadCdcData(asOf).forEach(j ->
+    public void update(Store store) {
+        hydrate().forEach(j ->
                 store.findJurisdiction(j.getName())
                         .ifPresent(it ->
                                 it.addDataPoint(
@@ -42,18 +43,19 @@ public class CDC {
     }
 
     @SneakyThrows
-    private List<CdcJurisdiction> loadCdcData(LocalDate asOf) {
-        refreshCdcData();
+    private List<CdcJurisdiction> hydrate() {
+        if (!Files.exists(cachePath)) download();
         val mapper = new ObjectMapper();
         try (val in = Files.newInputStream(cachePath)) {
-            List<CdcJurisdiction> js = Arrays.asList(mapper.readValue(in, CdcJurisdiction[].class));
-            js.forEach(j -> j.setDate(asOf));
-            return js;
+            return Arrays.asList(mapper.readValue(in, CdcJurisdiction[].class));
         }
     }
 
     @SneakyThrows
-    private void refreshCdcData() {
+    private void download() {
+        if (!LocalDate.now().equals(asOf)) {
+            throw new IllegalStateException("Cowardly refusing to record current data as from " + asOf);
+        }
         val dataUrl = new URL(jsonUrl);
         try (val in = (InputStream) dataUrl.getContent()) {
             Files.copy(in, cachePath, StandardCopyOption.REPLACE_EXISTING);
