@@ -23,6 +23,7 @@ public class TsvEmitter implements Emitter {
         val datesWithDeaths = store.getDatesWithDeaths();
 
         out.print("Jurisdiction\t");
+        out.print("Population\t");
         for (val d : dates) {
             out.print(d);
             out.print('\t');
@@ -30,6 +31,7 @@ public class TsvEmitter implements Emitter {
         }
         out.println();
 
+        out.print('\t');
         out.print('\t');
         dates.forEach(d -> {
             out.print("Cases\t");
@@ -39,6 +41,8 @@ public class TsvEmitter implements Emitter {
 
         jurisdictions.forEach(j -> {
             out.print(j.getName());
+            out.print('\t');
+            out.print(j.getPopulation());
             out.print('\t');
             dates.forEach(d -> {
                 DataPoint p = j.getData(d);
