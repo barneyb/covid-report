@@ -7,53 +7,48 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.List;
 
 public class TsvEmitter implements Emitter {
 
     @Override
-    public void emit(List<Jurisdiction> db, OutputStream outStr) {
+    public void emit(Store store, OutputStream outStr) {
         val out = outStr instanceof PrintStream
                 ? (PrintStream) outStr
                 : new PrintStream(outStr);
 
-        db = new ArrayList<>(db);
-        db.sort(Comparator.comparing(Jurisdiction::getName));
-        val dates = db.get(0)
+        val jurisdictions = new ArrayList<>(store.getJurisdictionList());
+        jurisdictions.sort(Comparator.comparing(Jurisdiction::getName));
+        val dates = jurisdictions.get(0)
                 .getDatesWithData();
-        db.forEach(j ->
+        jurisdictions.forEach(j ->
                 dates.retainAll(j.getDatesWithData()));
 
-        var sb = new StringBuilder();
         out.print("Jurisdiction\t");
         for (val d : dates) {
             out.print(d);
             out.print('\t');
             out.print('\t');
         }
-        out.println(sb);
+        out.println();
 
-        sb = new StringBuilder();
         out.print('\t');
-        for (val d : dates) {
+        dates.forEach(d -> {
             out.print("Cases\t");
             out.print("Deaths\t");
-        }
-        out.println(sb);
+        });
+        out.println();
 
-        for (val j : db) {
-            sb = new StringBuilder();
+        jurisdictions.forEach(j -> {
             out.print(j.getName());
             out.print('\t');
-            for (val d : dates) {
-                val p = j.getData(d);
+            dates.stream().map(j::getData).forEach(p -> {
                 out.print(p.getCases());
                 out.print('\t');
                 out.print(p.getDeaths());
                 out.print('\t');
-            }
-            out.println(sb);
-        }
+            });
+            out.println();
+        });
     }
 
 }

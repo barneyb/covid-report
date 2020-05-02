@@ -1,7 +1,6 @@
 package com.barneyb.cdccovid.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -12,14 +11,6 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DataPoint {
-
-    public static DataPoint from(CdcJurisdiction j) {
-        return new DataPoint(
-                j.getDate(),
-                j.getCases(),
-                j.getDeaths()
-        );
-    }
 
     @JsonIgnore
     private LocalDate date;
