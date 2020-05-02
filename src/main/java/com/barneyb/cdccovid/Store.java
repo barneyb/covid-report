@@ -6,34 +6,22 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.SneakyThrows;
 import lombok.val;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
-import java.time.Month;
 import java.util.*;
 import java.util.function.Predicate;
 
+@Repository
 public class Store implements AutoCloseable {
 
     public static final Path DEFAULT_STORE_PATH = Path.of("database.json");
 
-    @SneakyThrows
-    static void initializeFromExisting() {
-        Files.deleteIfExists(DEFAULT_STORE_PATH);
-        val store = new Store();
-        val april17 = LocalDate.of(2020, Month.APRIL, 18);
-        val april24 = LocalDate.of(2020, Month.APRIL, 25);
-        Files.lines(Path.of("existing.txt"))
-                .map(l -> l.split("\t"))
-                .filter(vs -> !"Jurisdiction".equals(vs[0]))
-                .forEach(vs -> {
-                    val j = store.createJurisdiction(vs[0], Integer.parseInt(vs[3]));
-                    j.addDataPoint(april17, Integer.parseInt(vs[2]));
-                    j.addDataPoint(april24, Integer.parseInt(vs[1]));
-                });
-        store.close();
-    }
+    @Autowired
+    ObjectMapper mapper;
 
     private final Path storePath;
     private Map<String, Jurisdiction> jurisdictions;
@@ -44,14 +32,16 @@ public class Store implements AutoCloseable {
 
     public Store(Path storePath) {
         this.storePath = storePath;
-        bootstrap();
+    }
+
+    public boolean isOpen() {
+        return !isClosed();
     }
 
     @SneakyThrows
-    private void bootstrap() {
+    public void open() {
         jurisdictions = new TreeMap<>();
         if (!Files.exists(storePath)) return;
-        val mapper = new ObjectMapper();
         try (val in = Files.newInputStream(storePath)) {
             for (val j : mapper.readValue(in, Jurisdiction[].class)) {
                 jurisdictions.put(j.getName(), j);
@@ -61,7 +51,6 @@ public class Store implements AutoCloseable {
 
     @SneakyThrows
     public void flush() {
-        val mapper = new ObjectMapper();
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         try (val out = Files.newOutputStream(storePath)) {
             mapper.writeValue(out, jurisdictions.values());
@@ -69,9 +58,18 @@ public class Store implements AutoCloseable {
     }
 
     public void close() {
-        if (jurisdictions == null) return;
+        if (isClosed()) return;
         flush();
         jurisdictions = null;
+    }
+
+    private boolean isClosed() {
+        return jurisdictions == null;
+    }
+
+    protected Map<String, Jurisdiction> getJurisdictions() {
+        if (isClosed()) open();
+        return jurisdictions;
     }
 
     public Jurisdiction createJurisdiction(String name, Integer population) {
@@ -82,12 +80,12 @@ public class Store implements AutoCloseable {
         val j = new Jurisdiction();
         j.setName(name);
         j.setPopulation(population);
-        jurisdictions.put(j.getName(), j);
+        getJurisdictions().put(j.getName(), j);
         return j;
     }
 
     public Optional<Jurisdiction> findJurisdiction(String name) {
-        return Optional.ofNullable(jurisdictions.get(name));
+        return Optional.ofNullable(getJurisdictions().get(name));
     }
 
     public Jurisdiction getJurisdiction(String name) {
@@ -96,7 +94,7 @@ public class Store implements AutoCloseable {
     }
 
     public Collection<Jurisdiction> getAllJurisdictions() {
-        return Collections.unmodifiableCollection(jurisdictions.values());
+        return Collections.unmodifiableCollection(getJurisdictions().values());
     }
 
     public SortedSet<LocalDate> getDatesWithCases() {
@@ -108,7 +106,7 @@ public class Store implements AutoCloseable {
     }
 
     private SortedSet<LocalDate> getDatesWithCases(Predicate<DataPoint> test) {
-        return jurisdictions.values()
+        return getJurisdictions().values()
                 .stream()
                 .map(j -> j.getDatesWithData(test))
                 .reduce((a, b) -> {

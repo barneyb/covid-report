@@ -3,16 +3,22 @@ package com.barneyb.cdccovid;
 import com.barneyb.cdccovid.model.DataPoint;
 import com.barneyb.cdccovid.model.Jurisdiction;
 import lombok.val;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Comparator;
 
+@Service
 public class TsvEmitter implements Emitter {
 
+    @Autowired
+    Store store;
+
     @Override
-    public void emit(Store store, OutputStream outStr) {
+    public void emit(OutputStream outStr) {
         val out = outStr instanceof PrintStream
                 ? (PrintStream) outStr
                 : new PrintStream(outStr);
