@@ -61,8 +61,11 @@ public class Store implements AutoCloseable {
     public void flush() {
         val mapper = new ObjectMapper();
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        val list = new ArrayList<Jurisdiction>(jurisdictions.size());
+        new TreeSet<>(jurisdictions.keySet()).forEach(n ->
+                list.add(jurisdictions.get(n)));
         try (val out = Files.newOutputStream(storePath)) {
-            mapper.writeValue(out, jurisdictions.values());
+            mapper.writeValue(out, list);
         }
     }
 
