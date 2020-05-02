@@ -3,16 +3,15 @@ package com.barneyb.cdccovid.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.val;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.SortedSet;
-import java.util.TreeSet;
-import java.util.stream.Collectors;
+import java.util.*;
+import java.util.function.Predicate;
 
 @Data
 @NoArgsConstructor
@@ -23,22 +22,22 @@ public class Jurisdiction {
     @JsonProperty("jurisdiction")
     private String name;
     private Integer population;
-    private Collection<DataPoint> points;
+    @JsonDeserialize(keyUsing = LocalDateKeyDeserializer.class)
+    private SortedMap<LocalDate, DataPoint> data;
 
     public DataPoint getData(LocalDate date) {
         assert date != null;
-        return points.stream()
-                .filter(p -> date.equals(p.getDate()))
-                .findFirst()
+        return Optional.ofNullable(data.get(date))
                 .orElseThrow();
     }
 
     @JsonIgnore
-    public SortedSet<LocalDate> getDatesWithData() {
-        return points
-                .stream()
-                .map(DataPoint::getDate)
-                .collect(Collectors.toCollection(TreeSet::new));
+    public SortedSet<LocalDate> getDatesWithData(Predicate<DataPoint> test) {
+        val dates = new TreeSet<LocalDate>();
+        data.forEach((d, p) -> {
+            if (test.test(p)) dates.add(d);
+        });
+        return dates;
     }
 
     public void addDataPoint(LocalDate asOf, Integer cases) {
@@ -46,8 +45,8 @@ public class Jurisdiction {
     }
 
     public void addDataPoint(LocalDate asOf, Integer cases, Integer deaths) {
-        if (this.points == null) this.points = new ArrayList<>();
-        this.points.add(new DataPoint(asOf, cases, deaths));
+        if (this.data == null) this.data = new TreeMap<>();
+        this.data.put(asOf, new DataPoint(cases, deaths));
     }
 }
 

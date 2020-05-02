@@ -1,5 +1,6 @@
 package com.barneyb.cdccovid;
 
+import com.barneyb.cdccovid.model.DataPoint;
 import com.barneyb.cdccovid.model.Jurisdiction;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -11,6 +12,7 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.Month;
 import java.util.*;
+import java.util.function.Predicate;
 
 public class Store implements AutoCloseable {
 
@@ -47,7 +49,7 @@ public class Store implements AutoCloseable {
 
     @SneakyThrows
     private void bootstrap() {
-        jurisdictions = new HashMap<>();
+        jurisdictions = new TreeMap<>();
         if (!Files.exists(storePath)) return;
         val mapper = new ObjectMapper();
         try (val in = Files.newInputStream(storePath)) {
@@ -61,11 +63,8 @@ public class Store implements AutoCloseable {
     public void flush() {
         val mapper = new ObjectMapper();
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        val list = new ArrayList<Jurisdiction>(jurisdictions.size());
-        new TreeSet<>(jurisdictions.keySet()).forEach(n ->
-                list.add(jurisdictions.get(n)));
         try (val out = Files.newOutputStream(storePath)) {
-            mapper.writeValue(out, list);
+            mapper.writeValue(out, jurisdictions.values());
         }
     }
 
@@ -96,7 +95,28 @@ public class Store implements AutoCloseable {
                 .orElseThrow(() -> new IllegalArgumentException("No '" + name + "' jurisdiction is known"));
     }
 
-    public Collection<Jurisdiction> getJurisdictionList() {
+    public Collection<Jurisdiction> getAllJurisdictions() {
         return Collections.unmodifiableCollection(jurisdictions.values());
     }
+
+    public SortedSet<LocalDate> getDatesWithCases() {
+        return getDatesWithCases(p -> p.getCases() != null);
+    }
+
+    public SortedSet<LocalDate> getDatesWithDeaths() {
+        return getDatesWithCases(p -> p.getDeaths() != null);
+    }
+
+    private SortedSet<LocalDate> getDatesWithCases(Predicate<DataPoint> test) {
+        return jurisdictions.values()
+                .stream()
+                .map(j -> j.getDatesWithData(test))
+                .reduce((a, b) -> {
+                    val r = new TreeSet<>(a);
+                    r.retainAll(b);
+                    return r;
+                })
+                .orElseThrow();
+    }
+
 }

@@ -1,5 +1,6 @@
 package com.barneyb.cdccovid;
 
+import com.barneyb.cdccovid.model.DataPoint;
 import com.barneyb.cdccovid.model.Jurisdiction;
 import lombok.val;
 
@@ -16,36 +17,37 @@ public class TsvEmitter implements Emitter {
                 ? (PrintStream) outStr
                 : new PrintStream(outStr);
 
-        val jurisdictions = new ArrayList<>(store.getJurisdictionList());
+        val jurisdictions = new ArrayList<>(store.getAllJurisdictions());
         jurisdictions.sort(Comparator.comparing(Jurisdiction::getName));
-        val dates = jurisdictions.get(0)
-                .getDatesWithData();
-        jurisdictions.forEach(j ->
-                dates.retainAll(j.getDatesWithData()));
+        val dates = store.getDatesWithCases();
+        val datesWithDeaths = store.getDatesWithDeaths();
 
         out.print("Jurisdiction\t");
         for (val d : dates) {
             out.print(d);
             out.print('\t');
-            out.print('\t');
+            if (datesWithDeaths.contains(d)) out.print('\t');
         }
         out.println();
 
         out.print('\t');
         dates.forEach(d -> {
             out.print("Cases\t");
-            out.print("Deaths\t");
+            if (datesWithDeaths.contains(d)) out.print("Deaths\t");
         });
         out.println();
 
         jurisdictions.forEach(j -> {
             out.print(j.getName());
             out.print('\t');
-            dates.stream().map(j::getData).forEach(p -> {
+            dates.forEach(d -> {
+                DataPoint p = j.getData(d);
                 out.print(p.getCases());
                 out.print('\t');
-                out.print(p.getDeaths());
-                out.print('\t');
+                if (datesWithDeaths.contains(d)) {
+                    out.print(p.getDeaths());
+                    out.print('\t');
+                }
             });
             out.println();
         });
