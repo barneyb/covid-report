@@ -1,19 +1,25 @@
 package com.barneyb.cdccovid.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
+
+import java.time.LocalDate;
 
 @Data
 public class CdcJurisdiction {
 
+    @JsonIgnore
+    private LocalDate date;
+
     @JsonProperty("Jurisdiction")
-    private String jurisdiction;
+    private String name;
     @JsonProperty("Range")
     private String range;
     @JsonProperty("Cases Reported")
-    private int cases;
+    private Integer cases;
     @JsonProperty("Deaths")
-    private int deaths;
+    private Integer deaths;
     @JsonProperty("Community Transmission")
     private String community;
     @JsonProperty("URL")
