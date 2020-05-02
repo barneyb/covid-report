@@ -38,6 +38,7 @@ public class CdcCovidIngestApplication {
         val mapper = new ObjectMapper();
         mapper.registerModule(module);
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        mapper.setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE);
         return mapper;
     }
 
