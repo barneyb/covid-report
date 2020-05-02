@@ -34,7 +34,7 @@ public class Store implements AutoCloseable {
     }
 
     private final Path storePath;
-    private List<Jurisdiction> db;
+    private Map<String, Jurisdiction> jurisdictions;
 
     public Store() {
         this(DEFAULT_STORE_PATH);
@@ -47,13 +47,13 @@ public class Store implements AutoCloseable {
 
     @SneakyThrows
     private void bootstrap() {
-        if (!Files.exists(storePath)) {
-            db = new ArrayList<>();
-            return;
-        }
+        jurisdictions = new HashMap<>();
+        if (!Files.exists(storePath)) return;
         val mapper = new ObjectMapper();
         try (val in = Files.newInputStream(storePath)) {
-            db = Arrays.asList(mapper.readValue(in, Jurisdiction[].class));
+            for (val j : mapper.readValue(in, Jurisdiction[].class)) {
+                jurisdictions.put(j.getName(), j);
+            }
         }
     }
 
@@ -62,14 +62,14 @@ public class Store implements AutoCloseable {
         val mapper = new ObjectMapper();
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         try (val out = Files.newOutputStream(storePath)) {
-            mapper.writeValue(out, db);
+            mapper.writeValue(out, jurisdictions.values());
         }
     }
 
     public void close() {
-        if (db == null) return;
+        if (jurisdictions == null) return;
         flush();
-        db = null;
+        jurisdictions = null;
     }
 
     public Jurisdiction createJurisdiction(String name, Integer population) {
@@ -80,16 +80,12 @@ public class Store implements AutoCloseable {
         val j = new Jurisdiction();
         j.setName(name);
         j.setPopulation(population);
-        db.add(j);
+        jurisdictions.put(j.getName(), j);
         return j;
     }
 
     public Optional<Jurisdiction> findJurisdiction(String name) {
-        // todo: index this!
-        for (val j : db) {
-            if (name.equals(j.getName())) return Optional.of(j);
-        }
-        return Optional.empty();
+        return Optional.ofNullable(jurisdictions.get(name));
     }
 
     public Jurisdiction getJurisdiction(String name) {
@@ -97,7 +93,7 @@ public class Store implements AutoCloseable {
                 .orElseThrow(() -> new IllegalArgumentException("No '" + name + "' jurisdiction is known"));
     }
 
-    public List<Jurisdiction> getJurisdictionList() {
-        return Collections.unmodifiableList(db);
+    public Collection<Jurisdiction> getJurisdictionList() {
+        return Collections.unmodifiableCollection(jurisdictions.values());
     }
 }
