@@ -14,19 +14,26 @@ function init(rawData) {
             minimumFractionDigits: places,
             maximumFractionDigits: places,
         });
-    const sumUp = sup => rawData.jurisdictions
-        .map(sup)
+    const sumUp = supplier => rawData.jurisdictions
+        .map(supplier)
         .reduce((s, n) => s + n, 0);
-    const tag = (n, c, attrs) =>
-        `<${n}${Object.keys(attrs || {})
+    const tag = (el, c, attrs) =>
+        `<${el}${Object.keys(attrs || {})
             .map(k => ` ${k === "className" ? "class" : k}="${attrs[k]}"`)
-            .join('')}>${c || ''}</${n}>`
-    const numTag = (n, v) =>
-        tag(n, formatNumber(v), {className: "number"});
+            .join('')}>${c || ''}</${el}>`
+    const numTag = (el, v) =>
+        tag(el, formatNumber(v), {className: "number"});
     const labelPointCells = () => {
         return rawData.points
-            .map(p =>
-                tag('th', formatDate(p.date), p.deaths ? {colspan: 2} : null))
+            .map(p => {
+                let cs = 1;
+                if (p.deaths) cs += 1;
+                if (p.case_delta) {
+                    cs += 1;
+                    if (p.death_delta) cs += 1;
+                }
+                return tag('th', formatDate(p.date), cs > 1 ? {colspan:cs} : null);
+            })
             .join("");
     };
     const sublabelPointCells = () => {
@@ -35,8 +42,14 @@ function init(rawData) {
                 const cs = [
                     'Cases',
                 ];
+                if (p.case_delta) {
+                    cs.push('New')
+                }
                 if (p.deaths) {
                     cs.push('Deaths');
+                    if (p.death_delta) {
+                        cs.push('New')
+                    }
                 }
                 return cs;
             })
@@ -47,13 +60,19 @@ function init(rawData) {
         return rawData.points
             .flatMap((p, i) => {
                 const d = scope.data[i]
-                const cells = [
+                const cs = [
                     d.cases,
                 ];
-                if (p.deaths) {
-                    cells.push(d.deaths)
+                if (p.case_delta) {
+                    cs.push(d.since.cases);
                 }
-                return cells;
+                if (p.deaths) {
+                    cs.push(d.deaths)
+                    if (p.death_delta) {
+                        cs.push(d.since.deaths)
+                    }
+                }
+                return cs;
             })
             .map(c => numTag(el, c))
             .join("");
@@ -87,6 +106,8 @@ function init(rawData) {
                 return data;
             })
     };
+    const renderDataRecord = (rec, el, num) =>
+        tag(el, num) + tag(el, rec.name) + numTag(el, rec.population)
     const render = () => {
         const headRows = [
             tag('th', '', {colspan: 3}),
@@ -94,9 +115,9 @@ function init(rawData) {
         ];
         let i = 0;
         const bodyRows = rawData.jurisdictions
-            .map(j => tag('td', ++i) + tag('td', j.name) + numTag('td', j.population));
+            .map(j => renderDataRecord(j, 'td', ++i));
         const footRows = [
-            tag('th') + tag('th', total.name) + numTag('th', total.population),
+            (renderDataRecord(total,'th')),
         ];
         // header
         headRows[0] += labelPointCells()
