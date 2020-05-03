@@ -38,8 +38,9 @@ public class ReportJsonEmitter implements Emitter {
     }
 
     private Report buildReport() {
+        val dates = store.getDatesWithCases();
         val report = new Report();
-        report.date = LocalDate.now();
+        report.date = dates.last();
         report.jurisdictions = store.getAllJurisdictions()
                 .stream()
 //                .filter(j -> "New York" .equals(j.getName()) || "Oregon" .equals(j.getName()))
@@ -47,7 +48,7 @@ public class ReportJsonEmitter implements Emitter {
                     val r = new Juris();
                     r.name = j.getName();
                     r.population = j.getPopulation();
-                    r.data = store.getDatesWithCases()
+                    r.data = dates
                             .stream()
                             .map(j::getData)
                             .map(curr -> j.getPriorData(curr.getAsOf())
