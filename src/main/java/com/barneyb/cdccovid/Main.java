@@ -22,8 +22,12 @@ public class Main implements CommandLineRunner {
 //        appCtx.getBean(CDC.class)
 //                .update(java.time.LocalDate.of(2020, 5, 2));
 
-        appCtx.getBean(TsvEmitter.class)
-                .emit(System.out);
+//        appCtx.getBean(TsvEmitter.class)
+//                .emit(System.out);
+
+        appCtx.getBean(ReportJsonEmitter.class)
+//                .emit(System.out);
+                .emit(Files.newOutputStream(Path.of("report.json")));
     }
 
     @SneakyThrows

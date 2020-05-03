@@ -15,4 +15,7 @@ public class DataPoint {
     private Integer cases;
     private Integer deaths;
 
+    public boolean hasDeaths() {
+        return deaths != null;
+    }
 }

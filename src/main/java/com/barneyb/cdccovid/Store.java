@@ -67,7 +67,7 @@ public class Store implements AutoCloseable {
         return jurisdictions == null;
     }
 
-    protected Map<String, Jurisdiction> getJurisdictions() {
+    private Map<String, Jurisdiction> getJurisdictions() {
         if (isClosed()) open();
         return jurisdictions;
     }

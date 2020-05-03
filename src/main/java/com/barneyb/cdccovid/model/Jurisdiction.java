@@ -30,6 +30,14 @@ public class Jurisdiction {
                 .orElseThrow();
     }
 
+    public Optional<DataPoint> getPriorData(LocalDate date) {
+        assert date != null;
+        val head = ((SortedSet<LocalDate>) data.keySet()).headSet(date);
+        return head.isEmpty()
+                ? Optional.empty()
+                : Optional.of(data.get(head.last()));
+    }
+
     @JsonIgnore
     public SortedSet<LocalDate> getDatesWithData(Predicate<DataPoint> test) {
         val dates = new TreeSet<LocalDate>();
