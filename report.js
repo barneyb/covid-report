@@ -9,7 +9,7 @@ function init(rawData) {
             });
     };
     const NumFmt = new Intl.NumberFormat("en-US")
-    const formatNumber = (v, places=0) =>
+    const formatNumber = (v, places = 0) =>
         NumFmt.format(v, {
             minimumFractionDigits: places,
             maximumFractionDigits: places,
@@ -23,8 +23,9 @@ function init(rawData) {
             .join('')}>${c || ''}</${el}>`
     const numTag = (el, v) =>
         tag(el, formatNumber(v), {className: "number"});
-    const labelPointCells = () => {
-        return rawData.points
+    const labelPointCells = () =>
+        tag('th', '', {colspan: 3})
+        + rawData.points
             .map(p => {
                 let cs = 1;
                 if (p.deaths) cs += 1;
@@ -32,12 +33,18 @@ function init(rawData) {
                     cs += 1;
                     if (p.death_delta) cs += 1;
                 }
-                return tag('th', formatDate(p.date), cs > 1 ? {colspan:cs} : null);
+                return tag(
+                    'th',
+                    formatDate(p.date),
+                    cs > 1 ? {colspan: cs} : null,
+                );
             })
             .join("");
-    };
-    const sublabelPointCells = () => {
-        return rawData.points
+    const sublabelPointCells = () =>
+        tag('th')
+        + tag('th', 'Jurisdiction')
+        + tag('th', 'Population')
+        + rawData.points
             .flatMap(p => {
                 const cs = [
                     'Cases',
@@ -55,85 +62,86 @@ function init(rawData) {
             })
             .map(c => tag('th', c))
             .join("");
-    };
-    const buildPointCells = (scope, el='td') => {
-        return rawData.points
+    const renderDataRecord = (rec, el, num) =>
+        tag(el, num)
+        + tag(el, rec.name)
+        + numTag(el, rec.pop)
+        + rawData.points
             .flatMap((p, i) => {
-                const d = scope.data[i]
+                const d = rec.data[i]
                 const cs = [
                     d.cases,
                 ];
                 if (p.case_delta) {
-                    cs.push(d.since.cases);
+                    cs.push(d.new_cases);
                 }
                 if (p.deaths) {
                     cs.push(d.deaths)
                     if (p.death_delta) {
-                        cs.push(d.since.deaths)
+                        cs.push(d.new_deaths)
                     }
                 }
                 return cs;
             })
             .map(c => numTag(el, c))
             .join("");
-    };
     const injectRows = (node, rows) =>
         node.innerHTML = rows.map(it => `<tr>${it}</tr>`).join("\n");
     const $ = document.querySelector.bind(document);
     const head = $("#main-table thead");
     const body = $("#main-table tbody");
     const foot = $("#main-table tfoot");
-    $("#updated").innerText = formatDate(rawData.date);
-    const total = {
+    $("#updated").innerText = "Updated " + formatDate(rawData.date);
+    const dataRecords = [{
         name: "Total",
-        population: sumUp(j => j.population),
-        data: rawData.points
-            .map((p, i) => {
-                const data = {
-                    date: p.date,
-                    cases: sumUp(j => j.data[i].cases),
+        pop: sumUp(j => j.population),
+        data: rawData.points.map((p, i) => {
+            const fs = {
+                cases: sumUp(j => j.data[i].cases),
+            }
+            if (p.deaths) fs.deaths = sumUp(j => j.data[i].deaths);
+            if (p.case_delta) {
+                fs.new_cases = sumUp(j => j.data[i].since.cases);
+                if (p.death_delta) {
+                    fs.new_deaths = sumUp(j => j.data[i].since.deaths);
                 }
-                if (p.deaths)
-                    data.deaths = sumUp(j => j.data[i].deaths);
+            }
+            return fs;
+        }),
+    }, ...rawData.jurisdictions
+        .map(j => ({
+            name: j.name,
+            pop: j.population,
+            data: rawData.points.map((p, i) => {
+                const d = j.data[i];
+                const fs = {
+                    cases: d.cases,
+                }
+                if (p.deaths) fs.deaths = d.deaths;
                 if (p.case_delta) {
-                    data.since = {
-                        days: p.days,
-                        cases: sumUp(j => j.data[i].since.cases),
-                    };
-                    if (p.death_delta)
-                        data.since.deaths = sumUp(j => j.data[i].since.deaths);
+                    fs.new_cases = d.since.cases;
+                    if (p.death_delta) {
+                        fs.new_deaths = d.since.deaths;
+                    }
                 }
-                return data;
-            })
-    };
-    const renderDataRecord = (rec, el, num) =>
-        tag(el, num) + tag(el, rec.name) + numTag(el, rec.population)
+                return fs;
+            }),
+        })),
+    ];
     const render = () => {
-        const headRows = [
-            tag('th', '', {colspan: 3}),
-            tag('th') + tag('th', 'Jurisdiction') + tag('th', 'Population'),
-        ];
-        let i = 0;
-        const bodyRows = rawData.jurisdictions
-            .map(j => renderDataRecord(j, 'td', ++i));
-        const footRows = [
-            (renderDataRecord(total,'th')),
-        ];
-        // header
-        headRows[0] += labelPointCells()
-        headRows[1] += sublabelPointCells()
-        // body
-        rawData.jurisdictions
-            .forEach((j, i) =>
-                bodyRows[i] += buildPointCells(j));
-        // footer
-        footRows[0] += buildPointCells(total, 'th')
-        injectRows(head, headRows);
-        injectRows(body, bodyRows);
-        injectRows(foot, footRows);
+        injectRows(head, [
+            labelPointCells(),
+            sublabelPointCells(),
+        ]);
+        injectRows(body, dataRecords.slice(1)
+            .map((j, i) => renderDataRecord(j, 'td', i + 1)));
+        injectRows(foot, [
+            (renderDataRecord(dataRecords[0], 'th')),
+        ]);
     };
     render();
 }
+
 fetch("./report.json")
     .then(resp => resp.json())
     .then(init);
