@@ -1,0 +1,26 @@
+body {
+    font-family: 'Roboto', sans-serif; /* not actually gonna web-font it though */
+}
+#main-table,
+#main-table th,
+#main-table td {
+    border: 1px solid #eee;
+    border-collapse: collapse;
+}
+#main-table th,
+#main-table td {
+    padding: 0.2em 0.3em;
+}
+#main-table tbody td:first-child {
+    color: #999;
+}
+#main-table th {
+    text-align: left;
+}
+#main-table .number,
+#main-table .percent {
+    text-align: right;
+}
+#main-table .percent:after {
+    content: "%";
+}
