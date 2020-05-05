@@ -150,6 +150,10 @@ function init(rawData) {
                 c.scope === "jurisdiction" ? c.expr(rec)
                 : c.expr(rec.data[c.pidx], c.p, rec)));
 
+    const $ = document.querySelector.bind(document);
+    let state = {};
+    window.setState = s =>
+        render(state = {...state, ...(typeof s === "function" ? s(state) : s)});
     const tag = (el, c, attrs) =>
         `<${el}${Object.keys(attrs || {})
             .map(k => ` ${k === "className" ? "class" : k}="${attrs[k]}"`)
@@ -161,12 +165,17 @@ function init(rawData) {
             .map(gn =>
                 tag('th', gn, {
                     colspan: columnGroups[gn] + (gn === "" ? 1 : 0),
-                }))
-            .join("");
-    const sublabelPointCells = () =>
+                }));
+    const sublabelPointCells = (state) =>
         tag('th')
-        + columns.map(c =>
-            tag('th', c.name, {className: "sortable"}))
+        + columns.map((c, i) =>
+            tag('th', c.name, state.sortCol === i ? {
+                className: "sortable sorted",
+                onclick: `setState(s => ({sortCol:${i},sortAsc:!s.sortAsc}))`,
+            } : {
+                className: "sortable",
+                onclick: `setState({sortCol:${i}})`,
+            }))
             .join("");
     const renderRow = (r, el, num) =>
         tag(el, num)
@@ -174,28 +183,38 @@ function init(rawData) {
             (typeof r[i] === "number" ? numTag : tag)(el, r[i], c.format))
             .join("");
     const injectRows = (node, rows) =>
-        node.innerHTML = rows.map(it => `<tr>${it}</tr>`).join("\n");
-    const $ = document.querySelector.bind(document);
+        node.innerHTML = rows
+            .map(r =>
+                `<tr>${r.join ? r.join("") : r}</tr>`)
+            .join("\n");
+    const numComp = (a, b) => a - b;
+    const strComp = (a, b) => a < b ? -1 : a > b ? 1 : 0;
+    const revComp = sort => (a, b) => sort(b, a);
     const head = $("#main-table thead");
     const body = $("#main-table tbody");
     const foot = $("#main-table tfoot");
-    $("#updated").innerText = "Updated " + formatDate(rawData.date);
-    const render = () => {
+    $("#updated").innerText = `Updated ${formatDate(rawData.date)}`;
+    const render = state => {
         injectRows(head, [
             labelPointCells(),
-            sublabelPointCells(),
+            sublabelPointCells(state),
         ]);
+        let comp = typeof rows[1][state.sortCol] === "number"? numComp : strComp;
+        if (!state.sortAsc) comp = revComp(comp);
         injectRows(body, rows.slice(1)
-            // todo: sort!
-                .map((r, i) =>
-                    renderRow(r, 'td', i + 1))
-
+            .sort((a, b) =>
+                comp(a[state.sortCol], b[state.sortCol]))
+            .map((r, i) =>
+                renderRow(r, 'td', i + 1))
         );
         injectRows(foot, [
             renderRow(rows[0], 'th'),
         ]);
     };
-    render();
+    setState({
+        sortCol: 11,
+        sortAsc: false,
+    });
 }
 
 fetch("./report.json")

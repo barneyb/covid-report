@@ -27,6 +27,7 @@ body {
 #main-table thead th.sortable {
     cursor: pointer;
 }
+#main-table thead th.sorted,
 #main-table thead th.sortable:hover {
     background-color: #f0f7ff;
     user-select: none;
