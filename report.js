@@ -65,8 +65,10 @@ function init(rawData) {
             format: formatPercent,
         },
     ];
+    const fTrue = () => true;
+    const IDENTITY = v => v;
     series.forEach(s => {
-        if (s.test == null) s.test = () => true;
+        if (s.test == null) s.test = fTrue;
         if (s.format == null) s.format = formatNumber;
     });
 
@@ -110,6 +112,44 @@ function init(rawData) {
         }),
     });
 
+    const columns = [
+        {
+            scope: "jurisdiction",
+            name: "Jurisdiction",
+            expr: j => j.name,
+            format: IDENTITY,
+        },
+        {
+            scope: "jurisdiction",
+            name: "Population",
+            expr: j => j.pop,
+            format: formatNumber,
+        },
+    ].concat(rawData.points
+        .flatMap((p, i) =>
+            series
+                .filter(s => s.test(p))
+                .map(s => ({
+                    group: formatDate(p.date),
+                    name: s.name,
+                    expr: s.expr,
+                    format: s.format,
+                    p: p,
+                    pidx: i,
+                }))));
+    const columnGroups = columns.reduce((gs, c) => {
+        const gn = c.group || "";
+        return {
+            ...gs,
+            [gn]: (gs[gn] || 0) + 1,
+        };
+    }, {});
+    const rows = dataRecords.map(rec =>
+        columns
+            .map(c =>
+                c.scope === "jurisdiction" ? c.expr(rec)
+                : c.expr(rec.data[c.pidx], c.p, rec)));
+
     const tag = (el, c, attrs) =>
         `<${el}${Object.keys(attrs || {})
             .map(k => ` ${k === "className" ? "class" : k}="${attrs[k]}"`)
@@ -117,35 +157,21 @@ function init(rawData) {
     const numTag = (el, v, fmt = formatNumber) =>
         tag(el, fmt(v), {className: "number"});
     const labelPointCells = () =>
-        tag('th', '', {colspan: 3})
-        + rawData.points
-            .map(p =>
-                tag('th', formatDate(p.date), {
-                    className: "point new-point",
-                    colspan: series
-                        .filter(s => s.test(p))
-                        .length,
+        Object.keys(columnGroups)
+            .map(gn =>
+                tag('th', gn, {
+                    colspan: columnGroups[gn] + (gn === "" ? 1 : 0),
                 }))
             .join("");
     const sublabelPointCells = () =>
         tag('th')
-        + tag('th', 'Jurisdiction', {className: "sortable"})
-        + tag('th', 'Population', {className: "sortable"})
-        + rawData.points
-            .flatMap(p => series
-                .filter(s => s.test(p))
-                .map((s, i) =>
-                    tag('th', s.name, {className: "sortable" + (i === 0 ? " new-point" : "")})))
+        + columns.map(c =>
+            tag('th', c.name, {className: "sortable"}))
             .join("");
-    const renderDataRecord = (rec, el, num) =>
+    const renderRow = (r, el, num) =>
         tag(el, num)
-        + tag(el, rec.name)
-        + numTag(el, rec.pop)
-        + rawData.points
-            .flatMap((p, i) =>
-                series
-                    .filter(s => s.test(p))
-                    .map(s => numTag(el, s.expr(rec.data[i], p, rec), s.format)))
+        + columns.map((c, i) =>
+            (typeof r[i] === "number" ? numTag : tag)(el, r[i], c.format))
             .join("");
     const injectRows = (node, rows) =>
         node.innerHTML = rows.map(it => `<tr>${it}</tr>`).join("\n");
@@ -159,11 +185,14 @@ function init(rawData) {
             labelPointCells(),
             sublabelPointCells(),
         ]);
-        injectRows(body, dataRecords.slice(1)
-            .map((j, i) =>
-                renderDataRecord(j, 'td', i + 1)));
+        injectRows(body, rows.slice(1)
+            // todo: sort!
+                .map((r, i) =>
+                    renderRow(r, 'td', i + 1))
+
+        );
         injectRows(foot, [
-            renderDataRecord(dataRecords[0], 'th'),
+            renderRow(rows[0], 'th'),
         ]);
     };
     render();

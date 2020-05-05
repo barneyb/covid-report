@@ -31,9 +31,6 @@ body {
     background-color: #f0f7ff;
     user-select: none;
 }
-#main-table th.new-point {
-    border-left: 1px solid #ddd;
-}
 #main-table .number,
 #main-table .percent {
     text-align: right;
