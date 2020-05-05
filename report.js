@@ -10,11 +10,16 @@ function init(rawData) {
                 day: "numeric",
             });
     };
-    const formatNumber = (v, places = 0) =>
-        new Intl.NumberFormat("en-US", {
-            minimumFractionDigits: places,
-            maximumFractionDigits: places,
-        }).format(v);
+    const nfpMap = new Map();
+    const formatNumber = (v, places = 0) => {
+        if (!nfpMap.has(places)) {
+            nfpMap.set(places, new Intl.NumberFormat("en-US", {
+                minimumFractionDigits: places,
+                maximumFractionDigits: places,
+            }));
+        }
+        return nfpMap.get(places).format(v);
+    };
     const formatPercent = (v, places = 1) =>
         formatNumber(v * 100, places) + "%";
 
@@ -103,7 +108,7 @@ function init(rawData) {
             }
             return fs;
         }),
-    })
+    });
 
     const tag = (el, c, attrs) =>
         `<${el}${Object.keys(attrs || {})
@@ -114,25 +119,23 @@ function init(rawData) {
     const labelPointCells = () =>
         tag('th', '', {colspan: 3})
         + rawData.points
-            .map(p => {
-                const cs = series
-                    .filter(s => s.test(p))
-                    .length;
-                return tag(
-                    'th',
-                    formatDate(p.date),
-                    cs > 1 ? {colspan: cs} : null,
-                );
-            })
+            .map(p =>
+                tag('th', formatDate(p.date), {
+                    className: "point new-point",
+                    colspan: series
+                        .filter(s => s.test(p))
+                        .length,
+                }))
             .join("");
     const sublabelPointCells = () =>
         tag('th')
-        + tag('th', 'Jurisdiction')
-        + tag('th', 'Population')
+        + tag('th', 'Jurisdiction', {className: "sortable"})
+        + tag('th', 'Population', {className: "sortable"})
         + rawData.points
             .flatMap(p => series
                 .filter(s => s.test(p))
-                .map(s => tag('th', s.name)))
+                .map((s, i) =>
+                    tag('th', s.name, {className: "sortable" + (i === 0 ? " new-point" : "")})))
             .join("");
     const renderDataRecord = (rec, el, num) =>
         tag(el, num)
@@ -157,9 +160,10 @@ function init(rawData) {
             sublabelPointCells(),
         ]);
         injectRows(body, dataRecords.slice(1)
-            .map((j, i) => renderDataRecord(j, 'td', i + 1)));
+            .map((j, i) =>
+                renderDataRecord(j, 'td', i + 1)));
         injectRows(foot, [
-            (renderDataRecord(dataRecords[0], 'th')),
+            renderDataRecord(dataRecords[0], 'th'),
         ]);
     };
     render();

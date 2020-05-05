@@ -1,21 +1,38 @@
 body {
     font-family: 'Roboto', sans-serif; /* not actually gonna web-font it though */
 }
-#main-table,
-#main-table th,
-#main-table td {
-    border: 1px solid #eee;
+#main-table {
     border-collapse: collapse;
+}
+#main-table td {
+    border-top: 1px solid #eee;
+    border-bottom: 1px solid #eee;
+    border-collapse: collapse;
+    white-space: nowrap;
+}
+#main-table tbody tr:nth-child(even) {
+    background-color: #f7f7f7;
 }
 #main-table th,
 #main-table td {
-    padding: 0.2em 0.3em;
+    padding: 0.3em;
 }
 #main-table tbody td:first-child {
     color: #999;
 }
 #main-table th {
     text-align: left;
+    vertical-align: bottom;
+}
+#main-table thead th.sortable {
+    cursor: pointer;
+}
+#main-table thead th.sortable:hover {
+    background-color: #f0f7ff;
+    user-select: none;
+}
+#main-table th.new-point {
+    border-left: 1px solid #ddd;
 }
 #main-table .number,
 #main-table .percent {
