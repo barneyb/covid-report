@@ -20,17 +20,30 @@ body {
 #main-table tbody td:first-child {
     color: #999;
 }
-#main-table th {
+#main-table th.new-point {
+    border-left: 1px solid #999;
+}
+#main-table td.new-point {
+    border-left: 1px solid #ccc;
+}
+#main-table thead th {
     text-align: left;
     vertical-align: bottom;
 }
-#main-table thead th.sortable {
+#main-table tfoot th {
+    text-align: left;
+    vertical-align: top;
+}
+#main-table th.sortable {
     cursor: pointer;
 }
-#main-table thead th.sorted,
-#main-table thead th.sortable:hover {
+#main-table th.sorted,
+#main-table th.sortable:hover {
     background-color: #f0f7ff;
     user-select: none;
+}
+#main-table tbody .hot {
+    background-color: #ee9;
 }
 #main-table .number,
 #main-table .percent {

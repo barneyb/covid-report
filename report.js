@@ -46,12 +46,13 @@ function init(rawData) {
         {
             name: "Deaths",
             test: p => p.deaths,
-            expr: d => d.cases,
+            expr: d => d.deaths,
         },
         {
             name: "Death Rate",
             test: p => p.deaths,
             expr: (d, p, j) => d.deaths / j.pop * HunThou,
+            format: n => formatNumber(n, 1)
         },
         {
             name: "New Deaths",
@@ -119,14 +120,10 @@ function init(rawData) {
             expr: j => j.name,
             format: IDENTITY,
         },
-        {
-            scope: "jurisdiction",
-            name: "Population",
-            expr: j => j.pop,
-            format: formatNumber,
-        },
     ].concat(rawData.points
-        .flatMap((p, i) =>
+        .map((p, i) => ({p, i}))
+        .reverse()
+        .flatMap(({p, i}) =>
             series
                 .filter(s => s.test(p))
                 .map(s => ({
@@ -136,14 +133,27 @@ function init(rawData) {
                     format: s.format,
                     p: p,
                     pidx: i,
-                }))));
-    const columnGroups = columns.reduce((gs, c) => {
-        const gn = c.group || "";
-        return {
-            ...gs,
-            [gn]: (gs[gn] || 0) + 1,
-        };
-    }, {});
+                }))),
+        {
+            scope: "jurisdiction",
+            name: "Population",
+            expr: j => j.pop,
+            format: formatNumber,
+        });
+    const columnGroups = columns
+        .map(c => ({
+            group: c.group || "",
+            count: 1,
+        }))
+        .reduce((gs, c) => {
+            const last = gs[gs.length - 1];
+            if (last && last.group === c.group) {
+                last.count += 1;
+            } else {
+                gs.push(c);
+            }
+            return gs; // tee hee
+        }, []);
     const rows = dataRecords.map(rec =>
         columns
             .map(c =>
@@ -154,38 +164,25 @@ function init(rawData) {
     let state = {};
     window.setState = s =>
         render(state = {...state, ...(typeof s === "function" ? s(state) : s)});
+    window.toggleHotRow = jn =>
+        setState(s => {
+            const idx = s.hotRows.indexOf(jn);
+            const hotRows = s.hotRows.slice();
+            if (idx < 0) {
+                hotRows.push(jn);
+            } else {
+                hotRows.splice(idx, 1);
+            }
+            return { hotRows };
+        });
     const tag = (el, c, attrs) =>
         `<${el}${Object.keys(attrs || {})
             .map(k => ` ${k === "className" ? "class" : k}="${attrs[k]}"`)
-            .join('')}>${c || ''}</${el}>`
-    const numTag = (el, v, fmt = formatNumber) =>
-        tag(el, fmt(v), {className: "number"});
-    const labelPointCells = () =>
-        Object.keys(columnGroups)
-            .map(gn =>
-                tag('th', gn, {
-                    colspan: columnGroups[gn] + (gn === "" ? 1 : 0),
-                }));
-    const sublabelPointCells = (state) =>
-        tag('th')
-        + columns.map((c, i) =>
-            tag('th', c.name, state.sortCol === i ? {
-                className: "sortable sorted",
-                onclick: `setState(s => ({sortCol:${i},sortAsc:!s.sortAsc}))`,
-            } : {
-                className: "sortable",
-                onclick: `setState({sortCol:${i}})`,
-            }))
-            .join("");
-    const renderRow = (r, el, num) =>
-        tag(el, num)
-        + columns.map((c, i) =>
-            (typeof r[i] === "number" ? numTag : tag)(el, r[i], c.format))
-            .join("");
+            .join('')}>${c || ''}</${el}>`;
     const injectRows = (node, rows) =>
         node.innerHTML = rows
             .map(r =>
-                `<tr>${r.join ? r.join("") : r}</tr>`)
+                tag('tr', r.join ? r.join("") : r))
             .join("\n");
     const numComp = (a, b) => a - b;
     const strComp = (a, b) => a < b ? -1 : a > b ? 1 : 0;
@@ -195,9 +192,58 @@ function init(rawData) {
     const foot = $("#main-table tfoot");
     $("#updated").innerText = `Updated ${formatDate(rawData.date)}`;
     const render = state => {
+        const labelPointCells = () =>
+            tag('th')
+            + columnGroups.map(g =>
+                tag('th', g.group, {
+                    colspan: g.count,
+                    className: "new-point",
+                }))
+                .join("");
+        const newPointIdxs = columnGroups
+            .reduce((agg, g) => {
+                    agg.n += g.count;
+                    agg.idxs.push(agg.n);
+                    return agg; // tee-hee
+                }, {n: 0, idxs: [0]})
+            .idxs;
+        const sublabelPointCells = () =>
+            tag('th')
+            + columns.map((c, i) => {
+                const attrs = {
+                    className: "sortable",
+                };
+                if (newPointIdxs.includes(i)) {
+                    attrs.className += " new-point";
+                }
+                if (state.sortCol === i) {
+                    attrs.onclick = `setState(s => ({sortCol:${i},sortAsc:!s.sortAsc}))`;
+                    attrs.className += " sorted";
+                } else {
+                    attrs.onclick = `setState({sortCol:${i},sortAsc:${i === 0}})`;
+                }
+                return tag('th', c.name, attrs)
+            })
+                .join("");
+        const renderRow = (r, el, num) =>
+            tag(el, num)
+            + columns.map((c, i) => {
+                const num = typeof r[i] === "number";
+                return tag(el, c.format(r[i]), {
+                    className: [
+                        num ? "number" : "",
+                        newPointIdxs.includes(i) ? "new-point" : "",
+                        state.hotRows.includes(r[0]) ? "hot" : "",
+                    ].filter(IDENTITY).join(" "),
+                    onclick: `toggleHotRow('${r[0]}')`
+                })
+            })
+                .join("");
+        const labelRow = labelPointCells()
+        const sublabelRow = sublabelPointCells(state)
         injectRows(head, [
-            labelPointCells(),
-            sublabelPointCells(state),
+            labelRow,
+            sublabelRow,
         ]);
         let comp = typeof rows[1][state.sortCol] === "number"? numComp : strComp;
         if (!state.sortAsc) comp = revComp(comp);
@@ -209,11 +255,14 @@ function init(rawData) {
         );
         injectRows(foot, [
             renderRow(rows[0], 'th'),
+            sublabelRow,
+            labelRow,
         ]);
     };
     setState({
-        sortCol: 11,
-        sortAsc: false,
+        sortCol: 0,
+        sortAsc: true,
+        hotRows: ["Montana", "New York", "Oregon"],
     });
 }
 
