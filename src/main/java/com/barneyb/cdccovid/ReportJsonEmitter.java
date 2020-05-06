@@ -117,24 +117,6 @@ public class ReportJsonEmitter implements Emitter {
             return deaths != null;
         }
 
-        public Double getCaseRate() {
-            return onePlace(cases.doubleValue() / pop * RATE_POPULATION);
-        }
-
-        public Double getDeathRate() {
-            if (!hasDeaths()) return null;
-            return onePlace(deaths.doubleValue() / pop * RATE_POPULATION);
-        }
-
-        public Double getCaseMortalityPercent() {
-            if (!hasDeaths()) return null;
-            return onePlace(deaths.doubleValue() / cases * 100);
-        }
-
-        protected Double onePlace(Number num) {
-            return Math.round(10 * num.doubleValue()) / 10.0;
-        }
-
     }
 
     @Getter
@@ -154,19 +136,6 @@ public class ReportJsonEmitter implements Emitter {
             return since != null;
         }
 
-        public Double getCasesPerWeek() {
-            if (!hasDelta()) return null;
-            return onePlacePerWeek(1.0 * since.cases / since.days);
-        }
-
-        public Double getDeathsPerWeek() {
-            if (!hasDelta() || !since.hasDeaths()) return null;
-            return onePlacePerWeek(since.deaths.doubleValue() / since.days);
-        }
-
-        private Double onePlacePerWeek(Number num) {
-            return onePlace(num.doubleValue() / since.days * DAYS_PER_WEEK);
-        }
     }
 
     @Getter
