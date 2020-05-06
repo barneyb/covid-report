@@ -27,42 +27,57 @@ function init(rawData) {
     const series = [
         {
             name: "Cases",
+            desc: "Total number of reported cases.",
             expr: d => d.cases,
         },
         {
             name: "Case Rate",
+            desc: "Total cases per 100,000 population.",
             expr: (d, p, j) => d.cases / j.pop * HunThou,
         },
         {
             name: "New Cases",
+            desc: "New cases reported this week.",
             test: p => p.case_delta,
-            expr: d => d.new_cases,
+            expr: (d, p) => d.new_cases,
         },
         {
             name: "New Cases Rate",
+            desc: "New cases reported this week per 100,000 population.",
             test: p => p.case_delta,
-            expr: (d, p, j) => d.new_cases / p.days * Week / j.pop * HunThou,
+            expr: (d, p, j) => d.new_cases / j.pop * HunThou,
         },
         {
             name: "Deaths",
+            desc: "Total number of reported deaths.",
             test: p => p.deaths,
             expr: d => d.deaths,
         },
         {
             name: "Death Rate",
+            desc: "Total deaths per 100,000 population.",
             test: p => p.deaths,
             expr: (d, p, j) => d.deaths / j.pop * HunThou,
-            format: n => formatNumber(n, 1)
+            format: n => formatNumber(n, 1),
         },
         {
             name: "New Deaths",
+            desc: "New deaths reported this week.",
             test: p => p.death_delta,
             expr: d => d.new_deaths,
         },
         {
             name: "Case Mortality",
+            desc: "Deaths per case.",
             test: p => p.deaths,
             expr: d => d.deaths / d.cases,
+            format: formatPercent,
+        },
+        {
+            name: "New Case Mortality",
+            desc: "New deaths per new case.",
+            test: p => p.death_delta,
+            expr: d => d.new_deaths / d.new_cases,
             format: formatPercent,
         },
     ];
@@ -84,6 +99,7 @@ function init(rawData) {
                 }
                 if (p.deaths) fs.deaths = d.deaths;
                 if (p.case_delta) {
+                    if (p.days !== Week) throw new Error("Non-week period!");
                     fs.new_cases = d.since.cases;
                     if (p.death_delta) {
                         fs.new_deaths = d.since.deaths;
@@ -129,6 +145,7 @@ function init(rawData) {
                 .map(s => ({
                     group: formatDate(p.date),
                     name: s.name,
+                    desc: s.desc,
                     expr: s.expr,
                     format: s.format,
                     p: p,
@@ -137,6 +154,7 @@ function init(rawData) {
         {
             scope: "jurisdiction",
             name: "Population",
+            desc: "US Census population estimate for July 1, 2019.",
             expr: j => j.pop,
             format: formatNumber,
         });
@@ -213,6 +231,7 @@ function init(rawData) {
                 const attrs = {
                     className: "sortable",
                 };
+                if (c.desc) attrs.title = c.desc;
                 if (newPointIdxs.includes(i)) {
                     attrs.className += " new-point";
                 }
