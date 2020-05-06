@@ -229,11 +229,12 @@ function init(rawData) {
             tag(el, num)
             + columns.map((c, i) => {
                 const num = typeof r[i] === "number";
+                const hotIdx = state.hotRows.indexOf(r[0])
                 return tag(el, c.format(r[i]), {
                     className: [
                         num ? "number" : "",
                         newPointIdxs.includes(i) ? "new-point" : "",
-                        state.hotRows.includes(r[0]) ? "hot" : "",
+                        hotIdx >= 0 ? `hot hot-${hotIdx}` : "",
                     ].filter(IDENTITY).join(" "),
                     onclick: `toggleHotRow('${r[0]}')`
                 })

@@ -45,6 +45,15 @@ body {
 #main-table tbody .hot {
     background-color: #ee9;
 }
+#main-table tbody .hot-0 {
+    background-color: #d9ead3;
+}
+#main-table tbody .hot-1 {
+    background-color: #c9daf8;
+}
+#main-table tbody .hot-2 {
+    background-color: #fce5cd;
+}
 #main-table .number,
 #main-table .percent {
     text-align: right;
