@@ -7,6 +7,7 @@
 <body>
 <button id="show-sidebar" class="trigger" title="Show customization bar">&lt;</button>
 <div id="sidebar">
+    <button id="reset-to-defaults" class="trigger" title="Reset all customizations">Reset</button>
     <button id="hide-sidebar" class="trigger" title="Hide customization bar">&gt;</button>
     <div class="content"></div>
 </div>
@@ -18,21 +19,31 @@
     <tfoot></tfoot>
 </table>
 <hr />
-<p>Population rates are calculated per 100,000 people.
-</p>
-<p>Time rates are calculated per week (7 days).
-</p>
 <p>Dates are the CDC's <em>publishing</em> dates, typically the day after
     the data are reported.
 </p>
-<p>If data are available, a <span class="delta-up-some">bad</span>-to-<span class="delta-down-some">good</span>
-    color gradient will be laid behind normalized columns to indicate the
-    relative change from the prior week.
+<p>If data are available, a
+     <span class="delta-up-wow"      >b</span
+    ><span class="delta-up-lots"     >a</span
+    ><span class="delta-up-some"     >d</span
+    ><span class="delta-up-bit"      >-</span
+    ><span class="delta-up-smidge"   >t</span
+    ><span class=""                  >o</span
+    ><span class="delta-down-smidge" >-</span
+    ><span class="delta-down-bit"    >g</span
+    ><span class="delta-down-some"   >o</span
+    ><span class="delta-down-lots"   >o</span
+    ><span class="delta-down-zero"   >d</span>
+    color gradient will indicate the relative change from the prior week.
 </p>
 <hr />
 <p>COVID-19 case and death data from <a href="https://www.cdc.gov/coronavirus/2019-ncov/cases-updates/cases-in-us.html">https://www.cdc.gov/coronavirus/2019-ncov/cases-updates/cases-in-us.html</a>.
 </p>
-<p>Population data from <a href="https://www.census.gov/data/datasets/time-series/demo/popest/2010s-state-total.html">https://www.census.gov/data/datasets/time-series/demo/popest/2010s-state-total.html</a>.
+<p>Population data from <a href="https://www.census.gov/data/datasets/time-series/demo/popest/2010s-state-total.html">https://www.census.gov/data/datasets/time-series/demo/popest/2010s-state-total.html</a>
+    for July 1, 2019.
+</p>
+<p>Mortality data from <a href="https://wonder.cdc.gov/controller/datarequest/D140">https://wonder.cdc.gov/controller/datarequest/D140</a>
+    using only year 2016.
 </p>
 <script src="report.js" type="application/javascript"></script>
 </body>

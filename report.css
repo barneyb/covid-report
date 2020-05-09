@@ -15,6 +15,11 @@ button.trigger {
 button.trigger:hover {
     background-color: #eeeef3;
 }
+#reset-to-defaults {
+    float: left !important;
+    font-size: 1rem;
+    border-radius: 2px;
+}
 #show-sidebar {
     float: right;
 }
@@ -116,11 +121,11 @@ tbody tr.hot-2 {
     content: "%";
 }
 
-.delta-up-smidge    { background-color: rgba(255,   0,   0, 0.02); }
-.delta-up-bit       { background-color: rgba(255,   0,   0, 0.08); }
-.delta-up-some      { background-color: rgba(255,   0,   0, 0.16); }
-.delta-up-lots      { background-color: rgba(255,   0,   0, 0.32); }
 .delta-up-wow       { background-color: rgba(255,   0,   0, 0.64); }
+.delta-up-lots      { background-color: rgba(255,   0,   0, 0.32); }
+.delta-up-some      { background-color: rgba(255,   0,   0, 0.16); }
+.delta-up-bit       { background-color: rgba(255,   0,   0, 0.08); }
+.delta-up-smidge    { background-color: rgba(255,   0,   0, 0.02); }
 .delta-down-smidge  { background-color: rgba( 43, 255,   0, 0.02); }
 .delta-down-bit     { background-color: rgba( 43, 255,   0, 0.08); }
 .delta-down-some    { background-color: rgba( 43, 255,   0, 0.16); }

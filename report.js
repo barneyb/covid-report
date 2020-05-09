@@ -29,6 +29,8 @@ function init(rawData) {
     };
     const formatPercent = (v, places = 1) =>
         formatNumber(v * 100, places) + "%";
+    const formatDeathRate = v => formatNumber(v, 1)
+    const formatDeathRateSegment = v => formatNumber(v, 2)
 
     // expr is "(d, p, j) => value"
     const series = [
@@ -37,84 +39,144 @@ function init(rawData) {
             name: "Jurisdiction",
             expr: j => j.name,
             format: IDENTITY,
+            hot: true,
+        },
+        {
+            name: "Total Cases",
+            desc: "Total number of reported cases.",
+            expr: d => d.total_cases,
+            cold: true,
+        },
+        {
+            name: "Total Case Rate",
+            desc: "Total cases per 100,000 population.",
+            expr: (d, p, j) => d.total_cases / j.pop * HunThou,
+            cold: true,
         },
         {
             name: "Cases",
-            desc: "Total number of reported cases.",
+            desc: "Cases reported this week.",
+            test: p => p.case_delta,
             expr: d => d.cases,
             cold: true,
+            time: true,
         },
         {
             name: "Case Rate",
-            desc: "Total cases per 100,000 population.",
+            desc: "Cases reported this week per 100,000 population.",
+            test: p => p.case_delta,
             expr: (d, p, j) => d.cases / j.pop * HunThou,
+            time: true,
         },
         {
-            name: "New Cases",
-            desc: "New cases reported this week.",
-            test: p => p.case_delta,
-            expr: d => d.new_cases,
+            name: "Total Deaths",
+            desc: "Total number of reported deaths.",
+            test: p => p.deaths,
+            expr: d => d.total_deaths,
             cold: true,
-            time: true,
         },
         {
-            name: "New Cases Rate",
-            desc: "New cases reported this week per 100,000 population.",
-            test: p => p.case_delta,
-            expr: (d, p, j) => d.new_cases / j.pop * HunThou,
-            time: true,
+            name: "Total Death Rate",
+            desc: "Total deaths per 100,000 population.",
+            test: p => p.deaths,
+            expr: (d, p, j) => d.total_deaths / j.pop * HunThou,
+            format: formatDeathRate,
+            cold: true,
         },
         {
             name: "Deaths",
-            desc: "Total number of reported deaths.",
-            test: p => p.deaths,
+            desc: "Deaths reported this week.",
+            test: p => p.death_delta,
             expr: d => d.deaths,
             cold: true,
+            time: true,
         },
         {
             name: "Death Rate",
-            desc: "Total deaths per 100,000 population.",
-            test: p => p.deaths,
+            desc: "Deaths reported this week per 100,000 population.",
+            test: p => p.death_delta,
             expr: (d, p, j) => d.deaths / j.pop * HunThou,
-            format: n => formatNumber(n, 1),
+            format: formatDeathRate,
+            time: true,
         },
         {
-            name: "New Deaths",
-            desc: "New deaths reported this week.",
-            test: p => p.death_delta,
-            expr: d => d.new_deaths,
+            name: "Total Case Mortality",
+            desc: "Total deaths per total case.",
+            test: p => p.deaths,
+            expr: d => d.total_deaths / d.total_cases,
+            format: formatPercent,
             cold: true,
-            time: true,
-        },
-        {
-            name: "New Death Rate",
-            desc: "New deaths reported this week per 100,000 population.",
-            test: p => p.death_delta,
-            expr: (d, p, j) => d.new_deaths / j.pop * HunThou,
-            format: n => formatNumber(n, 1),
-            time: true,
         },
         {
             name: "Case Mortality",
             desc: "Deaths per case.",
-            test: p => p.deaths,
-            expr: d => d.deaths / d.cases,
-            format: formatPercent,
-        },
-        {
-            name: "New Case Mortality",
-            desc: "New deaths per new case.",
             test: p => p.death_delta,
-            expr: d => d.new_deaths / d.new_cases,
+            expr: d => d.deaths / d.cases,
             format: formatPercent,
             time: true,
         },
         {
             scope: "jurisdiction",
             name: "Population",
-            desc: "Census's US population estimate for July 1, 2019.",
+            desc: "The US Census's estimated population.",
             expr: j => j.pop,
-            format: formatNumber,
+            hot: true,
+        },
+        {
+            scope: "jurisdiction",
+            name: "Overall DR",
+            desc: "The CDC's expected overall deaths per week per 100,000 population.",
+            expr: j => j.rates.total,
+            format: formatDeathRate,
+        },
+        {
+            scope: "jurisdiction",
+            name: "Cardiac DR",
+            desc: "The CDC's expected cardiac disease deaths (I00-I99: Diseases of the circulatory system) per week per 100,000 population.",
+            expr: j => j.rates.circ,
+            format: formatDeathRateSegment,
+        },
+        {
+            scope: "jurisdiction",
+            name: "Cancer DR",
+            desc: "The CDC's expected cancer-related deaths (C00-D48: Neoplasms) per week per 100,000 population.",
+            expr: j => j.rates.cancer,
+            format: formatDeathRateSegment,
+        },
+        {
+            scope: "jurisdiction",
+            name: "Respiratory DR",
+            desc: "The CDC's expected respiratory disease deaths (J00-J98: Diseases of the respiratory system) per week per 100,000 population.",
+            expr: j => j.rates.resp,
+            format: formatDeathRateSegment,
+        },
+        {
+            scope: "jurisdiction",
+            name: "Mental DR",
+            desc: "The CDC's expected mental disorder deaths (F01-F99: Mental and behavioural disorders) per week per 100,000 population.",
+            expr: j => j.rates.mental,
+            format: formatDeathRateSegment,
+        },
+        {
+            scope: "jurisdiction",
+            name: "Non-Trans Accident DR",
+            desc: "The CDC's expected non-transportation accidental deaths (W00-X59: Other external causes of accidental injury) per week per 100,000 population.",
+            expr: j => j.rates.non_trans,
+            format: formatDeathRateSegment,
+        },
+        {
+            scope: "jurisdiction",
+            name: "Self-Harm DR",
+            desc: "The CDC's expected self-harm deaths (X60-X84: Intentional self-harm) per week per 100,000 population.",
+            expr: j => j.rates.self,
+            format: formatDeathRateSegment,
+        },
+        {
+            scope: "jurisdiction",
+            name: "Transport DR",
+            desc: "The CDC's expected transportation-related deaths (V01-V99: Transport accidents) per week per 100,000 population.",
+            expr: j => j.rates.trans,
+            format: formatDeathRateSegment,
         },
     ];
     series.forEach(s => {
@@ -133,18 +195,23 @@ function init(rawData) {
             data: rawData.points.map((p, i) => {
                 const d = j.data[i];
                 const fs = {
-                    cases: d.cases,
+                    total_cases: d.cases,
                 }
-                if (p.deaths) fs.deaths = d.deaths;
+                if (p.deaths) fs.total_deaths = d.deaths;
                 if (p.case_delta) {
                     if (p.days !== Week) throw new Error("Non-week period!");
-                    fs.new_cases = d.since.cases;
+                    fs.cases = d.since.cases;
                     if (p.death_delta) {
-                        fs.new_deaths = d.since.deaths;
+                        fs.deaths = d.since.deaths;
                     }
                 }
                 return fs;
             }),
+            rates: Object.keys(j.mortality_rates)
+                .reduce((rs, k) => ({
+                    ...rs,
+                    [k]: j.mortality_rates[k] / 365.24 * Week,
+                }), {})
         }));
     const sumUp = supplier => dataRecords
         .map(supplier)
@@ -154,17 +221,23 @@ function init(rawData) {
         pop: sumUp(j => j.pop),
         data: rawData.points.map((p, i) => {
             const fs = {
-                cases: sumUp(j => j.data[i].cases),
+                total_cases: sumUp(j => j.data[i].total_cases),
             }
-            if (p.deaths) fs.deaths = sumUp(j => j.data[i].deaths);
+            if (p.deaths) fs.total_deaths = sumUp(j => j.data[i].total_deaths);
             if (p.case_delta) {
-                fs.new_cases = sumUp(j => j.data[i].new_cases);
+                fs.cases = sumUp(j => j.data[i].cases);
                 if (p.death_delta) {
-                    fs.new_deaths = sumUp(j => j.data[i].new_deaths);
+                    fs.deaths = sumUp(j => j.data[i].deaths);
                 }
             }
             return fs;
         }),
+        rates: Object.keys(rawData.jurisdictions[0].mortality_rates)
+            .reduce((rs, k) => ({
+                ...rs,
+                [k]: sumUp(j => j.pop * j.rates[k])
+                    / sumUp(j => j.pop),
+            }), {})
     });
     for (const rec of dataRecords) {
         rec.groups = rawData.points
@@ -208,14 +281,15 @@ function init(rawData) {
     }
 
     const buildTable = state => {
+        const hotSeries = series
+            .filter(s => !state.coldSeries.includes(s.name))
         const columns = [
             series[0],
             ...rawData.points
                 .filter(p => !state.coldGroups.includes(p.label))
                 .reverse()
                 .flatMap(p =>
-                    series
-                        .filter(s => !state.coldSeries.includes(s.name))
+                    hotSeries
                         .filter(s => s.scope === "point")
                         .filter(s => s.test(p))
                         .map(s => ({
@@ -223,7 +297,10 @@ function init(rawData) {
                             ...s,
                             p: p,
                         }))),
-            series[series.length - 1]];
+            ...hotSeries
+                .filter(it => it.scope === "jurisdiction")
+                .slice(1) // name
+        ];
         const columnGroups = columns
             .map(c => ({
                 group: c.group || "",
@@ -302,6 +379,10 @@ function init(rawData) {
     $("#updated").innerText = `Updated ${formatDate(rawData.date)}`;
     $("#show-sidebar").addEventListener("click", () => setState({sidebar: true}))
     $("#hide-sidebar").addEventListener("click", () => setState({sidebar: false}))
+    $("#reset-to-defaults").addEventListener("click", () => {
+        window.localStorage.setItem(LS_KEY, JSON.stringify({sidebar: true}));
+        window.location.reload();
+    })
     const render = state => {
         const labelPointCells = () =>
             tag('th')
@@ -418,9 +499,19 @@ function init(rawData) {
                             }))
                 ]),
                 tag('section', [
-                    tag('h3', 'Series'),
+                    tag('h3', 'Date Series'),
                     ...series
                         .filter(it => it.scope === "point")
+                        .map(s =>
+                            chkbx(s.name, !state.coldSeries.includes(s.name), {
+                                onclick: `toggleSeries('${s.name}')`
+                            }, s.desc))
+                ]),
+                tag('section', [
+                    tag('h3', 'Jurisdiction Series'),
+                    ...series
+                        .slice(1) // name
+                        .filter(it => it.scope === "jurisdiction")
                         .map(s =>
                             chkbx(s.name, !state.coldSeries.includes(s.name), {
                                 onclick: `toggleSeries('${s.name}')`
@@ -441,7 +532,8 @@ function init(rawData) {
             sidebar: false,
             coldGroups: [],
             coldSeries: series
-                .filter(it => it.cold)
+                .filter(it =>
+                    it.scope === "point" ? it.cold : !it.hot)
                 .map(it => it.name),
         };
         try {
