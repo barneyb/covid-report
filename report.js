@@ -6,6 +6,8 @@ function init(rawData) {
     const Week = 7;
     const fTrue = () => true;
     const IDENTITY = v => v;
+    const isNum = v =>
+        typeof v === "number" || v instanceof Number;
     const formatDate = ld => {
         const ps = ld.split("-")
             .map(p => parseInt(p, 10));
@@ -53,12 +55,14 @@ function init(rawData) {
             test: p => p.case_delta,
             expr: d => d.new_cases,
             cold: true,
+            time: true,
         },
         {
             name: "New Cases Rate",
             desc: "New cases reported this week per 100,000 population.",
             test: p => p.case_delta,
             expr: (d, p, j) => d.new_cases / j.pop * HunThou,
+            time: true,
         },
         {
             name: "Deaths",
@@ -80,12 +84,14 @@ function init(rawData) {
             test: p => p.death_delta,
             expr: d => d.new_deaths,
             cold: true,
+            time: true,
         },
         {
             name: "New Death Rate",
             desc: "New deaths reported this week per 100,000 population.",
             test: p => p.death_delta,
             expr: (d, p, j) => d.new_deaths / j.pop * HunThou,
+            time: true,
         },
         {
             name: "Case Mortality",
@@ -100,6 +106,7 @@ function init(rawData) {
             test: p => p.death_delta,
             expr: d => d.new_deaths / d.new_cases,
             format: formatPercent,
+            time: true,
         },
         {
             scope: "jurisdiction",
@@ -159,22 +166,44 @@ function init(rawData) {
         }),
     });
     for (const rec of dataRecords) {
-        rec.groups = rawData.points.reduce((ps, p, pidx) => ({
-            ...ps,
-            [p.label]: series
-                .filter(s => s.scope === "point")
-                .filter(s => s.test(p))
-                .reduce((ss, s) => ({
-                    ...ss,
-                    [s.name]: s.expr(rec.data[pidx], p, rec)
-                }), {}),
-            [undefined]: series
-                .filter(s => s.scope === "jurisdiction")
-                .reduce((ss, s) => ({
-                    ...ss,
-                    [s.name]: s.expr(rec)
-                }), {}),
-        }), {});
+        rec.groups = rawData.points
+            .reduce((agg, p, pidx) => {
+                const data = series
+                    .filter(s => s.scope === "point")
+                    .filter(s => s.test(p))
+                    .reduce((ss, s) => {
+                        let val = s.expr(rec.data[pidx], p, rec)
+                        if (s.time && agg.prev) {
+                            const prev = agg.prev[s.name];
+                            if (prev) {
+                                // noinspection JSPrimitiveTypeWrapperUsage
+                                val = new Number(val);
+                                val._change = prev === 0
+                                    ? 10 // Any increase from zero means tenfold! By fiat!
+                                    : (val - prev) / prev;
+                            }
+                        }
+                        return {
+                            ...ss,
+                            [s.name]: val,
+                        }
+                    }, {
+                        _prev: agg.prev,
+                    })
+                return {
+                    prev: data,
+                    ps: {
+                        ...agg.ps,
+                        [p.label]: data,
+                        [undefined]: series
+                            .filter(s => s.scope === "jurisdiction")
+                            .reduce((ss, s) => ({
+                                ...ss,
+                                [s.name]: s.expr(rec),
+                            }), {}),
+                    },
+                }
+            }, {}).ps;
     }
 
     const rebuildTable = (state, prev) => {
@@ -308,18 +337,33 @@ function init(rawData) {
                 return tag('th', c.name, attrs)
             })
                 .join("");
+        const classForDelta = val => {
+            if (!val.hasOwnProperty("_change")) return null;
+            if (val._change === 0) return "delta-equal";
+            if (val === 0) return "delta-down-zero";
+            if (val._change < 0) {
+                return val._change > -0.04 ? "delta-down-smidge"
+                    : val._change > -0.2 ? "delta-down-bit"
+                    : val._change > -0.4 ? "delta-down-some"
+                    : "delta-down-lots";
+            } else {
+                return val._change < 0.05 ? "delta-up-smidge"
+                    : val._change < 0.25 ? "delta-up-bit"
+                    : val._change < 0.5 ? "delta-up-some"
+                    : val._change < 0.75 ? "delta-up-lots"
+                    : "delta-up-wow";
+            }
+        };
         const renderRow = (r, el, num) =>
             tag(el, num)
             + state.columns.map((c, i) => {
-                const num = typeof r[i] === "number";
-                const hotIdx = state.hotRows.indexOf(r[0])
-                return tag(el, c.format(r[i]), {
+                const val = r[i];
+                return tag(el, c.format(val), {
                     className: [
-                        num ? "number" : "",
+                        isNum(val) ? "number" : "",
+                        classForDelta(val),
                         newPointIdxs.includes(i) ? "new-point" : "",
-                        hotIdx >= 0 ? `hot hot-${hotIdx}` : "",
                     ].filter(IDENTITY).join(" "),
-                    onclick: `toggleHotRow('${r[0]}')`
                 })
             })
                 .join("");
@@ -329,14 +373,19 @@ function init(rawData) {
             labelRow,
             sublabelRow,
         ]);
-        let comp = typeof state.totalRow[state.sortCol] === "number"? numComp : strComp;
+        let comp = isNum(state.totalRow[state.sortCol]) ? numComp : strComp;
         if (!state.sortAsc) comp = revComp(comp);
-        injectRows(body, state.jRows
+        body.innerHTML = state.jRows
             .sort((a, b) =>
                 comp(a[state.sortCol], b[state.sortCol]))
-            .map((r, i) =>
-                renderRow(r, 'td', i + 1))
-        );
+            .map((r, i) => {
+                const hotIdx = state.hotRows.indexOf(r[0])
+                return tag('tr', renderRow(r, 'td', i + 1), {
+                    className: hotIdx >= 0 ? `hot hot-${hotIdx}` : "",
+                    onclick: `toggleHotRow('${r[0]}')`
+                })
+            })
+            .join("\n")
         injectRows(foot, [
             renderRow(state.totalRow, 'th'),
             sublabelRow,

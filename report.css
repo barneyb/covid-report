@@ -55,63 +55,74 @@ button.trigger:hover {
     font-size: 90%;
     color: #666;
 }
-#main-table {
+table {
     border-collapse: collapse;
 }
-#main-table td {
+td {
     border-top: 1px solid #eee;
     border-bottom: 1px solid #eee;
     border-collapse: collapse;
     white-space: nowrap;
 }
-#main-table tbody tr:nth-child(even) {
+tbody tr:nth-child(even) {
     background-color: #f7f7f7;
 }
-#main-table th,
-#main-table td {
+th,
+td {
     padding: 0.3em;
 }
-#main-table tbody td:first-child {
+tbody td:first-child {
     color: #999;
 }
-#main-table th.new-point {
+th.new-point {
     border-left: 1px solid #999;
 }
-#main-table td.new-point {
+td.new-point {
     border-left: 1px solid #ccc;
 }
-#main-table thead th {
+thead th {
     text-align: left;
     vertical-align: bottom;
 }
-#main-table tfoot th {
+tfoot th {
     text-align: left;
     vertical-align: top;
 }
-#main-table th.sortable {
+th.sortable {
     cursor: pointer;
 }
-#main-table th.sorted,
-#main-table th.sortable:hover {
+th.sorted,
+th.sortable:hover {
     background-color: #f0f7ff;
     user-select: none;
 }
-#main-table tbody .hot {
+tbody tr.hot {
     background-color: #f8f8c9;
 }
-#main-table tbody .hot-0 {
+tbody tr.hot-0 {
     background-color: #c9daf8;
 }
-#main-table tbody .hot-1 {
+tbody tr.hot-1 {
     background-color: #d9ead3;
 }
-#main-table tbody .hot-2 {
+tbody tr.hot-2 {
     background-color: #fce5cd;
 }
-#main-table .number,
-#main-table .percent {
+.number,
+.percent {
     text-align: right;
 }
-#main-table .percent:after {
+.percent:after {
     content: "%";
 }
+
+.delta-up-smidge    { background-color: rgba(255,   0,   0, 0.02); }
+.delta-up-bit       { background-color: rgba(255,   0,   0, 0.08); }
+.delta-up-some      { background-color: rgba(255,   0,   0, 0.16); }
+.delta-up-lots      { background-color: rgba(255,   0,   0, 0.32); }
+.delta-up-wow       { background-color: rgba(255,   0,   0, 0.64); }
+.delta-down-smidge  { background-color: rgba( 43, 255,   0, 0.02); }
+.delta-down-bit     { background-color: rgba( 43, 255,   0, 0.08); }
+.delta-down-some    { background-color: rgba( 43, 255,   0, 0.16); }
+.delta-down-lots    { background-color: rgba( 43, 255,   0, 0.32); }
+.delta-down-zero    { background-color: rgba( 43, 255,   0, 0.64); }
