@@ -91,6 +91,7 @@ function init(rawData) {
             desc: "New deaths reported this week per 100,000 population.",
             test: p => p.death_delta,
             expr: (d, p, j) => d.new_deaths / j.pop * HunThou,
+            format: n => formatNumber(n, 1),
             time: true,
         },
         {
