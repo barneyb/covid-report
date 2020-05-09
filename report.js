@@ -1,6 +1,11 @@
+/*
+ * Oh hai! Fancy meeting you here. You look fabulous, by the way. Very healthy.
+ */
 function init(rawData) {
     const HunThou = 100000;
     const Week = 7;
+    const fTrue = () => true;
+    const IDENTITY = v => v;
     const formatDate = ld => {
         const ps = ld.split("-")
             .map(p => parseInt(p, 10));
@@ -26,9 +31,16 @@ function init(rawData) {
     // expr is "(d, p, j) => value"
     const series = [
         {
+            scope: "jurisdiction",
+            name: "Jurisdiction",
+            expr: j => j.name,
+            format: IDENTITY,
+        },
+        {
             name: "Cases",
             desc: "Total number of reported cases.",
             expr: d => d.cases,
+            cold: true,
         },
         {
             name: "Case Rate",
@@ -39,7 +51,8 @@ function init(rawData) {
             name: "New Cases",
             desc: "New cases reported this week.",
             test: p => p.case_delta,
-            expr: (d, p) => d.new_cases,
+            expr: d => d.new_cases,
+            cold: true,
         },
         {
             name: "New Cases Rate",
@@ -52,6 +65,7 @@ function init(rawData) {
             desc: "Total number of reported deaths.",
             test: p => p.deaths,
             expr: d => d.deaths,
+            cold: true,
         },
         {
             name: "Death Rate",
@@ -65,6 +79,13 @@ function init(rawData) {
             desc: "New deaths reported this week.",
             test: p => p.death_delta,
             expr: d => d.new_deaths,
+            cold: true,
+        },
+        {
+            name: "New Death Rate",
+            desc: "New deaths reported this week per 100,000 population.",
+            test: p => p.death_delta,
+            expr: (d, p, j) => d.new_deaths / j.pop * HunThou,
         },
         {
             name: "Case Mortality",
@@ -80,12 +101,21 @@ function init(rawData) {
             expr: d => d.new_deaths / d.new_cases,
             format: formatPercent,
         },
+        {
+            scope: "jurisdiction",
+            name: "Population",
+            desc: "Census's US population estimate for July 1, 2019.",
+            expr: j => j.pop,
+            format: formatNumber,
+        },
     ];
-    const fTrue = () => true;
-    const IDENTITY = v => v;
     series.forEach(s => {
+        if (s.scope == null) s.scope = "point";
         if (s.test == null) s.test = fTrue;
         if (s.format == null) s.format = formatNumber;
+    });
+    rawData.points.forEach(p => {
+        p.label = formatDate(p.date);
     });
 
     const dataRecords = rawData.jurisdictions
@@ -128,75 +158,93 @@ function init(rawData) {
             return fs;
         }),
     });
-
-    const columns = [
-        {
-            scope: "jurisdiction",
-            name: "Jurisdiction",
-            expr: j => j.name,
-            format: IDENTITY,
-        },
-    ].concat(rawData.points
-        .map((p, i) => ({p, i}))
-        .reverse()
-        .flatMap(({p, i}) =>
-            series
+    for (const rec of dataRecords) {
+        rec.groups = rawData.points.reduce((ps, p, pidx) => ({
+            ...ps,
+            [p.label]: series
+                .filter(s => s.scope === "point")
                 .filter(s => s.test(p))
-                .map(s => ({
-                    group: formatDate(p.date),
-                    name: s.name,
-                    desc: s.desc,
-                    expr: s.expr,
-                    format: s.format,
-                    p: p,
-                    pidx: i,
-                }))),
-        {
-            scope: "jurisdiction",
-            name: "Population",
-            desc: "US Census population estimate for July 1, 2019.",
-            expr: j => j.pop,
-            format: formatNumber,
-        });
-    const columnGroups = columns
-        .map(c => ({
-            group: c.group || "",
-            count: 1,
-        }))
-        .reduce((gs, c) => {
-            const last = gs[gs.length - 1];
-            if (last && last.group === c.group) {
-                last.count += 1;
-            } else {
-                gs.push(c);
-            }
-            return gs; // tee hee
-        }, []);
-    const rows = dataRecords.map(rec =>
-        columns
-            .map(c =>
-                c.scope === "jurisdiction" ? c.expr(rec)
-                : c.expr(rec.data[c.pidx], c.p, rec)));
+                .reduce((ss, s) => ({
+                    ...ss,
+                    [s.name]: s.expr(rec.data[pidx], p, rec)
+                }), {}),
+            [undefined]: series
+                .filter(s => s.scope === "jurisdiction")
+                .reduce((ss, s) => ({
+                    ...ss,
+                    [s.name]: s.expr(rec)
+                }), {}),
+        }), {});
+    }
+
+    const rebuildTable = state => {
+        const columns = [
+            series[0],
+            ...rawData.points
+                .filter(p => !state.coldGroups.includes(p.label))
+                .reverse()
+                .flatMap(p =>
+                    series
+                        .filter(s => !state.coldSeries.includes(s.name))
+                        .filter(s => s.scope === "point")
+                        .filter(s => s.test(p))
+                        .map(s => ({
+                            group: p.label,
+                            ...s,
+                            p: p,
+                        }))),
+            series[series.length - 1]];
+        const columnGroups = columns
+            .map(c => ({
+                group: c.group || "",
+                count: 1,
+            }))
+            .reduce((gs, c) => {
+                const last = gs[gs.length - 1];
+                if (last && last.group === c.group) {
+                    last.count += 1;
+                } else {
+                    gs.push(c);
+                }
+                return gs; // tee hee
+            }, []);
+        const rows = dataRecords.map(rec =>
+            columns.map(c =>
+                rec.groups[c.group][c.name]));
+        return {
+            ...state,
+            columns,
+            columnGroups,
+            rows,
+        }
+    }
 
     const $ = document.querySelector.bind(document);
     let state = {};
     window.setState = s =>
-        render(state = {...state, ...(typeof s === "function" ? s(state) : s)});
-    window.toggleHotRow = jn =>
+        render(state = rebuildTable({
+            ...state,
+            ...(typeof s === "function" ? s(state) : s)
+        }));
+    const toggleBuilder = cn => it =>
         setState(s => {
-            const idx = s.hotRows.indexOf(jn);
-            const hotRows = s.hotRows.slice();
+            const next = s[cn].slice();
+            let idx = next.indexOf(it);
             if (idx < 0) {
-                hotRows.push(jn);
+                idx = next.indexOf(null);
+                idx < 0 ? next.push(it) : (next[idx] = it);
             } else {
-                hotRows.splice(idx, 1);
+                next[idx] = null;
             }
-            return { hotRows };
+            return { [cn]: next };
         });
+    window.toggleHotRow = toggleBuilder('hotRows');
+    window.toggleGroup = toggleBuilder('coldGroups');
+    window.toggleSeries = toggleBuilder('coldSeries');
     const tag = (el, c, attrs) =>
         `<${el}${Object.keys(attrs || {})
             .map(k => ` ${k === "className" ? "class" : k}="${attrs[k]}"`)
-            .join('')}>${c || ''}</${el}>`;
+            .join('')}>${c && c.join ? c.filter(IDENTITY).join("") : c || ''}</${el}>`;
     const injectRows = (node, rows) =>
         node.innerHTML = rows
             .map(r =>
@@ -208,17 +256,20 @@ function init(rawData) {
     const head = $("#main-table thead");
     const body = $("#main-table tbody");
     const foot = $("#main-table tfoot");
+    const sidebar = $("#sidebar .content");
     $("#updated").innerText = `Updated ${formatDate(rawData.date)}`;
+    $("#show-sidebar").addEventListener("click", () => setState({sidebar: true}))
+    $("#hide-sidebar").addEventListener("click", () => setState({sidebar: false}))
     const render = state => {
         const labelPointCells = () =>
             tag('th')
-            + columnGroups.map(g =>
+            + state.columnGroups.map(g =>
                 tag('th', g.group, {
                     colspan: g.count,
                     className: "new-point",
                 }))
                 .join("");
-        const newPointIdxs = columnGroups
+        const newPointIdxs = state.columnGroups
             .reduce((agg, g) => {
                     agg.n += g.count;
                     agg.idxs.push(agg.n);
@@ -227,7 +278,7 @@ function init(rawData) {
             .idxs;
         const sublabelPointCells = () =>
             tag('th')
-            + columns.map((c, i) => {
+            + state.columns.map((c, i) => {
                 const attrs = {
                     className: "sortable",
                 };
@@ -246,7 +297,7 @@ function init(rawData) {
                 .join("");
         const renderRow = (r, el, num) =>
             tag(el, num)
-            + columns.map((c, i) => {
+            + state.columns.map((c, i) => {
                 const num = typeof r[i] === "number";
                 const hotIdx = state.hotRows.indexOf(r[0])
                 return tag(el, c.format(r[i]), {
@@ -265,24 +316,70 @@ function init(rawData) {
             labelRow,
             sublabelRow,
         ]);
-        let comp = typeof rows[1][state.sortCol] === "number"? numComp : strComp;
+        let comp = typeof state.rows[1][state.sortCol] === "number"? numComp : strComp;
         if (!state.sortAsc) comp = revComp(comp);
-        injectRows(body, rows.slice(1)
+        injectRows(body, state.rows.slice(1)
             .sort((a, b) =>
                 comp(a[state.sortCol], b[state.sortCol]))
             .map((r, i) =>
                 renderRow(r, 'td', i + 1))
         );
         injectRows(foot, [
-            renderRow(rows[0], 'th'),
+            renderRow(state.rows[0], 'th'),
             sublabelRow,
             labelRow,
         ]);
+        if (state.sidebar) {
+            const chkbx = (label, checked, attrs, desc) => {
+                if (checked) {
+                    attrs.checked = "checked";
+                }
+                return tag('label', [
+                    tag('input', undefined, {
+                        ...attrs,
+                        type: "checkbox"
+                    }),
+                    label,
+                    desc && tag('div', desc, {className: "desc"})
+                ]);
+            };
+            document.body.className = "sidebar";
+            const sections = [
+                tag('section', [
+                    tag('h3', 'Dates'),
+                    ...rawData.points
+                        .map(p => formatDate(p.date))
+                        .reverse()
+                        .map(l =>
+                            chkbx(l, !state.coldGroups.includes(l), {
+                                onclick: `toggleGroup('${l}')`
+                            }))
+                ]),
+                tag('section', [
+                    tag('h3', 'Series'),
+                    ...series
+                        .filter(it => it.scope === "point")
+                        .map(s =>
+                            chkbx(s.name, !state.coldSeries.includes(s.name), {
+                                onclick: `toggleSeries('${s.name}')`
+                            }, s.desc))
+                ]),
+            ];
+            sidebar.innerHTML = tag('form', sections);
+        } else {
+            sidebar.innerText = "";
+            document.body.className = "";
+        }
     };
     setState({
         sortCol: 0,
         sortAsc: true,
-        hotRows: ["Montana", "New York", "Oregon"],
+        hotRows: ["Oregon", "Montana", "New York"],
+        sidebar: false,
+        coldGroups: [],
+        coldSeries: series
+            .filter(it => it.cold)
+            .map(it => it.name),
     });
 }
 

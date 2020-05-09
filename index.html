@@ -5,6 +5,11 @@
 <link href="report.css" type="text/css" rel="stylesheet" />
 </head>
 <body>
+<button id="show-sidebar" class="trigger" title="Show customization bar">&lt;</button>
+<div id="sidebar">
+    <button id="hide-sidebar" class="trigger" title="Hide customization bar">&gt;</button>
+    <div class="content"></div>
+</div>
 <h1>US COVID-19 by Jurisdiction</h1>
 <h2 id="updated"></h2>
 <table id="main-table">
@@ -13,8 +18,9 @@
     <tfoot></tfoot>
 </table>
 <hr />
-<p>All population rates are calculated per 100,000 people. All time rates are
-    calculated per week (7 days).
+<p>Population rates are calculated per 100,000 people. Time rates are calculated
+    per week (7 days). Dates are the CDC's <em>publishing</em> dates, typically
+    the day after the data are reported.
 </p>
 <hr />
 <p>COVID-19 case and death data from <a href="https://www.cdc.gov/coronavirus/2019-ncov/cases-updates/cases-in-us.html">https://www.cdc.gov/coronavirus/2019-ncov/cases-updates/cases-in-us.html</a>.
