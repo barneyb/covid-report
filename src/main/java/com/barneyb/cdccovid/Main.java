@@ -19,6 +19,9 @@ public class Main implements CommandLineRunner {
     ApplicationContext appCtx;
 
     public void run(String... args) throws Exception {
+//        appCtx.getBean(Mortality.class)
+//                .update();
+
 //        appCtx.getBean(CDC.class)
 //                .update(java.time.LocalDate.of(2020, 5, 2));
 

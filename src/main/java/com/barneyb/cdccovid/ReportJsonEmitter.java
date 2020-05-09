@@ -14,6 +14,7 @@ import java.io.OutputStream;
 import java.time.LocalDate;
 import java.time.Period;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -48,6 +49,7 @@ public class ReportJsonEmitter implements Emitter {
                     val r = new Juris();
                     r.name = j.getName();
                     r.population = j.getPopulation();
+                    r.mortalityRates = j.getMortalityRates();
                     r.data = dates
                             .stream()
                             .map(j::getData)
@@ -95,6 +97,7 @@ public class ReportJsonEmitter implements Emitter {
     private static class Juris {
         String name;
         Integer population;
+        Map<String, Double> mortalityRates;
         List<Data> data;
     }
 
