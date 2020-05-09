@@ -23,7 +23,7 @@ public class Main implements CommandLineRunner {
 //                .update();
 
 //        appCtx.getBean(CDC.class)
-//                .update(java.time.LocalDate.of(2020, 5, 2));
+//                .update(java.time.LocalDate.of(2020, 5, 9));
 
 //        appCtx.getBean(TsvEmitter.class)
 //                .emit(System.out);

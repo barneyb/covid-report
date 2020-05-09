@@ -41,8 +41,8 @@ public class CDC {
                         .ifPresent(it ->
                                 it.addDataPoint(
                                         asOf,
-                                        j.getCases(),
-                                        j.getDeaths())));
+                                        j.getCaseCount(),
+                                        j.getDeathCount())));
     }
 
     @SneakyThrows
