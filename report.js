@@ -177,7 +177,10 @@ function init(rawData) {
         }), {});
     }
 
-    const rebuildTable = state => {
+    const rebuildTable = (state, prev) => {
+        if (state.coldGroups === prev.coldGroups && state.coldSeries === prev.coldSeries) {
+            return;
+        }
         const columns = [
             series[0],
             ...rawData.points
@@ -212,20 +215,29 @@ function init(rawData) {
             columns.map(c =>
                 rec.groups[c.group][c.name]));
         return {
-            ...state,
             columns,
             columnGroups,
-            rows,
+            totalRow: rows[0],
+            jRows: rows.slice(1),
         }
     }
 
-    const $ = document.querySelector.bind(document);
     let state = {};
-    window.setState = s =>
-        render(state = rebuildTable({
+    window.setState = s => {
+        const prev = state;
+        state = {
             ...state,
-            ...(typeof s === "function" ? s(state) : s)
-        }));
+            ...(typeof s === "function" ? s(state) : s),
+        }
+        const table = rebuildTable(state, prev)
+        if (table) {
+            state = {
+                ...state,
+                ...table,
+            }
+        }
+        render(state);
+    };
     const toggleBuilder = cn => it =>
         setState(s => {
             const next = s[cn].slice();
@@ -253,6 +265,7 @@ function init(rawData) {
     const numComp = (a, b) => a - b;
     const strComp = (a, b) => a < b ? -1 : a > b ? 1 : 0;
     const revComp = sort => (a, b) => sort(b, a);
+    const $ = document.querySelector.bind(document);
     const head = $("#main-table thead");
     const body = $("#main-table tbody");
     const foot = $("#main-table tfoot");
@@ -316,16 +329,16 @@ function init(rawData) {
             labelRow,
             sublabelRow,
         ]);
-        let comp = typeof state.rows[1][state.sortCol] === "number"? numComp : strComp;
+        let comp = typeof state.totalRow[state.sortCol] === "number"? numComp : strComp;
         if (!state.sortAsc) comp = revComp(comp);
-        injectRows(body, state.rows.slice(1)
+        injectRows(body, state.jRows
             .sort((a, b) =>
                 comp(a[state.sortCol], b[state.sortCol]))
             .map((r, i) =>
                 renderRow(r, 'td', i + 1))
         );
         injectRows(foot, [
-            renderRow(state.rows[0], 'th'),
+            renderRow(state.totalRow, 'th'),
             sublabelRow,
             labelRow,
         ]);
