@@ -206,10 +206,7 @@ function init(rawData) {
             }, {}).ps;
     }
 
-    const rebuildTable = (state, prev) => {
-        if (state.coldGroups === prev.coldGroups && state.coldSeries === prev.coldSeries) {
-            return;
-        }
+    const buildTable = state => {
         const columns = [
             series[0],
             ...rawData.points
@@ -251,21 +248,23 @@ function init(rawData) {
         }
     }
 
+    const LS_KEY = "covid-report-state";
     let state = {};
+    let tableState = {};
     window.setState = s => {
         const prev = state;
         state = {
             ...state,
-            ...(typeof s === "function" ? s(state) : s),
+            ...(typeof s === "function" ? s(prev) : s),
+        };
+        window.localStorage.setItem(LS_KEY, JSON.stringify(state));
+        if (state.coldGroups !== prev.coldGroups || state.coldSeries !== prev.coldSeries) {
+            tableState = buildTable(state);
         }
-        const table = rebuildTable(state, prev)
-        if (table) {
-            state = {
-                ...state,
-                ...table,
-            }
-        }
-        render(state);
+        render({
+            ...state,
+            ...tableState,
+        });
     };
     const toggleBuilder = cn => it =>
         setState(s => {
@@ -433,15 +432,27 @@ function init(rawData) {
             document.body.className = "";
         }
     };
-    setState({
-        sortCol: 0,
-        sortAsc: true,
-        hotRows: ["Oregon", "Montana", "New York"],
-        sidebar: false,
-        coldGroups: [],
-        coldSeries: series
-            .filter(it => it.cold)
-            .map(it => it.name),
+    setState(() => {
+        let state = {
+            sortCol: 0,
+            sortAsc: true,
+            hotRows: ["Oregon", "Montana", "New York"],
+            sidebar: false,
+            coldGroups: [],
+            coldSeries: series
+                .filter(it => it.cold)
+                .map(it => it.name),
+        };
+        try {
+            const cache = window.localStorage.getItem(LS_KEY)
+            if (cache) {
+                state = {
+                    ...state,
+                    ...JSON.parse(cache),
+                };
+            }
+        } catch (e) {}
+        return state;
     });
 }
 
