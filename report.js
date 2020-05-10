@@ -118,63 +118,69 @@ function init(rawData) {
         {
             scope: "jurisdiction",
             name: "Population",
-            desc: "The US Census's estimated population.",
+            desc: "An estimate of US population.",
             expr: j => j.pop,
             hot: true,
         },
         {
             scope: "jurisdiction",
-            name: "Overall DR",
-            desc: "The CDC's expected overall deaths per week per 100,000 population.",
+            name: "Deaths",
+            desc: "An estimate of expected deaths per week, regardless of cause.",
+            expr: j => j.rates.total * (j.pop / HunThou),
+        },
+        {
+            scope: "jurisdiction",
+            name: "DR",
+            desc: "An estimate of expected deaths per week per 100,000 population, regardless of cause.",
             expr: j => j.rates.total,
             format: formatDeathRate,
         },
         {
             scope: "jurisdiction",
             name: "Cardiac DR",
-            desc: "The CDC's expected cardiac disease deaths (I00-I99: Diseases of the circulatory system) per week per 100,000 population.",
+            desc: "An estimate of expected cardiac disease deaths (I00-I99: Diseases of the circulatory system) per week per 100,000 population.",
             expr: j => j.rates.circ,
             format: formatDeathRateSegment,
         },
         {
             scope: "jurisdiction",
             name: "Cancer DR",
-            desc: "The CDC's expected cancer-related deaths (C00-D48: Neoplasms) per week per 100,000 population.",
+            desc: "An estimate of expected cancer-related deaths (C00-D48: Neoplasms) per week per 100,000 population.",
             expr: j => j.rates.cancer,
             format: formatDeathRateSegment,
         },
         {
             scope: "jurisdiction",
             name: "Respiratory DR",
-            desc: "The CDC's expected respiratory disease deaths (J00-J98: Diseases of the respiratory system) per week per 100,000 population.",
+            desc: "An estimate of expected respiratory disease deaths (J00-J98: Diseases of the respiratory system) per week per 100,000 population.",
             expr: j => j.rates.resp,
             format: formatDeathRateSegment,
         },
         {
             scope: "jurisdiction",
             name: "Mental DR",
-            desc: "The CDC's expected mental disorder deaths (F01-F99: Mental and behavioural disorders) per week per 100,000 population.",
+            desc: "An estimate of expected mental disorder deaths (F01-F99: Mental and behavioural disorders) per week per 100,000 population.",
             expr: j => j.rates.mental,
             format: formatDeathRateSegment,
         },
         {
             scope: "jurisdiction",
             name: "Non-Trans Accident DR",
-            desc: "The CDC's expected non-transportation accidental deaths (W00-X59: Other external causes of accidental injury) per week per 100,000 population.",
+            desc: "An estimate of expected non-transportation accidental deaths (W00-X59: Other external causes of accidental injury) per week per 100,000 population.",
             expr: j => j.rates.non_trans,
             format: formatDeathRateSegment,
         },
         {
             scope: "jurisdiction",
             name: "Self-Harm DR",
-            desc: "The CDC's expected self-harm deaths (X60-X84: Intentional self-harm) per week per 100,000 population.",
+            desc: "An estimate of expected self-harm deaths (X60-X84: Intentional self-harm) per week per 100,000 population.",
             expr: j => j.rates.self,
             format: formatDeathRateSegment,
         },
         {
             scope: "jurisdiction",
             name: "Transport DR",
-            desc: "The CDC's expected transportation-related deaths (V01-V99: Transport accidents) per week per 100,000 population.",
+            desc: "An estimate of expected transportation-related deaths (V01-V99: Transport accidents) per week per 100,000 population.",
             expr: j => j.rates.trans,
             format: formatDeathRateSegment,
         },
@@ -499,7 +505,7 @@ function init(rawData) {
                             }))
                 ]),
                 tag('section', [
-                    tag('h3', 'Date Series'),
+                    tag('h3', 'COVID-19 Series'),
                     ...series
                         .filter(it => it.scope === "point")
                         .map(s =>
