@@ -21,7 +21,10 @@ button.trigger:hover {
     border-radius: 2px;
 }
 #show-sidebar {
-    float: right;
+    display: block;
+    position: fixed;
+    right: 1rem;
+    top: 1rem;
 }
 #sidebar {
     display: none;
@@ -31,20 +34,22 @@ button.trigger:hover {
 }
 .sidebar #sidebar {
     display: block;
-    position: absolute;
-    right: 1em;
-    top: 1em;
+    position: fixed;
+    right: 1rem;
+    top: 1rem;
     width: 20em;
     background-color: white;
     border-left: 1px solid #ccc;
     border-bottom: 1px solid #ccc;
     border-bottom-left-radius: 5px;
     padding: 1em;
-    margin: -1em;
+    margin: -1rem;
     box-shadow: 0.5em 0.6em 1.5em 0.5em #ccc;
 }
 #sidebar .content {
     margin-top: 3em;
+    overflow: auto;
+    max-height: 80vh;
 }
 #sidebar section label {
     display: block;
@@ -121,13 +126,13 @@ tbody tr.hot-2 {
     content: "%";
 }
 
-.delta-up-wow       { background-color: rgba(255,   0,   0, 0.64); }
-.delta-up-lots      { background-color: rgba(255,   0,   0, 0.32); }
-.delta-up-some      { background-color: rgba(255,   0,   0, 0.16); }
-.delta-up-bit       { background-color: rgba(255,   0,   0, 0.08); }
-.delta-up-smidge    { background-color: rgba(255,   0,   0, 0.02); }
-.delta-down-smidge  { background-color: rgba( 43, 255,   0, 0.02); }
-.delta-down-bit     { background-color: rgba( 43, 255,   0, 0.08); }
-.delta-down-some    { background-color: rgba( 43, 255,   0, 0.16); }
-.delta-down-lots    { background-color: rgba( 43, 255,   0, 0.32); }
-.delta-down-zero    { background-color: rgba( 43, 255,   0, 0.64); }
+.delta-up-wow       { background-color: rgba(255,   0,   0, 0.96); }
+.delta-up-lots      { background-color: rgba(255,   0,   0, 0.64); }
+.delta-up-some      { background-color: rgba(255,   0,   0, 0.32); }
+.delta-up-bit       { background-color: rgba(255,   0,   0, 0.16); }
+.delta-up-smidge    { background-color: rgba(255,   0,   0, 0.08); }
+.delta-down-smidge  { background-color: rgba(255,   0,   0, 0.02); }
+.delta-down-bit     { background-color: rgba( 43, 255,   0, 0.02); }
+.delta-down-some    { background-color: rgba( 43, 255,   0, 0.08); }
+.delta-down-lots    { background-color: rgba( 43, 255,   0, 0.16); }
+.delta-down-zero    { background-color: rgba( 43, 255,   0, 0.32); }

@@ -42,16 +42,23 @@ function init(rawData) {
             hot: true,
         },
         {
-            name: "Total Cases",
-            desc: "Total number of reported cases.",
-            expr: d => d.total_cases,
+            scope: "jurisdiction",
+            name: "COVID Cases",
+            desc: "Total COVID-19 cases reported.",
+            expr: j => {
+                const d = j.data;
+                return d[d.length - 1].total_cases;
+            },
             cold: true,
         },
         {
-            name: "Total Case Rate",
-            desc: "Total cases per 100,000 population.",
-            expr: (d, p, j) => d.total_cases / j.pop * HunThou,
-            cold: true,
+            scope: "jurisdiction",
+            name: "COVID Cases/100K",
+            desc: "Total COVID-19 cases per 100,000 population.",
+            expr: j => {
+                const d = j.data;
+                return d[d.length - 1].total_cases  / j.pop * HunThou;
+            },
         },
         {
             name: "Cases",
@@ -66,22 +73,29 @@ function init(rawData) {
             desc: "Cases reported this week per 100,000 population.",
             test: p => p.case_delta,
             expr: (d, p, j) => d.cases / j.pop * HunThou,
+            format: v => formatNumber(v, 1),
             time: true,
         },
         {
-            name: "Total Deaths",
-            desc: "Total number of reported deaths.",
-            test: p => p.deaths,
-            expr: d => d.total_deaths,
+            scope: "jurisdiction",
+            name: "COVID Deaths",
+            desc: "Total COVID-19 deaths reported.",
+            expr: j => {
+                const d = j.data;
+                return d[d.length - 1].total_deaths;
+            },
             cold: true,
         },
         {
-            name: "Total Death Rate",
-            desc: "Total deaths per 100,000 population.",
+            scope: "jurisdiction",
+            name: "COVID Deaths/100K",
+            desc: "Total COVID-19 deaths per 100,000 population.",
             test: p => p.deaths,
-            expr: (d, p, j) => d.total_deaths / j.pop * HunThou,
+            expr: j => {
+                const d = j.data;
+                return d[d.length - 1].total_deaths  / j.pop * HunThou;
+            },
             format: formatDeathRate,
-            cold: true,
         },
         {
             name: "Deaths",
@@ -100,16 +114,21 @@ function init(rawData) {
             time: true,
         },
         {
-            name: "Total Case Mortality",
-            desc: "Total deaths per total case.",
+            scope: "jurisdiction",
+            name: "COVID Mortality",
+            desc: "Total COVID-19 deaths per total COVID-19 cases.",
             test: p => p.deaths,
-            expr: d => d.total_deaths / d.total_cases,
+            expr: j => {
+                const d = j.data;
+                const p = d[d.length - 1]
+                return p.total_deaths / p.total_cases;
+            },
             format: formatPercent,
             cold: true,
         },
         {
             name: "Case Mortality",
-            desc: "Deaths per case.",
+            desc: "Deaths this week per case this week.",
             test: p => p.death_delta,
             expr: d => d.deaths / d.cases,
             format: formatPercent,
@@ -118,16 +137,16 @@ function init(rawData) {
         {
             scope: "jurisdiction",
             name: "Population",
-            desc: "An estimate of US population.",
+            desc: "An estimate of total population.",
             expr: j => j.pop,
             hot: true,
         },
-        {
-            scope: "jurisdiction",
-            name: "Deaths",
-            desc: "An estimate of expected deaths per week, regardless of cause.",
-            expr: j => j.rates.total * (j.pop / HunThou),
-        },
+        // {
+        //     scope: "jurisdiction",
+        //     name: "Deaths",
+        //     desc: "An estimate of expected deaths per week, regardless of cause.",
+        //     expr: j => j.rates.total * (j.pop / HunThou),
+        // },
         {
             scope: "jurisdiction",
             name: "DR",
@@ -217,34 +236,44 @@ function init(rawData) {
                 .reduce((rs, k) => ({
                     ...rs,
                     [k]: j.mortality_rates[k] / 365.24 * Week,
-                }), {})
+                }), {}),
         }));
-    const sumUp = supplier => dataRecords
-        .map(supplier)
-        .reduce((s, n) => s + n, 0);
-    dataRecords.unshift({
-        name: "Total",
-        pop: sumUp(j => j.pop),
-        data: rawData.points.map((p, i) => {
-            const fs = {
-                total_cases: sumUp(j => j.data[i].total_cases),
-            }
-            if (p.deaths) fs.total_deaths = sumUp(j => j.data[i].total_deaths);
-            if (p.case_delta) {
-                fs.cases = sumUp(j => j.data[i].cases);
-                if (p.death_delta) {
-                    fs.deaths = sumUp(j => j.data[i].deaths);
+    const buildTotal = (name, records) => {
+        const sumUp = supplier => records
+            .map(supplier)
+            .reduce((s, n) => s + n, 0);
+        return {
+            total: true,
+            name,
+            pop: sumUp(j => j.pop),
+            data: rawData.points.map((p, i) => {
+                const fs = {
+                    total_cases: sumUp(j => j.data[i].total_cases),
                 }
-            }
-            return fs;
-        }),
-        rates: Object.keys(rawData.jurisdictions[0].mortality_rates)
-            .reduce((rs, k) => ({
-                ...rs,
-                [k]: sumUp(j => j.pop * j.rates[k])
+                if (p.deaths) fs.total_deaths = sumUp(j => j.data[i].total_deaths);
+                if (p.case_delta) {
+                    fs.cases = sumUp(j => j.data[i].cases);
+                    if (p.death_delta) {
+                        fs.deaths = sumUp(j => j.data[i].deaths);
+                    }
+                }
+                return fs;
+            }),
+            rates: Object.keys(rawData.jurisdictions[0].mortality_rates)
+                .reduce((rs, k) => ({
+                    ...rs,
+                    [k]: sumUp(j => j.pop * j.rates[k])
                     / sumUp(j => j.pop),
-            }), {})
-    });
+                }), {}),
+        }
+    }
+    dataRecords.push(
+        buildTotal("Total", dataRecords),
+        buildTotal("Excluding NY", dataRecords
+            .filter(r => r.name !== "New York")),
+        buildTotal("Excluding NY & NJ", dataRecords
+            .filter(r => r.name !== "New York" && r.name !== "New Jersey")),
+    );
     for (const rec of dataRecords) {
         rec.groups = rawData.points
             .reduce((agg, p, pidx) => {
@@ -305,7 +334,7 @@ function init(rawData) {
                         }))),
             ...hotSeries
                 .filter(it => it.scope === "jurisdiction")
-                .slice(1) // name
+                .slice(1), // name
         ];
         const columnGroups = columns
             .map(c => ({
@@ -321,15 +350,19 @@ function init(rawData) {
                 }
                 return gs; // tee hee
             }, []);
-        const rows = dataRecords.map(rec =>
-            columns.map(c =>
-                rec.groups[c.group][c.name]));
+        const bodyRows = [];
+        const totalRows = [];
+        dataRecords.map(rec =>
+            [rec.total, columns.map(c =>
+                rec.groups[c.group][c.name])])
+            .forEach(([total, cols]) =>
+                (total ? totalRows : bodyRows).push(cols));
         return {
             columns,
             columnGroups,
-            totalRow: rows[0],
-            jRows: rows.slice(1),
-        }
+            totalRows,
+            bodyRows,
+        };
     }
 
     const LS_KEY = "covid-report-state";
@@ -360,7 +393,7 @@ function init(rawData) {
             } else {
                 next[idx] = null;
             }
-            return { [cn]: next };
+            return {[cn]: next};
         });
     window.toggleHotRow = toggleBuilder('hotRows');
     window.toggleGroup = toggleBuilder('coldGroups');
@@ -368,7 +401,8 @@ function init(rawData) {
     const tag = (el, c, attrs) =>
         `<${el}${Object.keys(attrs || {})
             .map(k => ` ${k === "className" ? "class" : k}="${attrs[k]}"`)
-            .join('')}>${c && c.join ? c.filter(IDENTITY).join("") : c || ''}</${el}>`;
+            .join('')}>${c && c.join ? c.filter(IDENTITY)
+            .join("") : c || ''}</${el}>`;
     const injectRows = (node, rows) =>
         node.innerHTML = rows
             .map(r =>
@@ -383,8 +417,10 @@ function init(rawData) {
     const foot = $("#main-table tfoot");
     const sidebar = $("#sidebar .content");
     $("#updated").innerText = `Updated ${formatDate(rawData.date)}`;
-    $("#show-sidebar").addEventListener("click", () => setState({sidebar: true}))
-    $("#hide-sidebar").addEventListener("click", () => setState({sidebar: false}))
+    $("#show-sidebar")
+        .addEventListener("click", () => setState({sidebar: true}))
+    $("#hide-sidebar")
+        .addEventListener("click", () => setState({sidebar: false}))
     $("#reset-to-defaults").addEventListener("click", () => {
         window.localStorage.setItem(LS_KEY, JSON.stringify({sidebar: true}));
         window.location.reload();
@@ -400,10 +436,10 @@ function init(rawData) {
                 .join("");
         const newPointIdxs = state.columnGroups
             .reduce((agg, g) => {
-                    agg.n += g.count;
-                    agg.idxs.push(agg.n);
-                    return agg; // tee-hee
-                }, {n: 0, idxs: [0]})
+                agg.n += g.count;
+                agg.idxs.push(agg.n);
+                return agg; // tee-hee
+            }, {n: 0, idxs: [0]})
             .idxs;
         const sublabelPointCells = () =>
             tag('th')
@@ -424,22 +460,23 @@ function init(rawData) {
                 return tag('th', c.name, attrs)
             })
                 .join("");
+        const breaks = [
+            -0.4,  "delta-down-lots",
+            -0.2,  "delta-down-some",
+            -0.04, "delta-down-bit",
+             0,    "delta-down-smidge",
+             0.04, "delta-up-smidge",
+             0.2, "delta-up-bit",
+             0.4,  "delta-up-some",
+             0.5, "delta-up-lots",
+        ]
         const classForDelta = val => {
             if (!val.hasOwnProperty("_change")) return null;
-            if (val._change === 0) return "delta-equal";
             if (val === 0) return "delta-down-zero";
-            if (val._change < 0) {
-                return val._change > -0.04 ? "delta-down-smidge"
-                    : val._change > -0.2 ? "delta-down-bit"
-                    : val._change > -0.4 ? "delta-down-some"
-                    : "delta-down-lots";
-            } else {
-                return val._change < 0.05 ? "delta-up-smidge"
-                    : val._change < 0.25 ? "delta-up-bit"
-                    : val._change < 0.5 ? "delta-up-some"
-                    : val._change < 0.75 ? "delta-up-lots"
-                    : "delta-up-wow";
+            for (var b = 0; b < breaks.length; b += 2) {
+                if (val._change < breaks[b]) return breaks[b + 1];
             }
+            return "delta-up-wow";
         };
         const renderRow = (r, el, num) =>
             tag(el, num)
@@ -460,21 +497,22 @@ function init(rawData) {
             labelRow,
             sublabelRow,
         ]);
-        let comp = isNum(state.totalRow[state.sortCol]) ? numComp : strComp;
+        let comp = isNum(state.totalRows[0][state.sortCol]) ? numComp : strComp;
         if (!state.sortAsc) comp = revComp(comp);
-        body.innerHTML = state.jRows
+        body.innerHTML = state.bodyRows
             .sort((a, b) =>
                 comp(a[state.sortCol], b[state.sortCol]))
             .map((r, i) => {
                 const hotIdx = state.hotRows.indexOf(r[0])
                 return tag('tr', renderRow(r, 'td', i + 1), {
                     className: hotIdx >= 0 ? `hot hot-${hotIdx}` : "",
-                    onclick: `toggleHotRow('${r[0]}')`
+                    onclick: `toggleHotRow('${r[0]}')`,
                 })
             })
             .join("\n")
         injectRows(foot, [
-            renderRow(state.totalRow, 'th'),
+            ...state.totalRows
+                .map(r => renderRow(r, 'th')),
             sublabelRow,
             labelRow,
         ]);
@@ -486,10 +524,10 @@ function init(rawData) {
                 return tag('label', [
                     tag('input', undefined, {
                         ...attrs,
-                        type: "checkbox"
+                        type: "checkbox",
                     }),
                     label,
-                    desc && tag('div', desc, {className: "desc"})
+                    desc && tag('div', desc, {className: "desc"}),
                 ]);
             };
             document.body.className = "sidebar";
@@ -497,21 +535,22 @@ function init(rawData) {
                 tag('section', [
                     tag('h3', 'Dates'),
                     ...rawData.points
+                        .slice(1) // the earliest point can't have any deltas
                         .map(p => formatDate(p.date))
                         .reverse()
                         .map(l =>
                             chkbx(l, !state.coldGroups.includes(l), {
-                                onclick: `toggleGroup('${l}')`
-                            }))
+                                onclick: `toggleGroup('${l}')`,
+                            })),
                 ]),
                 tag('section', [
-                    tag('h3', 'COVID-19 Series'),
+                    tag('h3', 'Weekly Series'),
                     ...series
                         .filter(it => it.scope === "point")
                         .map(s =>
                             chkbx(s.name, !state.coldSeries.includes(s.name), {
-                                onclick: `toggleSeries('${s.name}')`
-                            }, s.desc))
+                                onclick: `toggleSeries('${s.name}')`,
+                            }, s.desc)),
                 ]),
                 tag('section', [
                     tag('h3', 'Jurisdiction Series'),
@@ -520,8 +559,8 @@ function init(rawData) {
                         .filter(it => it.scope === "jurisdiction")
                         .map(s =>
                             chkbx(s.name, !state.coldSeries.includes(s.name), {
-                                onclick: `toggleSeries('${s.name}')`
-                            }, s.desc))
+                                onclick: `toggleSeries('${s.name}')`,
+                            }, s.desc)),
                 ]),
             ];
             sidebar.innerHTML = tag('form', sections);
