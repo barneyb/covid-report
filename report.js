@@ -32,7 +32,7 @@ function init(rawData) {
     const formatDeathRate = v => formatNumber(v, 1)
     const formatDeathRateSegment = v => formatNumber(v, 2)
 
-    // expr is "(d, p, j) => value"
+    const Delta = "&#x1D6AB;"
     const series = [
         {
             scope: "jurisdiction",
@@ -43,7 +43,14 @@ function init(rawData) {
         },
         {
             scope: "jurisdiction",
-            name: "COVID Cases",
+            name: "Population",
+            desc: "An estimate of total population.",
+            expr: j => j.pop,
+            hot: true,
+        },
+        {
+            scope: "jurisdiction",
+            name: "C19 Cases",
             desc: "Total COVID-19 cases reported.",
             expr: j => {
                 const d = j.data;
@@ -53,7 +60,7 @@ function init(rawData) {
         },
         {
             scope: "jurisdiction",
-            name: "COVID Cases/100K",
+            name: "C19 Cases/100K",
             desc: "Total COVID-19 cases per 100,000 population.",
             expr: j => {
                 const d = j.data;
@@ -61,24 +68,8 @@ function init(rawData) {
             },
         },
         {
-            name: "Cases",
-            desc: "Cases reported this week.",
-            test: p => p.case_delta,
-            expr: d => d.cases,
-            cold: true,
-            time: true,
-        },
-        {
-            name: "Case Rate",
-            desc: "Cases reported this week per 100,000 population.",
-            test: p => p.case_delta,
-            expr: (d, p, j) => d.cases / j.pop * HunThou,
-            format: v => formatNumber(v, 1),
-            time: true,
-        },
-        {
             scope: "jurisdiction",
-            name: "COVID Deaths",
+            name: "C19 Deaths",
             desc: "Total COVID-19 deaths reported.",
             expr: j => {
                 const d = j.data;
@@ -88,7 +79,7 @@ function init(rawData) {
         },
         {
             scope: "jurisdiction",
-            name: "COVID Deaths/100K",
+            name: "C19 Deaths/100K",
             desc: "Total COVID-19 deaths per 100,000 population.",
             test: p => p.deaths,
             expr: j => {
@@ -98,24 +89,8 @@ function init(rawData) {
             format: formatDeathRate,
         },
         {
-            name: "Deaths",
-            desc: "Deaths reported this week.",
-            test: p => p.death_delta,
-            expr: d => d.deaths,
-            cold: true,
-            time: true,
-        },
-        {
-            name: "Death Rate",
-            desc: "Deaths reported this week per 100,000 population.",
-            test: p => p.death_delta,
-            expr: (d, p, j) => d.deaths / j.pop * HunThou,
-            format: formatDeathRate,
-            time: true,
-        },
-        {
             scope: "jurisdiction",
-            name: "COVID Mortality",
+            name: "C19 Mortality",
             desc: "Total COVID-19 deaths per total COVID-19 cases.",
             test: p => p.deaths,
             expr: j => {
@@ -126,27 +101,6 @@ function init(rawData) {
             format: formatPercent,
             cold: true,
         },
-        {
-            name: "Case Mortality",
-            desc: "Deaths this week per case this week.",
-            test: p => p.death_delta,
-            expr: d => d.deaths / d.cases,
-            format: formatPercent,
-            time: true,
-        },
-        {
-            scope: "jurisdiction",
-            name: "Population",
-            desc: "An estimate of total population.",
-            expr: j => j.pop,
-            hot: true,
-        },
-        // {
-        //     scope: "jurisdiction",
-        //     name: "Deaths",
-        //     desc: "An estimate of expected deaths per week, regardless of cause.",
-        //     expr: j => j.rates.total * (j.pop / HunThou),
-        // },
         {
             scope: "jurisdiction",
             name: "DR",
@@ -202,6 +156,52 @@ function init(rawData) {
             desc: "An estimate of expected transportation-related deaths (V01-V99: Transport accidents) per week per 100,000 population.",
             expr: j => j.rates.trans,
             format: formatDeathRateSegment,
+        },
+        {
+            name: "Cases",
+            desc: "Cases reported this week.",
+            test: p => p.case_delta,
+            expr: d => d.cases,
+            cold: true,
+            time: true,
+        },
+        {
+            name: "Case Rate",
+            desc: "Cases reported this week per 100,000 population.",
+            test: p => p.case_delta,
+            expr: (d, p, j) => d.cases / j.pop * HunThou,
+            format: v => formatNumber(v, 1),
+            time: true,
+        },
+        {
+            name: Delta + "Case Rate",
+            desc: "Change in case rate from last week",
+            test: (p, pidx) => pidx < rawData.points.length - 2,
+            format: formatPercent,
+        },
+        {
+            name: "Deaths",
+            desc: "Deaths reported this week.",
+            test: p => p.death_delta,
+            expr: d => d.deaths,
+            cold: true,
+            time: true,
+        },
+        {
+            name: "Death Rate",
+            desc: "Deaths reported this week per 100,000 population.",
+            test: p => p.death_delta,
+            expr: (d, p, j) => d.deaths / j.pop * HunThou,
+            format: formatDeathRate,
+            time: true,
+        },
+        {
+            name: "Case Mortality",
+            desc: "Deaths this week per case this week.",
+            test: p => p.death_delta,
+            expr: d => d.deaths / d.cases,
+            format: formatPercent,
+            time: true,
         },
     ];
     series.forEach(s => {
@@ -279,9 +279,14 @@ function init(rawData) {
             .reduce((agg, p, pidx) => {
                 const data = series
                     .filter(s => s.scope === "point")
-                    .filter(s => s.test(p))
+                    .filter(s => s.test(p, pidx))
                     .reduce((ss, s) => {
+                        if (s.name.indexOf(Delta) === 0) return ss;
                         let val = s.expr(rec.data[pidx], p, rec)
+                        ss = {
+                            ...ss,
+                            [s.name]: val,
+                        };
                         if (s.time && agg.prev) {
                             const prev = agg.prev[s.name];
                             if (prev) {
@@ -290,12 +295,11 @@ function init(rawData) {
                                 val._change = prev === 0
                                     ? 10 // Any increase from zero means tenfold! By fiat!
                                     : (val - prev) / prev;
+                                ss[s.name] = val;
+                                ss[Delta + s.name] = val._change;
                             }
                         }
-                        return {
-                            ...ss,
-                            [s.name]: val,
-                        }
+                        return ss;
                     }, {
                         _prev: agg.prev,
                     })
@@ -323,10 +327,10 @@ function init(rawData) {
             ...rawData.points
                 .filter(p => !state.coldGroups.includes(p.label))
                 .reverse()
-                .flatMap(p =>
+                .flatMap((p, pidx) =>
                     hotSeries
                         .filter(s => s.scope === "point")
-                        .filter(s => s.test(p))
+                        .filter(s => s.test(p, pidx))
                         .map(s => ({
                             group: p.label,
                             ...s,
@@ -415,6 +419,7 @@ function init(rawData) {
     const head = $("#main-table thead");
     const body = $("#main-table tbody");
     const foot = $("#main-table tfoot");
+    const bar = $(".bar-layout .bar");
     const sidebar = $("#sidebar .content");
     $("#updated").innerText = `Updated ${formatDate(rawData.date)}`;
     $("#show-sidebar")
@@ -461,16 +466,17 @@ function init(rawData) {
             })
                 .join("");
         const breaks = [
-            -0.4,  "delta-down-lots",
-            -0.2,  "delta-down-some",
-            -0.04, "delta-down-bit",
+            -0.6,  "delta-down-lots",
+            -0.25, "delta-down-some",
+            -0.1,  "delta-down-bit",
              0,    "delta-down-smidge",
-             0.04, "delta-up-smidge",
-             0.2, "delta-up-bit",
-             0.4,  "delta-up-some",
-             0.5, "delta-up-lots",
+             0.1,  "delta-up-smidge",
+             0.25, "delta-up-bit",
+             0.6,  "delta-up-some",
+             0.8,  "delta-up-lots",
         ]
         const classForDelta = val => {
+            if (!val) return null;
             if (!val.hasOwnProperty("_change")) return null;
             if (val === 0) return "delta-down-zero";
             for (var b = 0; b < breaks.length; b += 2) {
@@ -485,7 +491,6 @@ function init(rawData) {
                 return tag(el, c.format(val), {
                     className: [
                         isNum(val) ? "number" : "",
-                        classForDelta(val),
                         newPointIdxs.includes(i) ? "new-point" : "",
                     ].filter(IDENTITY).join(" "),
                 })
@@ -497,7 +502,7 @@ function init(rawData) {
             labelRow,
             sublabelRow,
         ]);
-        let comp = isNum(state.totalRows[0][state.sortCol]) ? numComp : strComp;
+        let comp = isNum(state.bodyRows[0][state.sortCol]) ? numComp : strComp;
         if (!state.sortAsc) comp = revComp(comp);
         body.innerHTML = state.bodyRows
             .sort((a, b) =>
@@ -516,6 +521,23 @@ function init(rawData) {
             sublabelRow,
             labelRow,
         ]);
+        const ps = rawData.points;
+        const g = ps[ps.length - 1].label;
+        const ds = dataRecords
+            .filter(r => !r.total)
+            .map(r => [
+                r.pop,
+                r.groups[g]["Case Rate"],
+            ])
+            .sort(([_, a], [__, b]) => b._change - a._change);
+        const tp = ds.reduce((s, d) => s + d[0], 0);
+        bar.innerHTML = ds
+            .map(([p, v]) =>
+                tag('span', '', {
+                    className: classForDelta(v),
+                    style: `width:${Math.round(p / tp * 10000) / 100}%`
+                }))
+            .join("\n");
         if (state.sidebar) {
             const chkbx = (label, checked, attrs, desc) => {
                 if (checked) {

@@ -8,7 +8,7 @@ button.trigger {
     border-width: 1px;
     font-family: Consolas, monospace;
     font-size: 1.3rem;
-    background-color: inherit;
+    background-color: white;
     padding: 0.2em 0.7em;
     border-radius: 3px;
 }
@@ -126,13 +126,42 @@ tbody tr.hot-2 {
     content: "%";
 }
 
-.delta-up-wow       { background-color: rgba(255,   0,   0, 0.96); }
-.delta-up-lots      { background-color: rgba(255,   0,   0, 0.64); }
-.delta-up-some      { background-color: rgba(255,   0,   0, 0.32); }
-.delta-up-bit       { background-color: rgba(255,   0,   0, 0.16); }
-.delta-up-smidge    { background-color: rgba(255,   0,   0, 0.08); }
-.delta-down-smidge  { background-color: rgba(255,   0,   0, 0.02); }
-.delta-down-bit     { background-color: rgba( 43, 255,   0, 0.02); }
-.delta-down-some    { background-color: rgba( 43, 255,   0, 0.08); }
-.delta-down-lots    { background-color: rgba( 43, 255,   0, 0.16); }
-.delta-down-zero    { background-color: rgba( 43, 255,   0, 0.32); }
+.delta-up-wow       { background-color: hsl( 15,  90%,  55%); }
+.delta-up-lots      { background-color: hsl( 15,  80%,  65%); }
+.delta-up-some      { background-color: hsl( 15,  70%,  75%); }
+.delta-up-bit       { background-color: hsl( 15,  60%,  85%); }
+.delta-up-smidge    { background-color: hsl( 15,  50%,  95%); }
+.delta-down-smidge  { background-color: hsl( 92,  50%,  95%); }
+.delta-down-bit     { background-color: hsl( 92,  60%,  85%); }
+.delta-down-some    { background-color: hsl( 92,  70%,  75%); }
+.delta-down-lots    { background-color: hsl( 92,  80%,  65%); }
+.delta-down-zero    { background-color: hsl( 92,  90%,  55%); }
+
+.bar-layout {
+    display: inline-block;
+    width: 35em;
+    text-align: center;
+    font-size: 1rem;
+    font-weight: normal;
+    margin-bottom: 1em;
+}
+.bar-layout span {
+    display: block;
+}
+.bar-layout .bar {
+    position: relative;
+    height: 0.5em;
+    border: 1px solid #999;
+    margin-top: 3px;
+    background-color: #f7f7f7;
+}
+.bar-layout .bar > * {
+    height: 0.5em;
+    float: left;
+}
+.bar-layout .good-label {
+    float: right;
+}
+.bar-layout .bad-label {
+    float: left;
+}
