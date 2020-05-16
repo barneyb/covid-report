@@ -68,13 +68,17 @@ button.trigger:hover {
 table {
     border-collapse: collapse;
 }
-td {
+td, th.total {
     border-top: 1px solid #eee;
     border-bottom: 1px solid #eee;
     border-collapse: collapse;
     white-space: nowrap;
 }
-tbody tr:nth-child(even) {
+th.total {
+    border-color: #ccc;
+}
+tbody tr:nth-child(even),
+tfoot tr:nth-child(odd) .total {
     background-color: #f7f7f7;
 }
 th,
@@ -150,13 +154,13 @@ tbody tr.hot-2 {
 }
 .bar-layout .bar {
     position: relative;
-    height: 0.5em;
+    height: 0.75em;
     border: 1px solid #999;
     margin-top: 3px;
     background-color: #f7f7f7;
 }
 .bar-layout .bar > * {
-    height: 0.5em;
+    height: 0.75em;
     float: left;
 }
 .bar-layout .good-label {

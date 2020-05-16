@@ -484,7 +484,7 @@ function init(rawData) {
             }
             return "delta-up-wow";
         };
-        const renderRow = (r, el, num) =>
+        const renderRow = (r, el, num, extraClass) =>
             tag(el, num)
             + state.columns.map((c, i) => {
                 const val = r[i];
@@ -492,6 +492,7 @@ function init(rawData) {
                     className: [
                         isNum(val) ? "number" : "",
                         newPointIdxs.includes(i) ? "new-point" : "",
+                        extraClass,
                     ].filter(IDENTITY).join(" "),
                 })
             })
@@ -517,7 +518,7 @@ function init(rawData) {
             .join("\n")
         injectRows(foot, [
             ...state.totalRows
-                .map(r => renderRow(r, 'th')),
+                .map(r => renderRow(r, 'th', null, 'total')),
             sublabelRow,
             labelRow,
         ]);
@@ -526,16 +527,17 @@ function init(rawData) {
         const ds = dataRecords
             .filter(r => !r.total)
             .map(r => [
-                r.pop,
+                r,
                 r.groups[g]["Case Rate"],
             ])
             .sort(([_, a], [__, b]) => b._change - a._change);
-        const tp = ds.reduce((s, d) => s + d[0], 0);
+        const tp = ds.reduce((s, d) => s + d[0].pop, 0);
         bar.innerHTML = ds
-            .map(([p, v]) =>
+            .map(([r, v]) =>
                 tag('span', '', {
+                    title: r.name + " (" + formatPercent(v._change) + ")",
                     className: classForDelta(v),
-                    style: `width:${Math.round(p / tp * 10000) / 100}%`
+                    style: `width:${Math.round(r.pop / tp * 10000) / 100}%`
                 }))
             .join("\n");
         if (state.sidebar) {
