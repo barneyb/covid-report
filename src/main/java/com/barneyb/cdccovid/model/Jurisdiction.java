@@ -24,6 +24,7 @@ public class Jurisdiction {
     @JsonIgnore
     private SortedMap<LocalDate, DataPoint> data;
     private Map<String, Double> mortalityRates;
+    private int electors;
 
     public DataPoint getData(LocalDate date) {
         assert date != null;
