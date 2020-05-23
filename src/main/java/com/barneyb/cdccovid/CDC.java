@@ -8,11 +8,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.List;
 
@@ -51,9 +54,20 @@ public class CDC {
             if (!LocalDate.now().equals(asOf)) {
                 throw new IllegalStateException("Cowardly refusing to record current data as from " + asOf);
             }
-            val dataUrl = new URL(jsonUrl);
-            try (val in = (InputStream) dataUrl.getContent()) {
-                Files.copy(in, cachePath, StandardCopyOption.REPLACE_EXISTING);
+            val conn = (HttpURLConnection) new URL(jsonUrl).openConnection();
+            conn.connect();
+            try {
+                val of = LocalDate.ofInstant(
+                        Instant.ofEpochMilli(conn.getLastModified()),
+                        ZoneId.systemDefault());
+                if (!of.equals(asOf)) {
+                    throw new IllegalStateException("Cowardly refusing to record data from " + of + " as from " + asOf);
+                }
+                try (val in = (InputStream) conn.getContent()) {
+                    Files.copy(in, cachePath, StandardCopyOption.REPLACE_EXISTING);
+                }
+            } finally {
+                conn.disconnect();
             }
         }
         val mapper = new ObjectMapper(); // deliberately using a default one
