@@ -22,11 +22,8 @@ public class Main implements CommandLineRunner {
 //        appCtx.getBean(Mortality.class)
 //                .update();
 
-//        appCtx.getBean(Electors.class)
-//                .update();
-
 //        appCtx.getBean(CDC.class)
-//                .update(java.time.LocalDate.of(2020, 5, 23));
+//                .update(java.time.LocalDate.of(2020, 5, 30));
 
 //        appCtx.getBean(TsvEmitter.class)
 //                .emit(System.out);
