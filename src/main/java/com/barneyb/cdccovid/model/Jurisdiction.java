@@ -58,6 +58,14 @@ public class Jurisdiction {
         this.data.put(asOf, new DataPoint(asOf, cases, deaths));
     }
 
+    public void augmentDataPoint(LocalDate asOf, Integer cases, Integer deaths) {
+        if (this.data == null || ! this.data.containsKey(asOf)) {
+            throw new IllegalArgumentException("No data point exists for " + asOf);
+        }
+        val p = this.data.get(asOf);
+        addDataPoint(asOf, p.getCases() + cases, p.getDeaths() + deaths);
+    }
+
     @JsonProperty("data")
     public Collection<DataPoint> getPoints() {
         return data.values();

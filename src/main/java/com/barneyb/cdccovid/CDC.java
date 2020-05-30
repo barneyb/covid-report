@@ -39,10 +39,19 @@ public class CDC {
 
     public void update(LocalDate asOf) {
         val cachePath = Path.of("cdc-data-" + asOf + ".json");
-        hydrate(cachePath, asOf).forEach(j ->
-                store.findJurisdiction(j.getName())
-                        .ifPresent(it ->
-                                it.addDataPoint(
+        val jurisdictions = hydrate(cachePath, asOf);
+        jurisdictions.forEach(j ->
+                store.findJurisdiction(j.getName()).ifPresent(it ->
+                        it.addDataPoint(
+                                asOf,
+                                j.getCaseCount(),
+                                j.getDeathCount())));
+        jurisdictions.stream()
+                .filter(j -> "New York City".equals(j.getName()))
+                .findFirst()
+                .ifPresent(j ->
+                        store.findJurisdiction("New York").ifPresent(it ->
+                                it.augmentDataPoint(
                                         asOf,
                                         j.getCaseCount(),
                                         j.getDeathCount())));
