@@ -1,5 +1,6 @@
 package com.barneyb.cdccovid;
 
+import com.barneyb.cdccovid.hopkins.HopkinsTransform;
 import lombok.SneakyThrows;
 import lombok.val;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,9 +29,12 @@ public class Main implements CommandLineRunner {
 //        appCtx.getBean(TsvEmitter.class)
 //                .emit(System.out);
 
-        appCtx.getBean(ReportJsonEmitter.class)
-//                .emit(System.out);
-                .emit(Files.newOutputStream(Path.of("report.json")));
+        appCtx.getBean(HopkinsTransform.class)
+                .transform();
+
+//        appCtx.getBean(ReportJsonEmitter.class)
+////                .emit(System.out);
+//                .emit(Files.newOutputStream(Path.of("report.json")));
     }
 
     @SneakyThrows
