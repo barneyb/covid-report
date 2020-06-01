@@ -15,7 +15,11 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Component
@@ -30,7 +34,30 @@ public class HopkinsTransform {
 
     public static final File OUTPUT_DIR = new File("hopkins");
 
-    private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("M/d/yy");
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("M/d/yy");
+    public static final Function<double[], double[]> ROLLING_AVERAGE = data -> {
+        val next = new double[data.length];
+        Queue<Double> queue = new LinkedList<>();
+        double sum = 0;
+        for (int i = 0, l = next.length; i < l; i++) {
+            queue.add(data[i]);
+            sum += data[i];
+            while (queue.size() > 7) sum -= queue.remove();
+            next[i] = sum / queue.size();
+        }
+        return next;
+    };
+    public static final Function<double[], double[]> DELTA = data -> {
+        val next = new double[data.length];
+        double prev = next[0] = data[0];
+        for (int i = 1, l = next.length; i < l; i++) {
+            next[i] = data[i] - prev;
+            prev = data[i];
+        }
+        return next;
+    };
+    public static final BiFunction<Demographics, Double, Double> PER_100K = (d, v) ->
+            v / (d.getPopulation() / 100_000);
 
     @SneakyThrows
     public void transform() {
@@ -48,8 +75,8 @@ public class HopkinsTransform {
 
         // fake "worldwide" demographics
         val wwDemo = new Demographics();
-        wwDemo.setUid(0);
         wwDemo.setCountry("Worldwide");
+        wwDemo.setCombinedKey("Worldwide");
         wwDemo.setPopulation(globalList
                 .stream()
                 .map(TimeSeries::getDemographics)
@@ -61,14 +88,21 @@ public class HopkinsTransform {
                 .reduce(
                         TimeSeries.zeros(wwDemo, dateHeaders),
                         TimeSeries::plus);
-        System.out.println(ww);
+        dumpSeries(ww);
+
+        List.of("Italy", "France", "China").forEach(c -> {
+            val demo = demographics.getByCountry(c);
+            dumpSeries(globalList.stream()
+                    .filter(it -> c.equals(it.getDemographics().getCountry()))
+                    .reduce(TimeSeries.zeros(demo, dateHeaders), TimeSeries::plus));
+        });
 
         // grab US out of globals
         val usDemo = demographics.getByCountry("US");
         val usg = globalList.stream()
                 .filter(it -> usDemo.getCountry().equals(it.getDemographics().getCountry()))
-                .findFirst().get();
-        System.out.println(usg);
+                .findFirst().orElseThrow();
+        dumpSeries(usg);
 
         // sum up NY counties
         val nyDemo = demographics.getByCountryAndState(usDemo.getCountry(), "New York");
@@ -77,17 +111,17 @@ public class HopkinsTransform {
                 .reduce(
                         TimeSeries.zeros(nyDemo, dateHeaders),
                         TimeSeries::plus);
-        System.out.println(ny);
 
         // US-without-NY
         val usNoNyDemo = new Demographics();
-        usNoNyDemo.setUid(0);
         usNoNyDemo.setCountry("US Except NY");
         usNoNyDemo.setPopulation(usDemo.getPopulation() - nyDemo.getPopulation());
         val usNoNy = TimeSeries.zeros(usNoNyDemo, dateHeaders)
                 .plus(usg)
                 .minus(ny);
-        System.out.println(usNoNy);
+        dumpSeries(usNoNy);
+
+        dumpSeries(ny);
 
         // sum up OR counties
         val orDemo = demographics.getByCountryAndState(usDemo.getCountry(), "Oregon");
@@ -96,14 +130,30 @@ public class HopkinsTransform {
                 .reduce(
                         TimeSeries.zeros(orDemo, dateHeaders),
                         TimeSeries::plus);
-        System.out.println(or);
+        dumpSeries(or);
 
         // pull washington county out
         val wash = usList.stream()
                 .filter(it -> orDemo.getState().equals(it.getDemographics().getState()))
                 .filter(it -> "Washington".equals(it.getDemographics().getLocal()))
-                .findFirst().get();
-        System.out.println(wash);
+                .findFirst().orElseThrow();
+        dumpSeries(wash);
+
+        // pull multnomah county out
+        val mult = usList.stream()
+                .filter(it -> orDemo.getState().equals(it.getDemographics().getState()))
+                .filter(it -> "Multnomah".equals(it.getDemographics().getLocal()))
+                .findFirst().orElseThrow();
+        dumpSeries(mult);
+    }
+
+    private void dumpSeries(TimeSeries ts) {
+        System.out.printf("%25s:", ts.getDemographics().getCombinedKey());
+        val data = ts.map(DELTA).map(ROLLING_AVERAGE).transform(PER_100K).getData();
+        for (int l = data.length, i = l - 21; i < l; i++) {
+            System.out.printf(" %5.2f", data[i]);
+        }
+        System.out.println();
     }
 
     private List<TimeSeries> convertRawUs(IndexedDemographics demographics, List<USTimeSeries> rawUs, String[] dateHeaders) {
@@ -126,7 +176,7 @@ public class HopkinsTransform {
     private String[] buildDateHeaders(LocalDate[] dates) {
         val dateHeaders = new String[dates.length];
         for (int i = 0, l = dates.length; i < l; i++) {
-            dateHeaders[i] = dates[i].format(formatter);
+            dateHeaders[i] = dates[i].format(DATE_FORMAT);
         }
         return dateHeaders;
     }
@@ -136,7 +186,7 @@ public class HopkinsTransform {
                 .getDates()
                 .keySet()
                 .stream()
-                .map(s -> formatter.parse(s, LocalDate::from))
+                .map(s -> DATE_FORMAT.parse(s, LocalDate::from))
                 .sorted()
                 .toArray(LocalDate[]::new);
     }
