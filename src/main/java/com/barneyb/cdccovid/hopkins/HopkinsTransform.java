@@ -70,12 +70,6 @@ public class HopkinsTransform {
                 .findFirst().get();
         System.out.println(usg);
 
-        val uss = usList.stream()
-                .reduce(
-                        TimeSeries.zeros(usDemo, dateHeaders),
-                        TimeSeries::plus);
-        System.out.println(uss);
-
         // sum up NY counties
         val nyDemo = demographics.getByCountryAndState(usDemo.getCountry(), "New York");
         val ny = usList.stream()
@@ -84,6 +78,16 @@ public class HopkinsTransform {
                         TimeSeries.zeros(nyDemo, dateHeaders),
                         TimeSeries::plus);
         System.out.println(ny);
+
+        // US-without-NY
+        val usNoNyDemo = new Demographics();
+        usNoNyDemo.setUid(0);
+        usNoNyDemo.setCountry("US Except NY");
+        usNoNyDemo.setPopulation(usDemo.getPopulation() - nyDemo.getPopulation());
+        val usNoNy = TimeSeries.zeros(usNoNyDemo, dateHeaders)
+                .plus(usg)
+                .minus(ny);
+        System.out.println(usNoNy);
 
         // sum up OR counties
         val orDemo = demographics.getByCountryAndState(usDemo.getCountry(), "Oregon");
