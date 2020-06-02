@@ -10,9 +10,7 @@ import lombok.SneakyThrows;
 import lombok.val;
 import org.springframework.stereotype.Component;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
+import java.io.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedList;
@@ -75,8 +73,7 @@ public class HopkinsTransform {
 
         // fake "worldwide" demographics
         val wwDemo = new Demographics();
-        wwDemo.setCountry("Worldwide");
-        wwDemo.setCombinedKey("Worldwide");
+        wwDemo.setLabel("Worldwide");
         wwDemo.setPopulation(globalList
                 .stream()
                 .map(TimeSeries::getDemographics)
@@ -90,22 +87,18 @@ public class HopkinsTransform {
                         TimeSeries::plus);
         dumpSeries(ww);
 
-        List.of("Italy", "France", "China").forEach(c -> {
-            val demo = demographics.getByCountry(c);
-            dumpSeries(globalList.stream()
-                    .filter(it -> c.equals(it.getDemographics().getCountry()))
-                    .reduce(TimeSeries.zeros(demo, dateHeaders), TimeSeries::plus));
-        });
-
         // grab US out of globals
         val usDemo = demographics.getByCountry("US");
-        val usg = globalList.stream()
+        val us = globalList.stream()
                 .filter(it -> usDemo.getCountry().equals(it.getDemographics().getCountry()))
                 .findFirst().orElseThrow();
-        dumpSeries(usg);
+        dumpSeries(us);
+
+        // todo: index (not unique)!
 
         // sum up NY counties
         val nyDemo = demographics.getByCountryAndState(usDemo.getCountry(), "New York");
+        nyDemo.setLabel("New York");
         val ny = usList.stream()
                 .filter(it -> nyDemo.getState().equals(it.getDemographics().getState()))
                 .reduce(
@@ -114,10 +107,10 @@ public class HopkinsTransform {
 
         // US-without-NY
         val usNoNyDemo = new Demographics();
-        usNoNyDemo.setCountry("US Except NY");
+        usNoNyDemo.setLabel("US Except NY");
         usNoNyDemo.setPopulation(usDemo.getPopulation() - nyDemo.getPopulation());
         val usNoNy = TimeSeries.zeros(usNoNyDemo, dateHeaders)
-                .plus(usg)
+                .plus(us)
                 .minus(ny);
         dumpSeries(usNoNy);
 
@@ -125,6 +118,7 @@ public class HopkinsTransform {
 
         // sum up OR counties
         val orDemo = demographics.getByCountryAndState(usDemo.getCountry(), "Oregon");
+        orDemo.setLabel("Oregon");
         val or = usList.stream()
                 .filter(it -> orDemo.getState().equals(it.getDemographics().getState()))
                 .reduce(
@@ -137,6 +131,7 @@ public class HopkinsTransform {
                 .filter(it -> orDemo.getState().equals(it.getDemographics().getState()))
                 .filter(it -> "Washington".equals(it.getDemographics().getLocal()))
                 .findFirst().orElseThrow();
+        wash.getDemographics().setLabel("Washington Co");
         dumpSeries(wash);
 
         // pull multnomah county out
@@ -144,7 +139,40 @@ public class HopkinsTransform {
                 .filter(it -> orDemo.getState().equals(it.getDemographics().getState()))
                 .filter(it -> "Multnomah".equals(it.getDemographics().getLocal()))
                 .findFirst().orElseThrow();
+        mult.getDemographics().setLabel("Multnomah Co");
         dumpSeries(mult);
+
+        System.out.println("#".repeat(80));
+
+        try (PrintWriter out = new PrintWriter(new FileWriter(new File(OUTPUT_DIR, "rates.txt")))) {
+            val format = DateTimeFormatter.ofPattern("M/d");
+            val countSeries = new LinkedList<>(List.of(ww, us, usNoNy, ny, or, wash));
+            countSeries.addAll(List.of("Italy", "France", "Brazil", "Russia").stream().map(c -> {
+                        val demo = demographics.getByCountry(c);
+                        return globalList.stream()
+                                .filter(it -> c.equals(it.getDemographics().getCountry()))
+                                .reduce(TimeSeries.zeros(demo, dateHeaders), TimeSeries::plus);
+                    }).collect(Collectors.toList()));
+            val series = countSeries.stream()
+                    .map(s -> s
+                            .map(DELTA)
+                            .map(ROLLING_AVERAGE)
+                            .transform(PER_100K))
+                    .collect(Collectors.toList());
+            out.print("Date");
+            for (val s : series) {
+                out.append(',').append(s.getDemographics().getLabel());
+            }
+            out.println();
+            for (int i = 0; i < dates.length; i++) {
+                LocalDate d = dates[i];
+                out.print(d.format(format));
+                for (val s : series) {
+                    out.append(',').format("%.2f", s.getData()[i]);
+                }
+                out.println();
+            }
+        }
     }
 
     private void dumpSeries(TimeSeries ts) {

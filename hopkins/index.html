@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>So Much Neat!</title>
+    <!--suppress JSUnresolvedLibraryURL -->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+        google.charts.load('current', {'packages':['annotationchart']});
+        dataPromise = fetch("./rates.txt")
+            .then(r => r.text())
+            .then(r => r.trim()
+                .split("\n")
+                .map(r => r.split(",")))
+            .then(lines => google.charts.setOnLoadCallback(() => drawChart(lines)));
+
+        function drawChart(lines) {
+            const table = new google.visualization.DataTable();
+
+            const headers = lines.shift();
+            table.addColumn('date', headers.shift());
+            headers.forEach(h =>
+                table.addColumn('number', h));
+
+            table.addRows(lines
+                .map(r => {
+                    const [m, d] = r.shift()
+                        .split("/")
+                        .map(p => parseInt(p, 10));
+                    r = r.map(parseFloat);
+                    r.unshift(new Date(2020, m - 1, d));
+                    return r;
+                }));
+
+            var options = {
+                width: "100%",
+                height: 500,
+                dateFormat: "MMM d",
+                displayZoomButtons: false,
+                displayAnnotations: false,
+            };
+
+            var annChart = new google.visualization.AnnotationChart(document.getElementById('ann_chart'));
+            annChart.draw(table, options);
+            annChart.setVisibleChartRange(new Date(Date.now() - 28 * 86400 * 1000));
+        }
+    </script>
+</head>
+<body style="background-color: #d9ead3">
+    <div id='ann_chart' style='background-color: #eeeeff'></div>
+</body>
+</html>

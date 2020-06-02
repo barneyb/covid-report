@@ -6,6 +6,8 @@ import lombok.Data;
 @Data
 public class Demographics {
 
+    private String label;
+
     @CsvBindByName(column = "UID")
     private int uid;
     @CsvBindByName(column = "FIPS")
@@ -23,6 +25,11 @@ public class Demographics {
 
     @CsvBindByName(column = "Population")
     private long population;
+
+    public String getLabel() {
+        if (label != null) return label;
+        return combinedKey;
+    }
 
     public boolean isCompleteness() {
         return isLocal()
