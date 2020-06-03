@@ -143,9 +143,35 @@ public class HopkinsTransform {
                 .filter(it -> "Multnomah".equals(it.getDemographics().getLocal()))
                 .findFirst().orElseThrow();
 
+        // sum up CA counties
+        val caDemo = demographics.getByCountryAndState(usDemo.getCountry(), "California");
+        val ca = usList.stream()
+                .filter(it -> caDemo.getState().equals(it.getDemographics().getState()))
+                .reduce(
+                        TimeSeries.zeros(caDemo, dateHeaders),
+                        TimeSeries::plus);
+
+        // pull san francisco county out
+        val sf = usList.stream()
+                .filter(it -> caDemo.getState().equals(it.getDemographics().getState()))
+                .filter(it -> "San Francisco".equals(it.getDemographics().getLocal()))
+                .findFirst().orElseThrow();
+
+        // pull san mateo county out
+        val sm = usList.stream()
+                .filter(it -> caDemo.getState().equals(it.getDemographics().getState()))
+                .filter(it -> "San Mateo".equals(it.getDemographics().getLocal()))
+                .findFirst().orElseThrow();
+
+        // pull santa clara county out
+        val sc = usList.stream()
+                .filter(it -> caDemo.getState().equals(it.getDemographics().getState()))
+                .filter(it -> "Santa Clara".equals(it.getDemographics().getLocal()))
+                .findFirst().orElseThrow();
+
         try (PrintWriter out = new PrintWriter(new FileWriter(new File(OUTPUT_DIR, "rates.txt")))) {
             val format = DateTimeFormatter.ofPattern("M/d");
-            val countSeries = new LinkedList<>(List.of(ww, cn, hubei, us, usNoNy, ny, or, wash));
+            val countSeries = new LinkedList<>(List.of(ww, us, usNoNy, ny, or, mult, wash, ca, sf, sm, sc, cn, hubei));
             countSeries.addAll(List.of("Italy", "France", "Brazil", "Russia").stream().map(c -> {
                         val demo = demographics.getByCountry(c);
                         return globalList.stream()
@@ -177,7 +203,7 @@ public class HopkinsTransform {
     }
 
     private void dumpSeries(TimeSeries ts) {
-        System.out.printf("%25s:", ts.getDemographics().getCombinedKey());
+        System.out.printf("%30s:", ts.getDemographics().getCombinedKey());
         val data = ts.getData();
         for (int l = data.length, i = l - 21; i < l; i++) {
             System.out.printf(" %5.2f", data[i]);

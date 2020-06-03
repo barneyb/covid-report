@@ -8,7 +8,21 @@
     <script type="text/javascript">
         google.charts.load('current', {'packages': ['annotationchart']});
         state = {
-            coldSeries: new Set(),
+            coldSeries: new Set([
+                "China",
+                "Hubei, China",
+                "US Except NY",
+                "New York, US",
+                "Multnomah, Oregon, US",
+                "Washington, Oregon, US",
+                "San Francisco, California, US",
+                "San Mateo, California, US",
+                "Santa Clara, California, US",
+                "Italy",
+                "France",
+                "Brazil",
+                "Russia",
+            ]),
         }
         setState = s => {
             if (typeof s === "function") {
@@ -22,13 +36,10 @@
         }
         toggleSeries = label => {
             setState(s => {
-                const coldSeries = new Set(state.coldSeries);
-                const idx = s.headers.indexOf(label)
+                const coldSeries = new Set(s.coldSeries);
                 if (coldSeries.has(label)) {
-                    annChart.showDataColumns(idx);
                     coldSeries.delete(label);
                 } else {
-                    annChart.hideDataColumns(idx);
                     coldSeries.add(label);
                 }
                 return {
@@ -37,6 +48,14 @@
             })
         }
         render = state => {
+            google.charts.setOnLoadCallback(() => {
+                setTimeout(() => {
+                annChart.showDataColumns(state.headers.map((_, i) => i));
+                annChart.hideDataColumns(state.headers
+                    .map((h, i) => state.coldSeries.has(h) ? i : null)
+                    .filter(it => it != null));
+                });
+            });
             drawPicker(state.headers, state.coldSeries);
         }
         fetch("./rates.txt")
@@ -82,6 +101,7 @@
             window.annChart = new google.visualization.AnnotationChart(
                 document.getElementById('ann_chart'));
             annChart.draw(table, options);
+            annChart.hideDataColumns(headers.slice(1).map((_, i) => i));
             window.addEventListener(
                 "resize",
                 () => annChart.draw(table, options),
@@ -91,7 +111,6 @@
 
         function drawPicker(headers, coldSeries) {
             document.getElementById('picker').innerHTML = headers
-                .slice(1)
                 .map(h =>
                     '<label style="display:block">' +
                     '<input type="checkbox"' + (coldSeries.has(h) ? '' : ' checked') + ' value="' + h + '" onclick="toggleSeries(\'' + h + '\')" /> ' + h +
