@@ -1,51 +1,111 @@
 <!doctype html>
 <html lang="en">
 <head>
-    <title>So Much Neat!</title>
+    <title>New Case Rates</title>
     <!--suppress JSUnresolvedLibraryURL -->
-    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript"
+            src="https://www.gstatic.com/charts/loader.js"></script>
     <script type="text/javascript">
-        google.charts.load('current', {'packages':['annotationchart']});
-        dataPromise = fetch("./rates.txt")
+        google.charts.load('current', {'packages': ['annotationchart']});
+        state = {
+            coldSeries: new Set(),
+        }
+        setState = s => {
+            if (typeof s === "function") {
+                s = s(state);
+            }
+            state = {
+                ...state,
+                ...s,
+            };
+            render(state);
+        }
+        toggleSeries = label => {
+            setState(s => {
+                const coldSeries = new Set(state.coldSeries);
+                const idx = s.headers.indexOf(label)
+                if (coldSeries.has(label)) {
+                    annChart.showDataColumns(idx);
+                    coldSeries.delete(label);
+                } else {
+                    annChart.hideDataColumns(idx);
+                    coldSeries.add(label);
+                }
+                return {
+                    coldSeries,
+                };
+            })
+        }
+        render = state => {
+            console.log("render", state)
+            drawPicker(state.headers, state.coldSeries);
+        }
+        fetch("./rates.txt")
             .then(r => r.text())
             .then(r => r.trim()
                 .split("\n")
                 .map(r => r.split(",")))
-            .then(lines => google.charts.setOnLoadCallback(() => drawChart(lines)));
+            .then(lines => {
+                const headers = lines.shift()
+                headers.shift(); // cull the date column
+                setState({
+                    headers,
+                });
+                google.charts.setOnLoadCallback(() =>
+                    drawChart(headers, lines))
+            });
 
-        function drawChart(lines) {
+        function drawChart(headers, lines) {
             const table = new google.visualization.DataTable();
 
-            const headers = lines.shift();
-            table.addColumn('date', headers.shift());
-            headers.forEach(h =>
-                table.addColumn('number', h));
+            table.addColumn('date', "Date");
+
+            headers
+                .forEach(h => table.addColumn('number', h));
 
             table.addRows(lines
                 .map(r => {
-                    const [m, d] = r.shift()
+                    const [m, d] = r[0]
                         .split("/")
                         .map(p => parseInt(p, 10));
-                    r = r.map(parseFloat);
+                    r = r.slice(1)
+                        .map(parseFloat);
                     r.unshift(new Date(2020, m - 1, d));
                     return r;
                 }));
 
             var options = {
-                width: "100%",
-                height: 500,
                 dateFormat: "MMM d",
                 displayZoomButtons: false,
                 displayAnnotations: false,
             };
 
-            var annChart = new google.visualization.AnnotationChart(document.getElementById('ann_chart'));
+            window.annChart = new google.visualization.AnnotationChart(
+                document.getElementById('ann_chart'));
             annChart.draw(table, options);
-            annChart.setVisibleChartRange(new Date(Date.now() - 28 * 86400 * 1000));
+            window.addEventListener(
+                "resize",
+                () => annChart.draw(table, options),
+            );
+            annChart.setVisibleChartRange(new Date(2020, 3 - 1, 15));
+        }
+
+        function drawPicker(headers, coldSeries) {
+            document.getElementById('picker').innerHTML = headers
+                .slice(1)
+                .map(h =>
+                    '<label style="display:block">' +
+                    '<input type="checkbox"' + (coldSeries.has(h) ? '' : ' checked') + ' value="' + h + '" onclick="toggleSeries(\'' + h + '\')" /> ' + h +
+                    '</label>')
+                .join("");
         }
     </script>
 </head>
-<body style="background-color: #d9ead3">
-    <div id='ann_chart' style='background-color: #eeeeff'></div>
+<body>
+<h1>New Cases per Day per 100,000 Population (7-day Rolling Average)</h1>
+<div id="picker"
+     style="float:right;box-sizing:border-box;width:20%;padding:0 1em">
+</div>
+<div id="ann_chart" style="width:80%;height:80vh"></div>
 </body>
 </html>

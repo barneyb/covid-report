@@ -85,14 +85,12 @@ public class HopkinsTransform {
                 .reduce(
                         TimeSeries.zeros(wwDemo, dateHeaders),
                         TimeSeries::plus);
-        dumpSeries(ww);
 
         // grab US out of globals
         val usDemo = demographics.getByCountry("US");
         val us = globalList.stream()
                 .filter(it -> usDemo.getCountry().equals(it.getDemographics().getCountry()))
                 .findFirst().orElseThrow();
-        dumpSeries(us);
 
         // todo: index (not unique)!
 
@@ -112,9 +110,6 @@ public class HopkinsTransform {
         val usNoNy = TimeSeries.zeros(usNoNyDemo, dateHeaders)
                 .plus(us)
                 .minus(ny);
-        dumpSeries(usNoNy);
-
-        dumpSeries(ny);
 
         // sum up OR counties
         val orDemo = demographics.getByCountryAndState(usDemo.getCountry(), "Oregon");
@@ -124,7 +119,6 @@ public class HopkinsTransform {
                 .reduce(
                         TimeSeries.zeros(orDemo, dateHeaders),
                         TimeSeries::plus);
-        dumpSeries(or);
 
         // pull washington county out
         val wash = usList.stream()
@@ -132,7 +126,6 @@ public class HopkinsTransform {
                 .filter(it -> "Washington".equals(it.getDemographics().getLocal()))
                 .findFirst().orElseThrow();
         wash.getDemographics().setLabel("Washington Co");
-        dumpSeries(wash);
 
         // pull multnomah county out
         val mult = usList.stream()
@@ -140,9 +133,6 @@ public class HopkinsTransform {
                 .filter(it -> "Multnomah".equals(it.getDemographics().getLocal()))
                 .findFirst().orElseThrow();
         mult.getDemographics().setLabel("Multnomah Co");
-        dumpSeries(mult);
-
-        System.out.println("#".repeat(80));
 
         try (PrintWriter out = new PrintWriter(new FileWriter(new File(OUTPUT_DIR, "rates.txt")))) {
             val format = DateTimeFormatter.ofPattern("M/d");
@@ -161,6 +151,7 @@ public class HopkinsTransform {
                     .collect(Collectors.toList());
             out.print("Date");
             for (val s : series) {
+                dumpSeries(s);
                 out.append(',').append(s.getDemographics().getLabel());
             }
             out.println();
@@ -176,8 +167,8 @@ public class HopkinsTransform {
     }
 
     private void dumpSeries(TimeSeries ts) {
-        System.out.printf("%25s:", ts.getDemographics().getCombinedKey());
-        val data = ts.map(DELTA).map(ROLLING_AVERAGE).transform(PER_100K).getData();
+        System.out.printf("%25s:", ts.getDemographics().getLabel());
+        val data = ts.getData();
         for (int l = data.length, i = l - 21; i < l; i++) {
             System.out.printf(" %5.2f", data[i]);
         }

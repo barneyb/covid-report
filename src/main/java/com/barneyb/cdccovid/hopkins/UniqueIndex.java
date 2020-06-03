@@ -19,7 +19,7 @@ public class UniqueIndex<K, T> {
             val k = extractor.apply(it);
             val prev = index.put(k, it);
             if (prev != null) {
-                throw new DuplicateKeyException("Duplicate key '" + k + "'.");
+                throw new DuplicateKeyException("Duplicate key '" + k + "' for: " + it);
             }
         });
     }
