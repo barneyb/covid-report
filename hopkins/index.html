@@ -37,14 +37,13 @@
             })
         }
         render = state => {
-            console.log("render", state)
             drawPicker(state.headers, state.coldSeries);
         }
         fetch("./rates.txt")
             .then(r => r.text())
             .then(r => r.trim()
                 .split("\n")
-                .map(r => r.split(",")))
+                .map(r => r.split("|")))
             .then(lines => {
                 const headers = lines.shift()
                 headers.shift(); // cull the date column
