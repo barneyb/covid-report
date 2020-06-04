@@ -71,6 +71,15 @@ public class HopkinsTransform {
         val globalList = convertRawGlobals(demographics, rawGlobal, dateHeaders);
         val usList = convertRawUs(demographics, loadUSData(), dateHeaders);
 
+        val globalByCountry = new Index<>(globalList, it -> it.getDemographics().getCountry());
+        val globalByState = new Index<>(globalList.stream()
+                .filter(it -> it.getDemographics().isState()),
+                it -> new Pair<>(it.getDemographics().getCountry(), it.getDemographics().getState()));
+        val usByState = new Index<>(usList, it -> it.getDemographics().getState());
+        val usByCounty = new Index<>(usList.stream()
+                .filter(it -> it.getDemographics().isLocal()),
+                it -> new Pair<>(it.getDemographics().getState(), it.getDemographics().getLocal()));
+
         // fake "worldwide" demographics
         val wwDemo = new Demographics();
         wwDemo.setCombinedKey("Worldwide");
@@ -88,29 +97,21 @@ public class HopkinsTransform {
 
         // sum up to get china
         val cnDemo = demographics.getByCountry("China");
-        val cn = globalList.stream()
-                .filter(it -> cnDemo.getCountry().equals(it.getDemographics().getCountry()))
+        val cn = globalByCountry.get(cnDemo.getCountry()).stream()
                 .reduce(
                         TimeSeries.zeros(cnDemo, dateHeaders),
                         TimeSeries::plus);
 
-        val hubei = globalList.stream()
-                .filter(it -> cnDemo.getCountry().equals(it.getDemographics().getCountry()))
-                .filter(it -> "Hubei".equals(it.getDemographics().getState()))
+        val hubei = globalByState.get("China", "Hubei").stream()
                 .findFirst().orElseThrow();
 
         // grab US out of globals
-        val usDemo = demographics.getByCountry("US");
-        val us = globalList.stream()
-                .filter(it -> usDemo.getCountry().equals(it.getDemographics().getCountry()))
+        val us = globalByCountry.get("US").stream()
                 .findFirst().orElseThrow();
 
-        // todo: index (not unique)!
-
         // sum up NY counties
-        val nyDemo = demographics.getByCountryAndState(usDemo.getCountry(), "New York");
-        val ny = usList.stream()
-                .filter(it -> nyDemo.getState().equals(it.getDemographics().getState()))
+        val nyDemo = demographics.getByCountryAndState("US", "New York");
+        val ny = usByState.get(nyDemo.getState()).stream()
                 .reduce(
                         TimeSeries.zeros(nyDemo, dateHeaders),
                         TimeSeries::plus);
@@ -118,66 +119,53 @@ public class HopkinsTransform {
         // US-without-NY
         val usNoNyDemo = new Demographics();
         usNoNyDemo.setCombinedKey("US Except NY");
-        usNoNyDemo.setPopulation(usDemo.getPopulation() - nyDemo.getPopulation());
+        usNoNyDemo.setPopulation(us.getDemographics().getPopulation() - ny.getDemographics().getPopulation());
         val usNoNy = TimeSeries.zeros(usNoNyDemo, dateHeaders)
                 .plus(us)
                 .minus(ny);
 
         // sum up OR counties
-        val orDemo = demographics.getByCountryAndState(usDemo.getCountry(), "Oregon");
-        val or = usList.stream()
-                .filter(it -> orDemo.getState().equals(it.getDemographics().getState()))
+        val orDemo = demographics.getByCountryAndState("US", "Oregon");
+        val or = usByState.get(orDemo.getState()).stream()
                 .reduce(
                         TimeSeries.zeros(orDemo, dateHeaders),
                         TimeSeries::plus);
 
         // pull washington county out
-        val wash = usList.stream()
-                .filter(it -> orDemo.getState().equals(it.getDemographics().getState()))
-                .filter(it -> "Washington".equals(it.getDemographics().getLocal()))
+        val wash = usByCounty.get("Oregon", "Washington").stream()
                 .findFirst().orElseThrow();
 
         // pull multnomah county out
-        val mult = usList.stream()
-                .filter(it -> orDemo.getState().equals(it.getDemographics().getState()))
-                .filter(it -> "Multnomah".equals(it.getDemographics().getLocal()))
+        val mult = usByCounty.get("Oregon", "Multnomah").stream()
                 .findFirst().orElseThrow();
 
         // sum up CA counties
-        val caDemo = demographics.getByCountryAndState(usDemo.getCountry(), "California");
-        val ca = usList.stream()
-                .filter(it -> caDemo.getState().equals(it.getDemographics().getState()))
+        val caDemo = demographics.getByCountryAndState("US", "California");
+        val ca = usByState.get(caDemo.getState()).stream()
                 .reduce(
                         TimeSeries.zeros(caDemo, dateHeaders),
                         TimeSeries::plus);
 
         // pull san francisco county out
-        val sf = usList.stream()
-                .filter(it -> caDemo.getState().equals(it.getDemographics().getState()))
-                .filter(it -> "San Francisco".equals(it.getDemographics().getLocal()))
+        val sf = usByCounty.get(caDemo.getState(), "San Francisco").stream()
                 .findFirst().orElseThrow();
 
         // pull san mateo county out
-        val sm = usList.stream()
-                .filter(it -> caDemo.getState().equals(it.getDemographics().getState()))
-                .filter(it -> "San Mateo".equals(it.getDemographics().getLocal()))
+        val sm = usByCounty.get(caDemo.getState(), "San Mateo").stream()
                 .findFirst().orElseThrow();
 
         // pull santa clara county out
-        val sc = usList.stream()
-                .filter(it -> caDemo.getState().equals(it.getDemographics().getState()))
-                .filter(it -> "Santa Clara".equals(it.getDemographics().getLocal()))
+        val sc = usByCounty.get(caDemo.getState(), "Santa Clara").stream()
                 .findFirst().orElseThrow();
 
         try (PrintWriter out = new PrintWriter(new FileWriter(new File(OUTPUT_DIR, "rates.txt")))) {
             val format = DateTimeFormatter.ofPattern("M/d");
             val countSeries = new LinkedList<>(List.of(ww, us, usNoNy, ny, or, mult, wash, ca, sf, sm, sc, cn, hubei));
-            countSeries.addAll(List.of("Italy", "France", "Brazil", "Russia").stream().map(c -> {
-                        val demo = demographics.getByCountry(c);
-                        return globalList.stream()
-                                .filter(it -> c.equals(it.getDemographics().getCountry()))
-                                .reduce(TimeSeries.zeros(demo, dateHeaders), TimeSeries::plus);
-                    }).collect(Collectors.toList()));
+            countSeries.addAll(List.of("Italy", "Brazil", "Russia").stream().map(c -> {
+                val demo = demographics.getByCountry(c);
+                return globalByCountry.get(demo.getCountry()).stream()
+                        .reduce(TimeSeries.zeros(demo, dateHeaders), TimeSeries::plus);
+            }).collect(Collectors.toList()));
             val series = countSeries.stream()
                     .map(s -> s
                             .map(DELTA)

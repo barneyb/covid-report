@@ -1,23 +1,14 @@
 package com.barneyb.cdccovid.hopkins;
 
 import com.barneyb.cdccovid.hopkins.csv.Demographics;
-import lombok.AllArgsConstructor;
-import lombok.Data;
 
 import java.util.List;
 
 public class IndexedDemographics {
 
-    @Data
-    @AllArgsConstructor
-    private static class CountryAndState {
-        private String country;
-        private String string;
-    }
-
     private final UniqueIndex<Integer, Demographics> byUid;
     private final UniqueIndex<String, Demographics> byCountry;
-    private final UniqueIndex<CountryAndState, Demographics> byCountryAndState;
+    private final UniqueIndex<Pair<String>, Demographics> byCountryAndState;
 
     public IndexedDemographics(List<Demographics> demographics) {
         byUid = new UniqueIndex<>(demographics, Demographics::getUid);
@@ -28,7 +19,7 @@ public class IndexedDemographics {
         byCountryAndState = new UniqueIndex<>(
                 demographics.stream()
                         .filter(Demographics::isState),
-                it -> new CountryAndState(it.getCountry(), it.getState()));
+                it -> new Pair<>(it.getCountry(), it.getState()));
     }
 
     public Demographics getByUid(Integer uid) {
@@ -40,7 +31,7 @@ public class IndexedDemographics {
     }
 
     public Demographics getByCountryAndState(String country, String state) {
-        return byCountryAndState.get(new CountryAndState(country, state));
+        return byCountryAndState.get(new Pair<>(country, state));
     }
 
 }

@@ -29,7 +29,7 @@ public class UniqueIndex<K, T> {
                 extractor);
     }
 
-    T get(K key) {
+    public T get(K key) {
         return index.get(key);
     }
 
