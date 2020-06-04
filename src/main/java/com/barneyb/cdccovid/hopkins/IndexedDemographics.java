@@ -27,7 +27,7 @@ public class IndexedDemographics {
                 Demographics::getCountry);
         byCountryAndState = new UniqueIndex<>(
                 demographics.stream()
-                        .filter(it -> !it.isLocal()),
+                        .filter(Demographics::isState),
                 it -> new CountryAndState(it.getCountry(), it.getState()));
     }
 

@@ -30,7 +30,7 @@ public class GlobalTimeSeries implements CsvTimeSeries {
     @CsvBindAndJoinByName(column = "[0-9]+/[0-9]+/[0-9]+", elementType = Long.class, mapType = HashSetValuedHashMap.class)
     private MultiValuedMap<String, Long> dates;
 
-    boolean isCountry() {
+    public boolean isCountry() {
         return state == null;
     }
 

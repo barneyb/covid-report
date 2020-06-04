@@ -59,10 +59,6 @@ public class HopkinsTransform {
 
     @SneakyThrows
     public void transform() {
-        if (!OUTPUT_DIR.exists()) {
-            //noinspection ResultOfMethodCallIgnored
-            OUTPUT_DIR.mkdirs();
-        }
         val demographics = loadDemographics();
         val rawGlobal = loadGlobalData();
         val dates = extractDates(rawGlobal.get(0));
@@ -222,7 +218,9 @@ public class HopkinsTransform {
     private List<TimeSeries> convertRawGlobals(IndexedDemographics demographics, List<GlobalTimeSeries> rawGlobal, String[] dateHeaders) {
         return rawGlobal.stream()
                 .map(it -> new TimeSeries(
-                        demographics.getByCountryAndState(it.getCountry(), it.getState()),
+                        it.isCountry()
+                                ? demographics.getByCountry(it.getCountry())
+                                : demographics.getByCountryAndState(it.getCountry(), it.getState()),
                         dateHeaders,
                         it))
                 .collect(Collectors.toList());
