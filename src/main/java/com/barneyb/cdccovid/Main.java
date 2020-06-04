@@ -4,7 +4,8 @@ import com.barneyb.cdccovid.hopkins.HopkinsTransform;
 import lombok.SneakyThrows;
 import lombok.val;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.ApplicationArguments;
+import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
@@ -14,27 +15,26 @@ import java.time.LocalDate;
 import java.time.Month;
 
 @Component
-public class Main implements CommandLineRunner {
+public class Main implements ApplicationRunner {
 
     @Autowired
     ApplicationContext appCtx;
 
-    public void run(String... args) throws Exception {
-//        appCtx.getBean(Mortality.class)
-//                .update();
+    @Override
+    public void run(ApplicationArguments args) throws Exception {
+        if (args.containsOption("hopkins")) {
+            appCtx.getBean(HopkinsTransform.class)
+                    .transform();
+            return;
+        }
 
-//        appCtx.getBean(CDC.class)
-//                .update(java.time.LocalDate.of(2020, 5, 30));
+        if (args.containsOption("cdc")) {
+            appCtx.getBean(CDC.class)
+                    .update(java.time.LocalDate.now());
+        }
 
-//        appCtx.getBean(TsvEmitter.class)
-//                .emit(System.out);
-
-        appCtx.getBean(HopkinsTransform.class)
-                .transform();
-
-//        appCtx.getBean(ReportJsonEmitter.class)
-////                .emit(System.out);
-//                .emit(Files.newOutputStream(Path.of("report.json")));
+        appCtx.getBean(ReportJsonEmitter.class)
+                .emit(Files.newOutputStream(Path.of("report.json")));
     }
 
     @SneakyThrows

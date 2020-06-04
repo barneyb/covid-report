@@ -59,6 +59,10 @@ public class HopkinsTransform {
 
     @SneakyThrows
     public void transform() {
+        if (!OUTPUT_DIR.exists()) {
+            //noinspection ResultOfMethodCallIgnored
+            OUTPUT_DIR.mkdirs();
+        }
         val demographics = loadDemographics();
         val rawGlobal = loadGlobalData();
         val dates = extractDates(rawGlobal.get(0));
@@ -182,7 +186,6 @@ public class HopkinsTransform {
                     .collect(Collectors.toList());
             out.print("Date");
             for (val s : series) {
-                dumpSeries(s);
                 out.append('|')
                         .append(s.getDemographics().getCombinedKey());
             }
@@ -196,15 +199,6 @@ public class HopkinsTransform {
                 out.println();
             }
         }
-    }
-
-    private void dumpSeries(TimeSeries ts) {
-        System.out.printf("%30s:", ts.getDemographics().getCombinedKey());
-        val data = ts.getData();
-        for (int l = data.length, i = l - 21; i < l; i++) {
-            System.out.printf(" %5.2f", data[i]);
-        }
-        System.out.println();
     }
 
     private List<TimeSeries> convertRawUs(IndexedDemographics demographics, List<USTimeSeries> rawUs, String[] dateHeaders) {
