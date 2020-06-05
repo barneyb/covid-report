@@ -9,6 +9,7 @@ rsync -a \
   --progress --stats \
   index.html \
   report.* \
+  events.txt \
   covid.jar \
   hopkins \
   barneyb.com:/vol/www/static/covid/
