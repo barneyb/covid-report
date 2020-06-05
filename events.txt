@@ -12,3 +12,4 @@ Date|Jurisdiction|Event|Description
 5/29|Illinois, US|Illinois Lifts Stay-at-Home|
 6/1|Washington, Oregon, US|WashCo Phase 1|
 6/1|Michigan, US|Michigan Lifts Stay-at-Home|
+6/5|Oregon, US|First 26 OR Counties Enter Phase 2|
