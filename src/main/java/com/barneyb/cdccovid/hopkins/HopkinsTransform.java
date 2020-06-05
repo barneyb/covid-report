@@ -139,6 +139,9 @@ public class HopkinsTransform {
         val mult = usByCounty.get("Oregon", "Multnomah").stream()
                 .findFirst().orElseThrow();
 
+        val marion = usByCounty.get("Oregon", "Marion").stream()
+                .findFirst().orElseThrow();
+
         // sum up CA counties
         val caDemo = demographics.getByCountryAndState("US", "California");
         val ca = usByState.get(caDemo.getState()).stream()
@@ -160,7 +163,7 @@ public class HopkinsTransform {
 
         try (PrintWriter out = new PrintWriter(new FileWriter(new File(OUTPUT_DIR, "rates.txt")))) {
             val format = DateTimeFormatter.ofPattern("M/d");
-            val countSeries = new LinkedList<>(List.of(ww, us, usNoNy, ny, or, mult, wash, ca, sf, sm, sc, cn, hubei));
+            val countSeries = new LinkedList<>(List.of(ww, us, usNoNy, ny, or, marion, mult, wash, ca, sf, sm, sc, cn, hubei));
             countSeries.addAll(List.of("Italy", "Brazil", "Russia").stream().map(c -> {
                 val demo = demographics.getByCountry(c);
                 return globalByCountry.get(demo.getCountry()).stream()
