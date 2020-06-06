@@ -68,38 +68,28 @@ public class HopkinsTransform {
         val dates = extractDates(rawGlobal.get(0));
         val dateHeaders = buildDateHeaders(dates);
 
-        val indexedGlobals = new IndexedGlobals(demographics, rawGlobal, dateHeaders);
-        val usList = convertRawUs(demographics, loadUSData(), dateHeaders);
-
-        val usByState = new Index<>(usList, it -> it.getDemographics().getState());
-        val usByCounty = new Index<>(usList.stream()
-                .filter(it -> it.getDemographics().isLocal()),
-                it -> new Pair<>(it.getDemographics().getState(), it.getDemographics().getLocal()));
+        val indexedWorld = new IndexedWorld(demographics, rawGlobal, dateHeaders);
+        val indexedUS = new IndexedUS(demographics, loadUSData(), dateHeaders);
 
         // fake "worldwide" demographics
         val wwDemo = new Demographics();
         wwDemo.setCombinedKey("Worldwide");
-        wwDemo.setPopulation(indexedGlobals.cover()
+        wwDemo.setPopulation(indexedWorld.cover()
                 .map(TimeSeries::getDemographics)
                 .map(Demographics::getPopulation)
                 .reduce(0L, Long::sum));
 
         // sum up globals to get worldwide
-        val ww = indexedGlobals.cover()
+        val ww = indexedWorld.cover()
                 .reduce(TimeSeries::plus)
                 .orElseThrow();
         ww.setDemographics(wwDemo);
 
-        val cn = indexedGlobals.getByCountry("China");
-        val hubei = indexedGlobals.getByCountryAndState("China", "Hubei");
-        val us = indexedGlobals.getByCountry("US");
+        val cn = indexedWorld.getByCountry("China");
+        val hubei = indexedWorld.getByCountryAndState("China", "Hubei");
+        val us = indexedWorld.getByCountry("US");
 
-        // sum up NY counties
-        val nyDemo = demographics.getByCountryAndState("US", "New York");
-        val ny = usByState.get(nyDemo.getState()).stream()
-                .reduce(
-                        TimeSeries.zeros(nyDemo, dateHeaders),
-                        TimeSeries::plus);
+        val ny = indexedUS.getByState("New York");
 
         // US-without-NY
         val usNoNyDemo = new Demographics();
@@ -109,61 +99,28 @@ public class HopkinsTransform {
                 .plus(us)
                 .minus(ny);
 
-        // sum up OR counties
-        val orDemo = demographics.getByCountryAndState("US", "Oregon");
-        val or = usByState.get(orDemo.getState()).stream()
-                .reduce(
-                        TimeSeries.zeros(orDemo, dateHeaders),
-                        TimeSeries::plus);
+        val or = indexedUS.getByState("Oregon");
+        val wash = indexedUS.getByStateAndLocal("Oregon", "Washington");
+        val mult = indexedUS.getByStateAndLocal("Oregon", "Multnomah");
+        val marion = indexedUS.getByStateAndLocal("Oregon", "Marion");
 
-        // pull washington county out
-        val wash = usByCounty.get(orDemo.getState(), "Washington").stream()
-                .findFirst().orElseThrow();
-
-        // pull multnomah county out
-        val mult = usByCounty.get(orDemo.getState(), "Multnomah").stream()
-                .findFirst().orElseThrow();
-
-        val marion = usByCounty.get(orDemo.getState(), "Marion").stream()
-                .findFirst().orElseThrow();
-
-        // sum up CA counties
-        val caDemo = demographics.getByCountryAndState("US", "California");
-        val ca = usByState.get(caDemo.getState()).stream()
-                .reduce(
-                        TimeSeries.zeros(caDemo, dateHeaders),
-                        TimeSeries::plus);
-
-        // pull san francisco county out
-        val sf = usByCounty.get(caDemo.getState(), "San Francisco").stream()
-                .findFirst().orElseThrow();
-
-        // pull san mateo county out
-        val sm = usByCounty.get(caDemo.getState(), "San Mateo").stream()
-                .findFirst().orElseThrow();
-
-        // pull santa clara county out
-        val sc = usByCounty.get(caDemo.getState(), "Santa Clara").stream()
-                .findFirst().orElseThrow();
+        val ca = indexedUS.getByState("California");
+        val sf = indexedUS.getByStateAndLocal("California", "San Francisco");
+        val sm = indexedUS.getByStateAndLocal("California", "San Mateo");
+        val sc = indexedUS.getByStateAndLocal("California", "Santa Clara");
 
         try (PrintWriter out = new PrintWriter(new FileWriter(new File(OUTPUT_DIR, "rates.txt")))) {
             val format = DateTimeFormatter.ofPattern("M/d");
             val countSeries = new LinkedList<>(List.of(ww, us, usNoNy, ny, or, marion, mult, wash, ca, sf, sm, sc));
             countSeries.addAll(List.of("Georgia", "Illinois", "Michigan", "Pennsylvania", "Texas")
                     .stream()
-                    .map(s -> {
-                        val demo = demographics.getByCountryAndState("US", s);
-                        return usByState.get(demo.getState()).stream()
-                                .reduce(
-                                        TimeSeries.zeros(demo, dateHeaders),
-                                        TimeSeries::plus);
-                    })
+                    .map(indexedUS::getByState)
                     .collect(Collectors.toList()));
             countSeries.add(cn);
             countSeries.add(hubei);
             countSeries.addAll(List.of("Italy", "Brazil", "France", "Russia")
                     .stream()
-                    .map(indexedGlobals::getByCountry)
+                    .map(indexedWorld::getByCountry)
                     .collect(Collectors.toList()));
             val series = countSeries.stream()
                     .map(s -> s
@@ -186,14 +143,6 @@ public class HopkinsTransform {
                 out.println();
             }
         }
-    }
-
-    private List<TimeSeries> convertRawUs(IndexedDemographics demographics, List<USTimeSeries> rawUs, String[] dateHeaders) {
-        return rawUs.stream()
-                .map(it -> new TimeSeries(demographics.getByUid(it.getUid()),
-                        dateHeaders,
-                        it))
-                .collect(Collectors.toList());
     }
 
     private String[] buildDateHeaders(LocalDate[] dates) {

@@ -7,15 +7,15 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class IndexedGlobals {
+public class IndexedWorld {
 
-    private final Collection<TimeSeries> globals;
+    private final Collection<TimeSeries> cover;
     private final UniqueIndex<String, TimeSeries> byCountry;
     private final UniqueIndex<Pair<String>, TimeSeries> byCountryAndState;
     private final Index<String, TimeSeries> statesOfCountry;
 
-    public IndexedGlobals(IndexedDemographics demographics, Collection<GlobalTimeSeries> rawGlobal, String[] dateHeaders) {
-        this.globals = rawGlobal.stream()
+    public IndexedWorld(IndexedDemographics demographics, Collection<GlobalTimeSeries> rawGlobal, String[] dateHeaders) {
+        cover = rawGlobal.stream()
                 .map(it -> new TimeSeries(
                         it.isCountry()
                                 ? demographics.getByCountry(it.getCountry())
@@ -24,22 +24,22 @@ public class IndexedGlobals {
                         it))
                 .collect(Collectors.toUnmodifiableList());
         byCountry = new UniqueIndex<>(
-                globals.stream()
+                cover.stream()
                         .filter(it -> it.getDemographics().isCountry()),
                 it -> it.getDemographics().getCountry());
         byCountryAndState = new UniqueIndex<>(
-                globals.stream()
+                cover.stream()
                         .filter(it -> it.getDemographics().isState()),
                 it -> new Pair<>(it.getDemographics().getCountry(), it.getDemographics().getState()));
         statesOfCountry = new Index<>(
-                globals.stream()
+                cover.stream()
                         .filter(it -> it.getDemographics().isState()),
                 it -> it.getDemographics().getCountry());
 
         // for countries which are broken down, roll up a total
         statesOfCountry.getKeys().stream()
                 .filter(Predicate.not(byCountry::containsKey))
-                .map(country -> globals.stream()
+                .map(country -> cover.stream()
                         .filter(it -> country.equals(
                                 it.getDemographics().getCountry()))
                         .reduce(TimeSeries::plus)
@@ -54,7 +54,7 @@ public class IndexedGlobals {
 
     /** Worldwide coverage */
     public Stream<TimeSeries> cover() {
-        return globals.stream();
+        return cover.stream();
     }
 
     /** Does NOT include protectorates! */
