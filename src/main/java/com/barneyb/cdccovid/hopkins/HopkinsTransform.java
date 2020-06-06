@@ -148,8 +148,21 @@ public class HopkinsTransform {
 
         try (PrintWriter out = new PrintWriter(new FileWriter(new File(OUTPUT_DIR, "rates.txt")))) {
             val format = DateTimeFormatter.ofPattern("M/d");
-            val countSeries = new LinkedList<>(List.of(ww, us, usNoNy, ny, or, marion, mult, wash, ca, sf, sm, sc, cn, hubei));
-            countSeries.addAll(List.of("Italy", "Brazil", "France", "Russia").stream()
+            val countSeries = new LinkedList<>(List.of(ww, us, usNoNy, ny, or, marion, mult, wash, ca, sf, sm, sc));
+            countSeries.addAll(List.of("Georgia", "Illinois", "Michigan", "Pennsylvania", "Texas")
+                    .stream()
+                    .map(s -> {
+                        val demo = demographics.getByCountryAndState("US", s);
+                        return usByState.get(demo.getState()).stream()
+                                .reduce(
+                                        TimeSeries.zeros(demo, dateHeaders),
+                                        TimeSeries::plus);
+                    })
+                    .collect(Collectors.toList()));
+            countSeries.add(cn);
+            countSeries.add(hubei);
+            countSeries.addAll(List.of("Italy", "Brazil", "France", "Russia")
+                    .stream()
                     .map(indexedGlobals::getByCountry)
                     .collect(Collectors.toList()));
             val series = countSeries.stream()
