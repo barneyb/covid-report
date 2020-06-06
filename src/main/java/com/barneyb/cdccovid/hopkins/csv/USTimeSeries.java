@@ -23,7 +23,7 @@ public class USTimeSeries implements CsvTimeSeries {
     // MVM is a bit silly, since the column names are all different, but both
     // this use case and aggregating multiple same-named columns are provided by
     // the same annotation. C'est la vie.
-    @CsvBindAndJoinByName(column = "[0-9]+/[0-9]+/[0-9]+", elementType = Long.class, mapType = HashSetValuedHashMap.class)
-    private MultiValuedMap<String, Long> dates;
+    @CsvBindAndJoinByName(column = "[0-9]+/[0-9]+/[0-9]+", elementType = Double.class, mapType = HashSetValuedHashMap.class)
+    private MultiValuedMap<String, Double> dates;
 
 }

@@ -5,9 +5,9 @@ import org.apache.commons.collections4.MultiValuedMap;
 
 public interface CsvTimeSeries {
 
-    MultiValuedMap<String, Long> getDates();
+    MultiValuedMap<String, Double> getDates();
 
-    default long getDataPoint(String date) {
+    default double getDataPoint(String date) {
         val values = getDates().get(date);
         return values.isEmpty() ? 0 : values.iterator().next();
     }
