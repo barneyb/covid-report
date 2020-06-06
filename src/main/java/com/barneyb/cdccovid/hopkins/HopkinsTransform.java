@@ -1,18 +1,19 @@
 package com.barneyb.cdccovid.hopkins;
 
-import com.barneyb.cdccovid.hopkins.csv.CsvTimeSeries;
-import com.barneyb.cdccovid.hopkins.csv.Demographics;
-import com.barneyb.cdccovid.hopkins.csv.GlobalTimeSeries;
-import com.barneyb.cdccovid.hopkins.csv.USTimeSeries;
+import com.barneyb.cdccovid.hopkins.csv.*;
 import com.opencsv.bean.CsvToBeanBuilder;
+import com.opencsv.bean.HeaderColumnNameMappingStrategy;
+import com.opencsv.bean.StatefulBeanToCsvBuilder;
 import com.opencsv.enums.CSVReaderNullFieldIndicator;
 import lombok.SneakyThrows;
 import lombok.val;
+import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.springframework.stereotype.Component;
 
 import java.io.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -57,6 +58,8 @@ public class HopkinsTransform {
     public static final BiFunction<Demographics, Double, Double> PER_100K = (d, v) ->
             v / (d.getPopulation() / 100_000);
 
+    public static final String WORLDWIDE = "Worldwide";
+
     @SneakyThrows
     public void transform() {
         if (!OUTPUT_DIR.exists()) {
@@ -73,7 +76,7 @@ public class HopkinsTransform {
 
         // fake "worldwide" demographics
         val wwDemo = new Demographics();
-        wwDemo.setCombinedKey("Worldwide");
+        wwDemo.setCombinedKey(WORLDWIDE);
         wwDemo.setPopulation(indexedWorld.cover()
                 .map(TimeSeries::getDemographics)
                 .map(Demographics::getPopulation)
@@ -109,39 +112,60 @@ public class HopkinsTransform {
         val sm = indexedUS.getByStateAndLocal("California", "San Mateo");
         val sc = indexedUS.getByStateAndLocal("California", "Santa Clara");
 
-        try (PrintWriter out = new PrintWriter(new FileWriter(new File(OUTPUT_DIR, "rates.txt")))) {
-            val format = DateTimeFormatter.ofPattern("M/d");
-            val countSeries = new LinkedList<>(List.of(ww, us, usNoNy, ny, or, marion, mult, wash, ca, sf, sm, sc));
-            countSeries.addAll(List.of("Georgia", "Illinois", "Michigan", "Pennsylvania", "Texas")
-                    .stream()
-                    .map(indexedUS::getByState)
-                    .collect(Collectors.toList()));
-            countSeries.add(cn);
-            countSeries.add(hubei);
-            countSeries.addAll(List.of("Italy", "Brazil", "France", "Russia")
-                    .stream()
-                    .map(indexedWorld::getByCountry)
-                    .collect(Collectors.toList()));
-            val series = countSeries.stream()
-                    .map(s -> s
-                            .map(DELTA)
-                            .map(ROLLING_AVERAGE)
-                            .transform(PER_100K))
-                    .collect(Collectors.toList());
-            out.print("Date");
+        val countSeries = new LinkedList<>(List.of(ww, us, usNoNy, ny, or, marion, mult, wash, ca, sf, sm, sc));
+        countSeries.addAll(List.of("Georgia", "Illinois", "Michigan", "Pennsylvania", "Texas")
+                .stream()
+                .map(indexedUS::getByState)
+                .collect(Collectors.toList()));
+        countSeries.add(cn);
+        countSeries.add(hubei);
+        countSeries.addAll(List.of("Italy", "Brazil", "France", "Russia")
+                .stream()
+                .map(indexedWorld::getByCountry)
+                .collect(Collectors.toList()));
+        val series = countSeries.stream()
+                .map(s -> s
+                        .map(DELTA)
+                        .map(ROLLING_AVERAGE)
+                        .transform(PER_100K))
+                .collect(Collectors.toList());
+
+        val rates = new ArrayList<Rates>(dateHeaders.length);
+        for (int i = 0; i < dates.length; i++) {
+            LocalDate d = dates[i];
+            val r = new Rates(d, new ArrayListValuedHashMap<>());
             for (val s : series) {
-                out.append('|')
-                        .append(s.getDemographics().getCombinedKey());
+                r.getJurisdictions()
+                        .get(s.getDemographics().getCombinedKey())
+                        .add(s.getData()[i]);
             }
-            out.println();
-            for (int i = 0; i < dates.length; i++) {
-                LocalDate d = dates[i];
-                out.print(d.format(format));
-                for (val s : series) {
-                    out.append('|').format("%.2f", s.getData()[i]);
-                }
-                out.println();
-            }
+            rates.add(r);
+        }
+        val strat = new HeaderColumnNameMappingStrategy<Rates>();
+        strat.setType(Rates.class);
+        strat.setColumnOrderOnWrite((a, b) -> {
+            if ("DATE".equals(a)) return -1;
+            if ("DATE".equals(b)) return 1;
+            if (WORLDWIDE.equals(a)) return -1;
+            if (WORLDWIDE.equals(b)) return 1;
+            val a1 = a.indexOf(',');
+            val b1 = b.indexOf(',');
+            if (a1 < 0 && b1 < 0) return a.compareTo(b);
+            if (a1 < 0) return -1;
+            if (b1 < 0) return 1;
+            val a2 = a.indexOf(',', a1 + 1);
+            val b2 = b.indexOf(',', b1 + 1);
+            if (a2 < 0 && b2 >= 0) return -1;
+            if (a2 >= 0 && b2 < 0) return 1;
+            return a.compareTo(b);
+        });
+        try (Writer out = new BufferedWriter(new FileWriter(new File(OUTPUT_DIR, "rates.txt")))) {
+            new StatefulBeanToCsvBuilder<Rates>(out)
+                    .withSeparator('|')
+                    .withMappingStrategy(strat)
+                    .withApplyQuotesToAll(false)
+                    .build()
+                    .write(rates);
         }
     }
 
