@@ -68,13 +68,9 @@ public class HopkinsTransform {
         val dates = extractDates(rawGlobal.get(0));
         val dateHeaders = buildDateHeaders(dates);
 
-        val globalList = convertRawGlobals(demographics, rawGlobal, dateHeaders);
+        val indexedGlobals = new IndexedGlobals(demographics, rawGlobal, dateHeaders);
         val usList = convertRawUs(demographics, loadUSData(), dateHeaders);
 
-        val globalByCountry = new Index<>(globalList, it -> it.getDemographics().getCountry());
-        val globalByState = new Index<>(globalList.stream()
-                .filter(it -> it.getDemographics().isState()),
-                it -> new Pair<>(it.getDemographics().getCountry(), it.getDemographics().getState()));
         val usByState = new Index<>(usList, it -> it.getDemographics().getState());
         val usByCounty = new Index<>(usList.stream()
                 .filter(it -> it.getDemographics().isLocal()),
@@ -83,31 +79,20 @@ public class HopkinsTransform {
         // fake "worldwide" demographics
         val wwDemo = new Demographics();
         wwDemo.setCombinedKey("Worldwide");
-        wwDemo.setPopulation(globalList
-                .stream()
+        wwDemo.setPopulation(indexedGlobals.cover()
                 .map(TimeSeries::getDemographics)
                 .map(Demographics::getPopulation)
                 .reduce(0L, Long::sum));
 
         // sum up globals to get worldwide
-        val ww = globalList.stream()
-                .reduce(
-                        TimeSeries.zeros(wwDemo, dateHeaders),
-                        TimeSeries::plus);
+        val ww = indexedGlobals.cover()
+                .reduce(TimeSeries::plus)
+                .orElseThrow();
+        ww.setDemographics(wwDemo);
 
-        // sum up to get china
-        val cnDemo = demographics.getByCountry("China");
-        val cn = globalByCountry.get(cnDemo.getCountry()).stream()
-                .reduce(
-                        TimeSeries.zeros(cnDemo, dateHeaders),
-                        TimeSeries::plus);
-
-        val hubei = globalByState.get("China", "Hubei").stream()
-                .findFirst().orElseThrow();
-
-        // grab US out of globals
-        val us = globalByCountry.get("US").stream()
-                .findFirst().orElseThrow();
+        val cn = indexedGlobals.getByCountry("China");
+        val hubei = indexedGlobals.getByCountryAndState("China", "Hubei");
+        val us = indexedGlobals.getByCountry("US");
 
         // sum up NY counties
         val nyDemo = demographics.getByCountryAndState("US", "New York");
@@ -132,14 +117,14 @@ public class HopkinsTransform {
                         TimeSeries::plus);
 
         // pull washington county out
-        val wash = usByCounty.get("Oregon", "Washington").stream()
+        val wash = usByCounty.get(orDemo.getState(), "Washington").stream()
                 .findFirst().orElseThrow();
 
         // pull multnomah county out
-        val mult = usByCounty.get("Oregon", "Multnomah").stream()
+        val mult = usByCounty.get(orDemo.getState(), "Multnomah").stream()
                 .findFirst().orElseThrow();
 
-        val marion = usByCounty.get("Oregon", "Marion").stream()
+        val marion = usByCounty.get(orDemo.getState(), "Marion").stream()
                 .findFirst().orElseThrow();
 
         // sum up CA counties
@@ -164,11 +149,9 @@ public class HopkinsTransform {
         try (PrintWriter out = new PrintWriter(new FileWriter(new File(OUTPUT_DIR, "rates.txt")))) {
             val format = DateTimeFormatter.ofPattern("M/d");
             val countSeries = new LinkedList<>(List.of(ww, us, usNoNy, ny, or, marion, mult, wash, ca, sf, sm, sc, cn, hubei));
-            countSeries.addAll(List.of("Italy", "Brazil", "Russia").stream().map(c -> {
-                val demo = demographics.getByCountry(c);
-                return globalByCountry.get(demo.getCountry()).stream()
-                        .reduce(TimeSeries.zeros(demo, dateHeaders), TimeSeries::plus);
-            }).collect(Collectors.toList()));
+            countSeries.addAll(List.of("Italy", "Brazil", "France", "Russia").stream()
+                    .map(indexedGlobals::getByCountry)
+                    .collect(Collectors.toList()));
             val series = countSeries.stream()
                     .map(s -> s
                             .map(DELTA)
@@ -195,17 +178,6 @@ public class HopkinsTransform {
     private List<TimeSeries> convertRawUs(IndexedDemographics demographics, List<USTimeSeries> rawUs, String[] dateHeaders) {
         return rawUs.stream()
                 .map(it -> new TimeSeries(demographics.getByUid(it.getUid()),
-                        dateHeaders,
-                        it))
-                .collect(Collectors.toList());
-    }
-
-    private List<TimeSeries> convertRawGlobals(IndexedDemographics demographics, List<GlobalTimeSeries> rawGlobal, String[] dateHeaders) {
-        return rawGlobal.stream()
-                .map(it -> new TimeSeries(
-                        it.isCountry()
-                                ? demographics.getByCountry(it.getCountry())
-                                : demographics.getByCountryAndState(it.getCountry(), it.getState()),
                         dateHeaders,
                         it))
                 .collect(Collectors.toList());

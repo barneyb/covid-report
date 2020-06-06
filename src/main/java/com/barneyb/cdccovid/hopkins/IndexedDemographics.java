@@ -2,7 +2,7 @@ package com.barneyb.cdccovid.hopkins;
 
 import com.barneyb.cdccovid.hopkins.csv.Demographics;
 
-import java.util.List;
+import java.util.Collection;
 
 public class IndexedDemographics {
 
@@ -10,7 +10,7 @@ public class IndexedDemographics {
     private final UniqueIndex<String, Demographics> byCountry;
     private final UniqueIndex<Pair<String>, Demographics> byCountryAndState;
 
-    public IndexedDemographics(List<Demographics> demographics) {
+    public IndexedDemographics(Collection<Demographics> demographics) {
         byUid = new UniqueIndex<>(demographics, Demographics::getUid);
         byCountry = new UniqueIndex<>(
                 demographics.stream()
@@ -31,7 +31,7 @@ public class IndexedDemographics {
     }
 
     public Demographics getByCountryAndState(String country, String state) {
-        return byCountryAndState.get(new Pair<>(country, state));
+        return byCountryAndState.get(country, state);
     }
 
 }
