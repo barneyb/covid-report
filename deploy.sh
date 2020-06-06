@@ -6,6 +6,7 @@ mvn clean package
 cp target/*.jar covid.jar
 rsync -a \
   --exclude hopkins/*.txt \
+  --exclude report.json \
   --progress --stats \
   index.html \
   report.* \

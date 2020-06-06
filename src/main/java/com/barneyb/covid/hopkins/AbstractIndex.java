@@ -1,4 +1,4 @@
-package com.barneyb.cdccovid.hopkins;
+package com.barneyb.covid.hopkins;
 
 import lombok.val;
 import org.apache.commons.collections4.MultiValuedMap;

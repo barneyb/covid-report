@@ -1,4 +1,4 @@
-package com.barneyb.cdccovid;
+package com.barneyb.covid;
 
 import lombok.val;
 import org.springframework.beans.factory.annotation.Autowired;

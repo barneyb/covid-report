@@ -1,4 +1,4 @@
-package com.barneyb.cdccovid;
+package com.barneyb.covid;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -14,10 +14,10 @@ import java.io.IOException;
 import java.time.LocalDate;
 
 @SpringBootApplication
-public class CdcCovidIngestApplication {
+public class CovidReportApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(CdcCovidIngestApplication.class, args);
+		SpringApplication.run(CovidReportApplication.class, args);
 	}
 
 	@Bean

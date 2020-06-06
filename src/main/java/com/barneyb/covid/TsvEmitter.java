@@ -1,7 +1,7 @@
-package com.barneyb.cdccovid;
+package com.barneyb.covid;
 
-import com.barneyb.cdccovid.model.DataPoint;
-import com.barneyb.cdccovid.model.Jurisdiction;
+import com.barneyb.covid.model.DataPoint;
+import com.barneyb.covid.model.Jurisdiction;
 import lombok.val;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

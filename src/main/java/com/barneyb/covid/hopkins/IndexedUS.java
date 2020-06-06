@@ -1,6 +1,6 @@
-package com.barneyb.cdccovid.hopkins;
+package com.barneyb.covid.hopkins;
 
-import com.barneyb.cdccovid.hopkins.csv.USTimeSeries;
+import com.barneyb.covid.hopkins.csv.USTimeSeries;
 
 import java.util.Collection;
 import java.util.stream.Collectors;

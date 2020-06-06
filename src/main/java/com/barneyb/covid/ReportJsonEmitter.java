@@ -1,6 +1,6 @@
-package com.barneyb.cdccovid;
+package com.barneyb.covid;
 
-import com.barneyb.cdccovid.model.DataPoint;
+import com.barneyb.covid.model.DataPoint;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
@@ -96,7 +96,7 @@ public class ReportJsonEmitter implements Emitter {
     @Getter
     private static class Juris {
         String name;
-        Integer population;
+        Long population;
         Map<String, Double> mortalityRates;
         List<Data> data;
     }
@@ -104,12 +104,12 @@ public class ReportJsonEmitter implements Emitter {
     @Getter
     private abstract static class BaseData {
         @JsonIgnore
-        Integer pop;
+        Long pop;
         LocalDate date;
         Integer cases;
         Integer deaths;
 
-        BaseData(Integer pop, LocalDate date, Integer cases, Integer deaths) {
+        BaseData(Long pop, LocalDate date, Integer cases, Integer deaths) {
             this.pop = pop;
             this.date = date;
             this.cases = cases;
@@ -126,11 +126,11 @@ public class ReportJsonEmitter implements Emitter {
     private static class Data extends BaseData {
         Delta since;
 
-        Data(Integer pop, DataPoint p) {
+        Data(Long pop, DataPoint p) {
             super(pop, p.getAsOf(), p.getCases(), p.getDeaths());
         }
 
-        Data(Integer pop, DataPoint curr, DataPoint prev) {
+        Data(Long pop, DataPoint curr, DataPoint prev) {
             this(pop, curr);
             this.since = new Delta(pop, curr, prev);
         }
@@ -145,7 +145,7 @@ public class ReportJsonEmitter implements Emitter {
     private static class Delta extends BaseData {
         Integer days;
 
-        Delta(Integer pop, DataPoint curr, DataPoint prev) {
+        Delta(Long pop, DataPoint curr, DataPoint prev) {
             super(
                     pop,
                     prev.getAsOf(),

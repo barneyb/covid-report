@@ -1,6 +1,8 @@
-package com.barneyb.cdccovid.hopkins;
+package com.barneyb.covid.hopkins;
 
-import com.barneyb.cdccovid.hopkins.csv.*;
+import com.barneyb.covid.Store;
+import com.barneyb.covid.hopkins.csv.*;
+import com.barneyb.covid.model.DataPoint;
 import com.opencsv.bean.CsvToBeanBuilder;
 import com.opencsv.bean.HeaderColumnNameMappingStrategy;
 import com.opencsv.bean.StatefulBeanToCsvBuilder;
@@ -8,15 +10,14 @@ import com.opencsv.enums.CSVReaderNullFieldIndicator;
 import lombok.SneakyThrows;
 import lombok.val;
 import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.*;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
+import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -30,6 +31,7 @@ public class HopkinsTransform {
     public static final File TIME_SERIES_DIR = new File(DATA_DIR, "csse_covid_19_time_series");
     public static final File GLOBAL_CASES_FILE = new File(TIME_SERIES_DIR, "time_series_covid19_confirmed_global.csv");
     public static final File US_CASES_FILE = new File(TIME_SERIES_DIR, "time_series_covid19_confirmed_US.csv");
+    public static final File US_DEATHS_FILE = new File(TIME_SERIES_DIR, "time_series_covid19_deaths_US.csv");
 
     public static final File OUTPUT_DIR = new File("hopkins");
 
@@ -60,6 +62,9 @@ public class HopkinsTransform {
 
     public static final String WORLDWIDE = "Worldwide";
 
+    @Autowired
+    private Store store;
+
     @SneakyThrows
     public void transform() {
         if (!OUTPUT_DIR.exists()) {
@@ -67,31 +72,52 @@ public class HopkinsTransform {
             OUTPUT_DIR.mkdirs();
         }
         val demographics = loadDemographics();
-        val rawGlobal = loadGlobalData();
+        val rawGlobal = loadGlobalData(GLOBAL_CASES_FILE);
         val dates = extractDates(rawGlobal.get(0));
         val dateHeaders = buildDateHeaders(dates);
 
-        val indexedWorld = new IndexedWorld(demographics, rawGlobal, dateHeaders);
-        val indexedUS = new IndexedUS(demographics, loadUSData(), dateHeaders);
+        val globalCases = new IndexedWorld(demographics, rawGlobal, dateHeaders);
+        val usCases = new IndexedUS(demographics, loadUSData(US_CASES_FILE), dateHeaders);
+        val usDeaths = new IndexedUS(demographics, loadUSData(US_DEATHS_FILE), dateHeaders);
+
+        val idxFirstFriday = Arrays.binarySearch(dates, LocalDate.of(2020, 3, 20));
+        store.getAllJurisdictions().forEach(j -> {
+            j.setPopulation(demographics.getByCountryAndState(
+                    "US",
+                    j.getName()).getPopulation());
+            val cases = usCases.getByState(j.getName()).getData();
+            val deaths = usDeaths.getByState(j.getName()).getData();
+            assert cases.length == deaths.length : "case and death series are different lengths";
+            val points = new ArrayList<DataPoint>();
+            for (int i = idxFirstFriday, l = cases.length; i < l; i += 7) {
+                assert dates[i].getDayOfWeek().equals(DayOfWeek.FRIDAY) : "not a friday?";
+                points.add(new DataPoint(
+                        dates[i],
+                        (int) cases[i],
+                        (int) deaths[i]));
+            }
+            j.setPoints(points);
+        });
+        store.close();
 
         // fake "worldwide" demographics
         val wwDemo = new Demographics();
         wwDemo.setCombinedKey(WORLDWIDE);
-        wwDemo.setPopulation(indexedWorld.cover()
+        wwDemo.setPopulation(globalCases.cover()
                 .map(TimeSeries::getDemographics)
                 .map(Demographics::getPopulation)
                 .reduce(0L, Long::sum));
 
         // sum up globals to get worldwide
-        val ww = indexedWorld.cover()
+        val ww = globalCases.cover()
                 .reduce(TimeSeries::plus)
                 .orElseThrow();
         ww.setDemographics(wwDemo);
 
-        val hubei = indexedWorld.getByCountryAndState("China", "Hubei");
-        val us = indexedWorld.getByCountry("US");
+        val hubei = globalCases.getByCountryAndState("China", "Hubei");
+        val us = globalCases.getByCountry("US");
 
-        val ny = indexedUS.getByState("New York");
+        val ny = usCases.getByState("New York");
 
         // US-without-NY
         val usNoNyDemo = new Demographics();
@@ -104,23 +130,23 @@ public class HopkinsTransform {
         val countSeries = new LinkedList<>(List.of(ww, usNoNy, hubei));
         List.of("China", "Italy", "Brazil", "France", "Russia", "US")
                 .stream()
-                .map(indexedWorld::getByCountry)
+                .map(globalCases::getByCountry)
                 .forEach(countSeries::add);
-        List.of("California", "Georgia", "Illinois", "Michigan", "New York", "Oregon", "Pennsylvania", "Texas")
+        List.of("Arizona", "California", "Florida", "Georgia", "Illinois", "Louisiana", "Massachusetts", "Michigan", "New York", "Oregon", "Pennsylvania", "Texas")
                 .stream()
-                .map(indexedUS::getByState)
+                .map(usCases::getByState)
                 .forEach(countSeries::add);
         List.of("Alameda", "Contra Costa", "Los Angeles", "Marin", "Napa", "Orange", "San Diego", "San Francisco", "San Mateo", "Santa Clara", "Solano", "Sonoma", "Ventura")
                 .stream()
-                .map(c -> indexedUS.getByStateAndLocality("California", c))
+                .map(c -> usCases.getByStateAndLocality("California", c))
                 .forEach(countSeries::add);
         List.of("Clackamas", "Marion", "Multnomah", "Washington")
                 .stream()
-                .map(c -> indexedUS.getByStateAndLocality("Oregon", c))
+                .map(c -> usCases.getByStateAndLocality("Oregon", c))
                 .forEach(countSeries::add);
         List.of("Nassau", "New York City", "Rockland", "Suffolk", "Westchester")
                 .stream()
-                .map(c -> indexedUS.getByStateAndLocality("New York", c))
+                .map(c -> usCases.getByStateAndLocality("New York", c))
                 .forEach(countSeries::add);
         val series = countSeries.stream()
                 .map(s -> s
@@ -186,16 +212,16 @@ public class HopkinsTransform {
                 .toArray(LocalDate[]::new);
     }
 
-    private List<USTimeSeries> loadUSData() throws FileNotFoundException {
-        return new CsvToBeanBuilder<USTimeSeries>(new FileReader(US_CASES_FILE))
+    private List<USTimeSeries> loadUSData(File src) throws FileNotFoundException {
+        return new CsvToBeanBuilder<USTimeSeries>(new FileReader(src))
                 .withType(USTimeSeries.class)
                 .withFieldAsNull(CSVReaderNullFieldIndicator.EMPTY_SEPARATORS)
                 .build()
                 .parse();
     }
 
-    private List<GlobalTimeSeries> loadGlobalData() throws FileNotFoundException {
-        return new CsvToBeanBuilder<GlobalTimeSeries>(new FileReader(GLOBAL_CASES_FILE))
+    private List<GlobalTimeSeries> loadGlobalData(File src) throws FileNotFoundException {
+        return new CsvToBeanBuilder<GlobalTimeSeries>(new FileReader(src))
                 .withType(GlobalTimeSeries.class)
                 .withFieldAsNull(CSVReaderNullFieldIndicator.EMPTY_SEPARATORS)
                 .build()

@@ -8,11 +8,10 @@
 		<version>2.2.6.RELEASE</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>com.barneyb.cdc-covid</groupId>
-	<artifactId>cdc-covid</artifactId>
+	<groupId>com.barneyb.covid</groupId>
+	<artifactId>covid-report</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>CDC COVID Ingest</name>
-	<description>CDC COVID injest and aggregation</description>
+	<name>COVID Report</name>
 
 	<properties>
 		<java.version>11</java.version>

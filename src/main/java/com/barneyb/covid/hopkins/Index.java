@@ -1,4 +1,4 @@
-package com.barneyb.cdccovid.hopkins;
+package com.barneyb.covid.hopkins;
 
 import java.util.Collection;
 import java.util.function.Function;

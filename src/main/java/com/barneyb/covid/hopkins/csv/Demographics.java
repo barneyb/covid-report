@@ -1,4 +1,4 @@
-package com.barneyb.cdccovid.hopkins.csv;
+package com.barneyb.covid.hopkins.csv;
 
 import com.opencsv.bean.CsvBindByName;
 import lombok.Data;

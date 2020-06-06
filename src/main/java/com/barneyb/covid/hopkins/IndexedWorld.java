@@ -1,6 +1,6 @@
-package com.barneyb.cdccovid.hopkins;
+package com.barneyb.covid.hopkins;
 
-import com.barneyb.cdccovid.hopkins.csv.GlobalTimeSeries;
+import com.barneyb.covid.hopkins.csv.GlobalTimeSeries;
 
 import java.util.Collection;
 import java.util.function.Predicate;

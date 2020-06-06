@@ -1,4 +1,4 @@
-package com.barneyb.cdccovid.hopkins;
+package com.barneyb.covid.hopkins;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

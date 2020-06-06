@@ -1,4 +1,4 @@
-package com.barneyb.cdccovid.model;
+package com.barneyb.covid.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -20,7 +20,7 @@ public class Jurisdiction {
 
     @JsonProperty("jurisdiction")
     private String name;
-    private Integer population;
+    private Long population;
     @JsonIgnore
     private SortedMap<LocalDate, DataPoint> data;
     private Map<String, Double> mortalityRates;

@@ -1,4 +1,4 @@
-package com.barneyb.cdccovid.model;
+package com.barneyb.covid.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

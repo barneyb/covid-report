@@ -1,6 +1,6 @@
-package com.barneyb.cdccovid.hopkins;
+package com.barneyb.covid.hopkins;
 
-import com.barneyb.cdccovid.hopkins.csv.Demographics;
+import com.barneyb.covid.hopkins.csv.Demographics;
 
 import java.util.Collection;
 

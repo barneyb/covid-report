@@ -1,4 +1,4 @@
-package com.barneyb.cdccovid;
+package com.barneyb.covid;
 
 import java.io.OutputStream;
 

@@ -1,7 +1,7 @@
-package com.barneyb.cdccovid;
+package com.barneyb.covid;
 
-import com.barneyb.cdccovid.model.DataPoint;
-import com.barneyb.cdccovid.model.Jurisdiction;
+import com.barneyb.covid.model.DataPoint;
+import com.barneyb.covid.model.Jurisdiction;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.SneakyThrows;
@@ -53,7 +53,9 @@ public class Store implements AutoCloseable {
     public void flush() {
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         try (val out = Files.newOutputStream(storePath)) {
-            mapper.writeValue(out, jurisdictions.values());
+            mapper
+                    .writerWithDefaultPrettyPrinter()
+                    .writeValue(out, jurisdictions.values());
         }
     }
 
@@ -72,7 +74,7 @@ public class Store implements AutoCloseable {
         return jurisdictions;
     }
 
-    public Jurisdiction createJurisdiction(String name, Integer population) {
+    public Jurisdiction createJurisdiction(String name, Long population) {
         findJurisdiction(name)
                 .ifPresent(j -> {
                     throw new IllegalArgumentException("A '" + name + "' jurisdiction already exists");

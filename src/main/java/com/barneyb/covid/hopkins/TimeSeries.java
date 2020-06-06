@@ -1,7 +1,7 @@
-package com.barneyb.cdccovid.hopkins;
+package com.barneyb.covid.hopkins;
 
-import com.barneyb.cdccovid.hopkins.csv.CsvTimeSeries;
-import com.barneyb.cdccovid.hopkins.csv.Demographics;
+import com.barneyb.covid.hopkins.csv.CsvTimeSeries;
+import com.barneyb.covid.hopkins.csv.Demographics;
 import lombok.Data;
 import lombok.ToString;
 import lombok.val;
@@ -30,7 +30,7 @@ public class TimeSeries {
     }
 
     @ToString.Include
-    public double getTotalCases() {
+    public double getCurrent() {
         return this.data[this.data.length - 1];
     }
 
