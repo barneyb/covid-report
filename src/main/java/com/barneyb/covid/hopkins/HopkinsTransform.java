@@ -3,6 +3,7 @@ package com.barneyb.covid.hopkins;
 import com.barneyb.covid.Store;
 import com.barneyb.covid.hopkins.csv.*;
 import com.barneyb.covid.model.DataPoint;
+import com.barneyb.covid.model.Jurisdiction;
 import com.opencsv.bean.CsvToBeanBuilder;
 import com.opencsv.bean.HeaderColumnNameMappingStrategy;
 import com.opencsv.bean.StatefulBeanToCsvBuilder;
@@ -14,6 +15,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -76,29 +79,42 @@ public class HopkinsTransform {
         val dates = extractDates(rawGlobal.get(0));
         val dateHeaders = buildDateHeaders(dates);
 
-        val globalCases = new IndexedWorld(demographics, rawGlobal, dateHeaders);
         val usCases = new IndexedUS(demographics, loadUSData(US_CASES_FILE), dateHeaders);
         val usDeaths = new IndexedUS(demographics, loadUSData(US_DEATHS_FILE), dateHeaders);
+        try (val out = Files.newOutputStream(Path.of("database.json"))) {
+            val mortRates = new UniqueIndex<>(
+                    new CsvToBeanBuilder<MortRates>(new FileReader("mortality.txt"))
+                            .withType(MortRates.class)
+                            .build()
+                            .parse(),
+                    MortRates::getState);
 
-        val idxFirstFriday = Arrays.binarySearch(dates, LocalDate.of(2020, 3, 20));
-        store.getAllJurisdictions().forEach(j -> {
-            j.setPopulation(demographics.getByCountryAndState(
-                    "US",
-                    j.getName()).getPopulation());
-            val cases = usCases.getByState(j.getName()).getData();
-            val deaths = usDeaths.getByState(j.getName()).getData();
-            assert cases.length == deaths.length : "case and death series are different lengths";
-            val points = new ArrayList<DataPoint>();
-            for (int i = idxFirstFriday, l = cases.length; i < l; i += 7) {
-                assert dates[i].getDayOfWeek().equals(DayOfWeek.FRIDAY) : "not a friday?";
-                points.add(new DataPoint(
-                        dates[i],
-                        (int) cases[i],
-                        (int) deaths[i]));
-            }
-            j.setPoints(points);
-        });
-        store.close();
+            val idxFirstFriday = Arrays.binarySearch(dates, LocalDate.of(2020, 3, 20));
+            var db = demographics.usStatesAndDC()
+                    .map(s -> {
+                        val j = new Jurisdiction();
+                        j.setName(s.getState());
+                        j.setPopulation(s.getPopulation());
+                        j.setMortalityRates(mortRates.get(s.getState()).unwrapRates());
+                        val cases = usCases.getByState(j.getName()).getData();
+                        val deaths = usDeaths.getByState(j.getName()).getData();
+                        assert cases.length == deaths.length : "case and death series are different lengths";
+                        val points = new ArrayList<DataPoint>();
+                        for (int i = idxFirstFriday, l = cases.length; i < l; i += 7) {
+                            assert dates[i].getDayOfWeek().equals(DayOfWeek.FRIDAY) : "not a friday?";
+                            points.add(new DataPoint(
+                                    dates[i],
+                                    (int) cases[i],
+                                    (int) deaths[i]));
+                        }
+                        j.setPoints(points);
+                        return j;
+                    })
+                    .collect(Collectors.toList());
+            store.replaceTheWholeThing(db);
+        }
+
+        val globalCases = new IndexedWorld(demographics, rawGlobal, dateHeaders);
 
         // fake "worldwide" demographics
         val wwDemo = new Demographics();

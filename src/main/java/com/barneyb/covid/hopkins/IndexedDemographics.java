@@ -3,12 +3,14 @@ package com.barneyb.covid.hopkins;
 import com.barneyb.covid.hopkins.csv.Demographics;
 
 import java.util.Collection;
+import java.util.stream.Stream;
 
 public class IndexedDemographics {
 
     private final UniqueIndex<Integer, Demographics> byUid;
     private final UniqueIndex<String, Demographics> byCountry;
     private final UniqueIndex<Pair<String>, Demographics> byCountryAndState;
+    private final UniqueIndex<String, Demographics> usStates;
 
     public IndexedDemographics(Collection<Demographics> demographics) {
         byUid = new UniqueIndex<>(demographics, Demographics::getUid);
@@ -20,6 +22,16 @@ public class IndexedDemographics {
                 demographics.stream()
                         .filter(Demographics::isState),
                 it -> new Pair<>(it.getCountry(), it.getState()));
+        usStates = new UniqueIndex<>(
+                demographics.stream()
+                    .filter(d -> d.getUid() >= 84000000 && d.getUid() < 84001000),
+                Demographics::getState);
+    }
+
+    public Stream<Demographics> usStatesAndDC() {
+        return usStates.getKeys()
+                .stream()
+                .map(usStates::get);
     }
 
     public Demographics getByUid(Integer uid) {
@@ -32,6 +44,10 @@ public class IndexedDemographics {
 
     public Demographics getByCountryAndState(String country, String state) {
         return byCountryAndState.get(country, state);
+    }
+
+    public Demographics getUSState(String state) {
+        return usStates.get(state);
     }
 
 }

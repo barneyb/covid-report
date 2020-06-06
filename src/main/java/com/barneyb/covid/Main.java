@@ -23,6 +23,11 @@ public class Main implements ApplicationRunner {
                     .transform();
         }
 
+        if (args.containsOption("mortality")) {
+            appCtx.getBean(Mortality.class)
+                    .emit();
+        }
+
         appCtx.getBean(ReportJsonEmitter.class)
                 .emit(Files.newOutputStream(Path.of("report.json")));
     }

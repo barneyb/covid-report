@@ -2,7 +2,6 @@ package com.barneyb.covid;
 
 import com.barneyb.covid.model.DataPoint;
 import com.barneyb.covid.model.Jurisdiction;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.SneakyThrows;
 import lombok.val;
@@ -49,9 +48,13 @@ public class Store implements AutoCloseable {
         }
     }
 
+    public void replaceTheWholeThing(Collection<Jurisdiction> db) {
+        jurisdictions = new TreeMap<>();
+        for (val j : db) jurisdictions.put(j.getName(), j);
+    }
+
     @SneakyThrows
     public void flush() {
-        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         try (val out = Files.newOutputStream(storePath)) {
             mapper
                     .writerWithDefaultPrettyPrinter()
@@ -118,5 +121,4 @@ public class Store implements AutoCloseable {
                 })
                 .orElseThrow();
     }
-
 }
