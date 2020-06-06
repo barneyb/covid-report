@@ -88,7 +88,6 @@ public class HopkinsTransform {
                 .orElseThrow();
         ww.setDemographics(wwDemo);
 
-        val cn = indexedWorld.getByCountry("China");
         val hubei = indexedWorld.getByCountryAndState("China", "Hubei");
         val us = indexedWorld.getByCountry("US");
 
@@ -102,27 +101,27 @@ public class HopkinsTransform {
                 .plus(us)
                 .minus(ny);
 
-        val or = indexedUS.getByState("Oregon");
-        val wash = indexedUS.getByStateAndLocal("Oregon", "Washington");
-        val mult = indexedUS.getByStateAndLocal("Oregon", "Multnomah");
-        val marion = indexedUS.getByStateAndLocal("Oregon", "Marion");
-
-        val ca = indexedUS.getByState("California");
-        val sf = indexedUS.getByStateAndLocal("California", "San Francisco");
-        val sm = indexedUS.getByStateAndLocal("California", "San Mateo");
-        val sc = indexedUS.getByStateAndLocal("California", "Santa Clara");
-
-        val countSeries = new LinkedList<>(List.of(ww, us, usNoNy, ny, or, marion, mult, wash, ca, sf, sm, sc));
-        countSeries.addAll(List.of("Georgia", "Illinois", "Michigan", "Pennsylvania", "Texas")
-                .stream()
-                .map(indexedUS::getByState)
-                .collect(Collectors.toList()));
-        countSeries.add(cn);
-        countSeries.add(hubei);
-        countSeries.addAll(List.of("Italy", "Brazil", "France", "Russia")
+        val countSeries = new LinkedList<>(List.of(ww, usNoNy, hubei));
+        List.of("China", "Italy", "Brazil", "France", "Russia", "US")
                 .stream()
                 .map(indexedWorld::getByCountry)
-                .collect(Collectors.toList()));
+                .forEach(countSeries::add);
+        List.of("California", "Georgia", "Illinois", "Michigan", "New York", "Oregon", "Pennsylvania", "Texas")
+                .stream()
+                .map(indexedUS::getByState)
+                .forEach(countSeries::add);
+        List.of("Alameda", "Contra Costa", "Los Angeles", "Marin", "Napa", "Orange", "San Diego", "San Francisco", "San Mateo", "Santa Clara", "Solano", "Sonoma", "Ventura")
+                .stream()
+                .map(c -> indexedUS.getByStateAndLocality("California", c))
+                .forEach(countSeries::add);
+        List.of("Clackamas", "Marion", "Multnomah", "Washington")
+                .stream()
+                .map(c -> indexedUS.getByStateAndLocality("Oregon", c))
+                .forEach(countSeries::add);
+        List.of("Nassau", "New York City", "Rockland", "Suffolk", "Westchester")
+                .stream()
+                .map(c -> indexedUS.getByStateAndLocality("New York", c))
+                .forEach(countSeries::add);
         val series = countSeries.stream()
                 .map(s -> s
                         .map(DELTA)

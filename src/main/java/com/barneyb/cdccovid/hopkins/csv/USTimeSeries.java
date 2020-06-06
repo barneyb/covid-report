@@ -18,7 +18,7 @@ public class USTimeSeries implements CsvTimeSeries {
     private String state;
 
     @CsvBindByName(column = "Admin2")
-    private String county;
+    private String locality;
 
     // MVM is a bit silly, since the column names are all different, but both
     // this use case and aggregating multiple same-named columns are provided by

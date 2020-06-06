@@ -16,7 +16,7 @@ public class Demographics {
     @CsvBindByName(column = "Province_State")
     private String state;
     @CsvBindByName(column = "Admin2")
-    private String local;
+    private String locality;
 
     @CsvBindByName(column = "Combined_Key")
     private String combinedKey;
@@ -25,20 +25,20 @@ public class Demographics {
     private long population;
 
     public boolean isCompleteness() {
-        return isLocal()
-                && ("Unassigned".equals(local) || local.startsWith("Out of "));
+        return isLocality()
+                && ("Unassigned".equals(locality) || locality.startsWith("Out of "));
     }
 
     public boolean isCountry() {
-        return state == null && local == null;
+        return state == null && locality == null;
     }
 
     public boolean isState() {
-        return state != null && local == null;
+        return state != null && locality == null;
     }
 
-    public boolean isLocal() {
-        return local != null;
+    public boolean isLocality() {
+        return locality != null;
     }
 
 }

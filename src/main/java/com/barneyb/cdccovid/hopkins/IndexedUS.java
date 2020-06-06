@@ -10,7 +10,7 @@ public class IndexedUS {
 
     private final Collection<TimeSeries> cover;
     private final Index<String, TimeSeries> localsByState;
-    private final UniqueIndex<Pair<String>, TimeSeries> byStateAndLocal;
+    private final UniqueIndex<Pair<String>, TimeSeries> byStateAndLocality;
     private final UniqueIndex<String, TimeSeries> byState;
 
     public IndexedUS(IndexedDemographics demographics, Collection<USTimeSeries> rawUS, String[] dateHeaders) {
@@ -20,9 +20,9 @@ public class IndexedUS {
                         it))
                 .collect(Collectors.toUnmodifiableList());
         localsByState = new Index<>(cover, it -> it.getDemographics().getState());
-        byStateAndLocal = new UniqueIndex<>(cover.stream()
-                .filter(it -> it.getDemographics().isLocal()),
-                it -> new Pair<>(it.getDemographics().getState(), it.getDemographics().getLocal()));
+        byStateAndLocality = new UniqueIndex<>(cover.stream()
+                .filter(it -> it.getDemographics().isLocality()),
+                it -> new Pair<>(it.getDemographics().getState(), it.getDemographics().getLocality()));
         byState = new UniqueIndex<>(localsByState.getKeys()
                 .stream()
                 .map(state -> localsByState.get(state)
@@ -51,11 +51,11 @@ public class IndexedUS {
         return byState.get(state);
     }
 
-    public TimeSeries getByStateAndLocal(String state, String local) {
-        return byStateAndLocal.get(new Pair<>(state, local));
+    public TimeSeries getByStateAndLocality(String state, String locality) {
+        return byStateAndLocality.get(new Pair<>(state, locality));
     }
 
-    public Stream<TimeSeries> getCountiesOfState(String state) {
+    public Stream<TimeSeries> getLocalitiesOfState(String state) {
         return localsByState.get(state).stream();
     }
 }
