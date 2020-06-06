@@ -11,12 +11,12 @@ import com.opencsv.enums.CSVReaderNullFieldIndicator;
 import lombok.SneakyThrows;
 import lombok.val;
 import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -27,6 +27,8 @@ import java.util.stream.Collectors;
 
 @Component
 public class HopkinsTransform {
+
+    private static final Logger logger = LoggerFactory.getLogger(HopkinsTransform.class);
 
     public static final File DATA_DIR = new File("../COVID-19/csse_covid_19_data");
     public static final File UID_LOOKUP_FILE = new File(DATA_DIR, "UID_ISO_FIPS_LookUp_Table.csv");
@@ -70,51 +72,57 @@ public class HopkinsTransform {
 
     @SneakyThrows
     public void transform() {
-        if (!OUTPUT_DIR.exists()) {
-            //noinspection ResultOfMethodCallIgnored
-            OUTPUT_DIR.mkdirs();
-        }
+        logger.info("Starting transform");
         val demographics = loadDemographics();
+        logger.info("Demographics loaded");
         val rawGlobal = loadGlobalData(GLOBAL_CASES_FILE);
+        logger.info("Globals loaded");
         val dates = extractDates(rawGlobal.get(0));
+        logger.info("Dates extracted");
         val dateHeaders = buildDateHeaders(dates);
+        logger.info("Headers built");
 
         val usCases = new IndexedUS(demographics, loadUSData(US_CASES_FILE), dateHeaders);
+        logger.info("US cases loaded and indexed");
         val usDeaths = new IndexedUS(demographics, loadUSData(US_DEATHS_FILE), dateHeaders);
-        try (val out = Files.newOutputStream(Path.of("database.json"))) {
-            val mortRates = new UniqueIndex<>(
-                    new CsvToBeanBuilder<MortRates>(new FileReader("mortality.txt"))
-                            .withType(MortRates.class)
-                            .build()
-                            .parse(),
-                    MortRates::getState);
+        logger.info("US deaths loaded and indexed");
+        val mortRates = new UniqueIndex<>(
+                new CsvToBeanBuilder<MortRates>(new FileReader("mortality.txt"))
+                        .withType(MortRates.class)
+                        .build()
+                        .parse(),
+                MortRates::getState);
+        logger.info("Mortality rates loaded and indexed");
 
-            val idxFirstFriday = Arrays.binarySearch(dates, LocalDate.of(2020, 3, 20));
-            var db = demographics.usStatesAndDC()
-                    .map(s -> {
-                        val j = new Jurisdiction();
-                        j.setName(s.getState());
-                        j.setPopulation(s.getPopulation());
-                        j.setMortalityRates(mortRates.get(s.getState()).unwrapRates());
-                        val cases = usCases.getByState(j.getName()).getData();
-                        val deaths = usDeaths.getByState(j.getName()).getData();
-                        assert cases.length == deaths.length : "case and death series are different lengths";
-                        val points = new ArrayList<DataPoint>();
-                        for (int i = idxFirstFriday, l = cases.length; i < l; i += 7) {
-                            assert dates[i].getDayOfWeek().equals(DayOfWeek.FRIDAY) : "not a friday?";
-                            points.add(new DataPoint(
-                                    dates[i],
-                                    (int) cases[i],
-                                    (int) deaths[i]));
-                        }
-                        j.setPoints(points);
-                        return j;
-                    })
-                    .collect(Collectors.toList());
-            store.replaceTheWholeThing(db);
-        }
+        val idxFirstFriday = Arrays.binarySearch(dates, LocalDate.of(2020, 3, 20));
+        var db = demographics.usStatesAndDC()
+                .map(s -> {
+                    val j = new Jurisdiction();
+                    j.setName(s.getState());
+                    j.setPopulation(s.getPopulation());
+                    j.setMortalityRates(mortRates.get(s.getState()).unwrapRates());
+                    val cases = usCases.getByState(j.getName()).getData();
+                    val deaths = usDeaths.getByState(j.getName()).getData();
+                    assert cases.length == deaths.length : "case and death series are different lengths";
+                    val points = new ArrayList<DataPoint>();
+                    for (int i = idxFirstFriday, l = cases.length; i < l; i += 7) {
+                        assert dates[i].getDayOfWeek().equals(DayOfWeek.FRIDAY) : "not a friday?";
+                        points.add(new DataPoint(
+                                dates[i],
+                                (int) cases[i],
+                                (int) deaths[i]));
+                    }
+                    j.setPoints(points);
+                    return j;
+                })
+                .collect(Collectors.toList());
+        logger.info("Jurisdictions initialized");
+        store.replaceTheWholeThing(db);
+        store.flush();
+        logger.info("Database JSON written out");
 
         val globalCases = new IndexedWorld(demographics, rawGlobal, dateHeaders);
+        logger.info("Global cases loaded and indexed");
 
         // fake "worldwide" demographics
         val wwDemo = new Demographics();
@@ -129,21 +137,20 @@ public class HopkinsTransform {
                 .reduce(TimeSeries::plus)
                 .orElseThrow();
         ww.setDemographics(wwDemo);
+        logger.info("Worldwide series aggregated");
 
-        val hubei = globalCases.getByCountryAndState("China", "Hubei");
         val us = globalCases.getByCountry("US");
-
         val ny = usCases.getByState("New York");
-
-        // US-without-NY
         val usNoNyDemo = new Demographics();
         usNoNyDemo.setCombinedKey("US Except NY");
         usNoNyDemo.setPopulation(us.getDemographics().getPopulation() - ny.getDemographics().getPopulation());
         val usNoNy = TimeSeries.zeros(usNoNyDemo, dateHeaders)
                 .plus(us)
                 .minus(ny);
+        logger.info("US Except NY series aggregated");
 
-        val countSeries = new LinkedList<>(List.of(ww, usNoNy, hubei));
+        val countSeries = new LinkedList<>(List.of(ww, usNoNy,
+                globalCases.getByCountryAndState("China", "Hubei")));
         List.of("China", "Italy", "Brazil", "France", "Russia", "US")
                 .stream()
                 .map(globalCases::getByCountry)
@@ -164,12 +171,14 @@ public class HopkinsTransform {
                 .stream()
                 .map(c -> usCases.getByStateAndLocality("New York", c))
                 .forEach(countSeries::add);
+        logger.info("Raw series built");
         val series = countSeries.stream()
                 .map(s -> s
                         .map(DELTA)
                         .map(ROLLING_AVERAGE)
                         .transform(PER_100K))
                 .collect(Collectors.toList());
+        logger.info("Average rate series transformed");
 
         val rates = new ArrayList<Rates>(dateHeaders.length);
         for (int i = 0; i < dates.length; i++) {
@@ -182,6 +191,8 @@ public class HopkinsTransform {
             }
             rates.add(r);
         }
+        logger.info("Rates table created");
+
         val strat = new HeaderColumnNameMappingStrategy<Rates>();
         strat.setType(Rates.class);
         strat.setColumnOrderOnWrite((a, b) -> {
@@ -208,6 +219,7 @@ public class HopkinsTransform {
                     .build()
                     .write(rates);
         }
+        logger.info("Rates datafile written");
     }
 
     private String[] buildDateHeaders(LocalDate[] dates) {
