@@ -6,6 +6,7 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import lombok.val;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -48,8 +49,15 @@ public class CovidReportApplication {
     }
 
     @Bean
+    @Qualifier("us")
     public Store usStore() {
 	    return new Store(Path.of("database-us.json"));
+    }
+
+    @Bean
+    @Qualifier("worldwide")
+    public Store worldwideStore() {
+	    return new Store(Path.of("database-ww.json"));
     }
 
 }

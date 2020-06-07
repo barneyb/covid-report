@@ -4,6 +4,6 @@ import java.io.OutputStream;
 
 public interface Emitter {
 
-    void emit(OutputStream out);
+    void emit(OutputStream out, Store store);
 
 }

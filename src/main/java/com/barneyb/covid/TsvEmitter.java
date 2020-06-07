@@ -3,7 +3,6 @@ package com.barneyb.covid;
 import com.barneyb.covid.model.DataPoint;
 import com.barneyb.covid.model.Jurisdiction;
 import lombok.val;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.OutputStream;
@@ -14,11 +13,8 @@ import java.util.Comparator;
 @Service
 public class TsvEmitter implements Emitter {
 
-    @Autowired
-    Store store;
-
     @Override
-    public void emit(OutputStream outStr) {
+    public void emit(OutputStream outStr, Store store) {
         val out = outStr instanceof PrintStream
                 ? (PrintStream) outStr
                 : new PrintStream(outStr);
@@ -61,6 +57,7 @@ public class TsvEmitter implements Emitter {
             });
             out.println();
         });
+        out.close();
     }
 
 }

@@ -119,6 +119,6 @@ public class Store implements AutoCloseable {
                     r.retainAll(b);
                     return r;
                 })
-                .orElseThrow();
+                .orElse(Collections.emptySortedSet());
     }
 }

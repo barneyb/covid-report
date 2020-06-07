@@ -25,27 +25,26 @@ public class ReportJsonEmitter implements Emitter {
     public static final int RATE_POPULATION = 100_000;
 
     @Autowired
-    Store store;
-
-    @Autowired
     ObjectMapper mapper;
 
     @Override
     @SneakyThrows
-    public void emit(OutputStream out) {
+    public void emit(OutputStream out, Store store) {
         mapper
-//                .writerWithDefaultPrettyPrinter()
-                .writeValue(out, buildReport());
+//                .writerWithDefaultPrettyPrinter() // todo: comment out?
+                .writeValue(out, buildReport(store));
         out.close();
     }
 
-    private Report buildReport() {
-        val dates = store.getDatesWithCases();
+    private Report buildReport(Store store) {
         val report = new Report();
         report.date = LocalDate.now();
+        val dates = store.getDatesWithCases();
         report.jurisdictions = store.getAllJurisdictions()
                 .stream()
-//                .filter(j -> "New York" .equals(j.getName()) || "Oregon" .equals(j.getName()))
+//                .filter(j -> "Alabama" .equals(j.getName())) // todo: comment out
+//                .filter(j -> "New York" .equals(j.getName()) || "Oregon" .equals(j.getName())) // todo: comment out
+//                .filter(j -> j.getName().contains("e")) // todo: comment out
                 .map(j -> {
                     val r = new Juris();
                     r.name = j.getName();
@@ -61,6 +60,9 @@ public class ReportJsonEmitter implements Emitter {
                     return r;
                 })
                 .collect(Collectors.toList());
+        if (report.jurisdictions.isEmpty()) {
+            return report;
+        }
         report.points = report.jurisdictions
                 .get(0)
                 .data
