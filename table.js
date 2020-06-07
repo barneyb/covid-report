@@ -19,6 +19,7 @@ function init(rawData) {
     };
     const nfpMap = new Map();
     const formatNumber = (v, places = 0) => {
+        if (isNaN(v)) return '';
         if (!nfpMap.has(places)) {
             nfpMap.set(places, new Intl.NumberFormat("en-US", {
                 minimumFractionDigits: places,
@@ -27,8 +28,10 @@ function init(rawData) {
         }
         return nfpMap.get(places).format(v);
     };
-    const formatPercent = (v, places = 1) =>
-        formatNumber(v * 100, places) + "%";
+    const formatPercent = (v, places = 1) => {
+        if (isNaN(v)) return '';
+        return formatNumber(v * 100, places) + "%"
+    };
     const formatDeathRate = v => formatNumber(v, 1)
     const formatDeathRateSegment = v => formatNumber(v, 2)
 
