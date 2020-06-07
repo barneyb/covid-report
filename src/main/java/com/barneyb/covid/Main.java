@@ -25,7 +25,7 @@ public class Main implements ApplicationRunner {
 
         if (args.containsOption("mortality")) {
             appCtx.getBean(Mortality.class)
-                    .emit();
+                    .emit(Files.newBufferedWriter(Path.of("mortality.csv")));
         }
 
         appCtx.getBean(ReportJsonEmitter.class)

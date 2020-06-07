@@ -36,6 +36,7 @@ public class ReportJsonEmitter implements Emitter {
         mapper
 //                .writerWithDefaultPrettyPrinter()
                 .writeValue(out, buildReport());
+        out.close();
     }
 
     private Report buildReport() {

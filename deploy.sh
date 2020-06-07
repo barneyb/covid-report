@@ -11,7 +11,7 @@ rsync -a \
   index.html \
   report.* \
   events.txt \
-  mortality.txt \
+  mortality.csv \
   covid.jar \
   hopkins \
   barneyb.com:/vol/www/static/covid/

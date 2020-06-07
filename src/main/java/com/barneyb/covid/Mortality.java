@@ -10,9 +10,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.Writer;
 import java.util.Collections;
 import java.util.HashMap;
@@ -66,22 +63,20 @@ public class Mortality {
     }
 
     @SneakyThrows
-    public void emit() {
-        try (Writer out = new BufferedWriter(new FileWriter(new File("mortality.txt")))) {
-            new StatefulBeanToCsvBuilder<MortRates>(out)
-                    .withApplyQuotesToAll(false)
-                    .build()
-                    .write(get().stream()
-                            .map(j -> {
-                                val r = new MortRates();
-                                r.setState(j.name);
-                                r.setPopulation(j.pop);
-                                r.getRates().putAll(j.rates);
-                                return r;
-                            })
-                            .collect(Collectors.toList()));
-
-        }
+    public void emit(Writer out) {
+        new StatefulBeanToCsvBuilder<MortRates>(out)
+                .withApplyQuotesToAll(false)
+                .build()
+                .write(get().stream()
+                        .map(j -> {
+                            val r = new MortRates();
+                            r.setState(j.name);
+                            r.setPopulation(j.pop);
+                            r.getRates().putAll(j.rates);
+                            return r;
+                        })
+                        .collect(Collectors.toList()));
+        out.close();
     }
 
     private List<Jur> get() {

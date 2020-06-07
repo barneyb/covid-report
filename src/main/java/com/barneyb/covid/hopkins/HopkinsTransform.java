@@ -87,7 +87,7 @@ public class HopkinsTransform {
         val usDeaths = new IndexedUS(demographics, loadUSData(US_DEATHS_FILE), dateHeaders);
         logger.info("US deaths loaded and indexed");
         val mortRates = new UniqueIndex<>(
-                new CsvToBeanBuilder<MortRates>(new FileReader("mortality.txt"))
+                new CsvToBeanBuilder<MortRates>(new FileReader("mortality.csv"))
                         .withType(MortRates.class)
                         .build()
                         .parse(),
