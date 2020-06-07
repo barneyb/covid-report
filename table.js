@@ -567,7 +567,7 @@ function init(rawData) {
             document.body.className = "sidebar";
             const sections = [
                 tag('section', [
-                    tag('h3', 'Dates'),
+                    tag('h3', 'Week Ending On'),
                     ...rawData.points
                         .slice(2) // ignore the first two points
                         .map(p => formatDate(p.date))

@@ -153,7 +153,7 @@ public class HopkinsTransform {
                 .stream()
                 .map(globalCases::getByCountry)
                 .forEach(countSeries::add);
-        List.of("Arizona", "California", "Florida", "Georgia", "Illinois", "Louisiana", "Massachusetts", "Michigan", "New York", "Oregon", "Pennsylvania", "Texas")
+        List.of("Arizona", "California", "Connecticut", "Florida", "Georgia", "Illinois", "Louisiana", "Maryland", "Massachusetts", "Michigan", "New Jersey", "New York", "Oregon", "Pennsylvania", "Texas", "Virginia")
                 .stream()
                 .map(usCases::getByState)
                 .forEach(countSeries::add);
