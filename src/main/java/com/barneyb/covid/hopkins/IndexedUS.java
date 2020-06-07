@@ -43,8 +43,7 @@ public class IndexedUS {
     }
 
     public Stream<TimeSeries> allStates() {
-        return byState.getKeys().stream()
-                .map(byState::get);
+        return byState.values();
     }
 
     public TimeSeries getByState(String state) {

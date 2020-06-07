@@ -27,6 +27,10 @@ public abstract class AbstractIndex<K, V, M> {
         stream.forEach(adder);
     }
 
+    public Stream<V> values() {
+        return index.values().stream();
+    }
+
     public void add(V item) {
         adder.accept(item);
     }

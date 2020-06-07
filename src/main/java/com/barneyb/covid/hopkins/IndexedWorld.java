@@ -54,15 +54,8 @@ public class IndexedWorld {
                 .forEach(byCountry::add);
     }
 
-    /** Worldwide coverage */
     public Stream<TimeSeries> cover() {
         return cover.stream();
-    }
-
-    /** Does NOT include protectorates! */
-    public Stream<TimeSeries> allCountries() {
-        return byCountry.getKeys().stream()
-                .map(byCountry::get);
     }
 
     public TimeSeries getByCountry(String country) {

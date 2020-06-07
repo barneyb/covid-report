@@ -29,9 +29,11 @@ public class IndexedDemographics {
     }
 
     public Stream<Demographics> usStatesAndDC() {
-        return usStates.getKeys()
-                .stream()
-                .map(usStates::get);
+        return usStates.values();
+    }
+
+    public Stream<Demographics> countries() {
+        return byCountry.values();
     }
 
     public Demographics getByUid(Integer uid) {
