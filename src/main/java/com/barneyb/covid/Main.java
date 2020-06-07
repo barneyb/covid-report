@@ -29,7 +29,7 @@ public class Main implements ApplicationRunner {
         }
 
         appCtx.getBean(ReportJsonEmitter.class)
-                .emit(Files.newOutputStream(Path.of("report.json")));
+                .emit(Files.newOutputStream(Path.of("table-us.json")));
     }
 
 }

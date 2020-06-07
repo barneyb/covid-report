@@ -56,7 +56,7 @@ function init(rawData) {
                 const d = j.data;
                 return d[d.length - 1].total_cases;
             },
-            cold: true,
+            hot: true,
         },
         {
             scope: "jurisdiction",
@@ -75,7 +75,6 @@ function init(rawData) {
                 const d = j.data;
                 return d[d.length - 1].total_deaths;
             },
-            cold: true,
         },
         {
             scope: "jurisdiction",
@@ -99,7 +98,6 @@ function init(rawData) {
                 return p.total_deaths / p.total_cases;
             },
             format: formatPercent,
-            cold: true,
         },
         {
             scope: "jurisdiction",
@@ -193,6 +191,7 @@ function init(rawData) {
             test: p => p.death_delta,
             expr: (d, p, j) => d.deaths / j.pop * HunThou,
             format: formatDeathRate,
+            cold: true,
             time: true,
         },
         {
@@ -325,6 +324,7 @@ function init(rawData) {
         const columns = [
             series[0],
             ...rawData.points
+                .slice(2) // never allow the first two points
                 .filter(p => !state.coldGroups.includes(p.label))
                 .reverse()
                 .flatMap((p, pidx) =>
@@ -369,7 +369,8 @@ function init(rawData) {
         };
     }
 
-    const LS_KEY = "covid-report-state";
+    const OLD_LS_KEY = "covid-report-state";
+    const LS_KEY = "covid-table-state";
     let state = {};
     let tableState = {};
     window.setState = s => {
@@ -427,7 +428,14 @@ function init(rawData) {
     $("#hide-sidebar")
         .addEventListener("click", () => setState({sidebar: false}))
     $("#reset-to-defaults").addEventListener("click", () => {
-        window.localStorage.setItem(LS_KEY, JSON.stringify({sidebar: true}));
+        window.localStorage.setItem(LS_KEY, JSON.stringify({
+            sidebar: true,
+            coldGroups: rawData.points
+                .slice()
+                .reverse()
+                .slice(4)
+                .map(it => it.label),
+        }));
         window.location.reload();
     })
     const render = state => {
@@ -559,7 +567,7 @@ function init(rawData) {
                 tag('section', [
                     tag('h3', 'Dates'),
                     ...rawData.points
-                        .slice(1) // the earliest point can't have any deltas
+                        .slice(2) // ignore the first two points
                         .map(p => formatDate(p.date))
                         .reverse()
                         .map(l =>
@@ -606,7 +614,11 @@ function init(rawData) {
                 .map(it => it.name),
         };
         try {
-            const cache = window.localStorage.getItem(LS_KEY)
+            const oldCache = window.localStorage.getItem(OLD_LS_KEY);
+            const cache = window.localStorage.getItem(LS_KEY) || oldCache;
+            if (oldCache) {
+                window.localStorage.removeItem(OLD_LS_KEY);
+            }
             if (cache) {
                 state = {
                     ...state,
@@ -618,6 +630,6 @@ function init(rawData) {
     });
 }
 
-fetch("./report.json")
+fetch("./table-us.json")
     .then(resp => resp.json())
     .then(init);

@@ -2,9 +2,14 @@
 <html lang="en">
 <head>
 <title>US COVID-19 by Jurisdiction</title>
-<link href="report.css" type="text/css" rel="stylesheet" />
+<link href="main.css" type="text/css" rel="stylesheet" />
+<link href="table.css" type="text/css" rel="stylesheet" />
 </head>
-<body>
+<body class="table">
+<div id="navbar">
+    <span>US Data Table</span>
+    <a href="rates.html">Worldwide Rate Chart</a>
+</div>
 <button id="show-sidebar" class="trigger" title="Show customization bar">&lt;</button>
 <div id="sidebar">
     <button id="reset-to-defaults" class="trigger" title="Reset all customizations">Reset</button>
@@ -44,6 +49,6 @@
     <a href="https://wonder.cdc.gov/controller/datarequest/D140">https://wonder.cdc.gov/controller/datarequest/D140</a>
     using year 2016.
 </p>
-<script src="report.js" type="application/javascript"></script>
+<script src="table.js" type="application/javascript"></script>
 </body>
 </html>

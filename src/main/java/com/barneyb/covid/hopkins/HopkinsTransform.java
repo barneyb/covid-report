@@ -38,8 +38,6 @@ public class HopkinsTransform {
     public static final File US_CASES_FILE = new File(TIME_SERIES_DIR, "time_series_covid19_confirmed_US.csv");
     public static final File US_DEATHS_FILE = new File(TIME_SERIES_DIR, "time_series_covid19_deaths_US.csv");
 
-    public static final File OUTPUT_DIR = new File("hopkins");
-
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("M/d/yy");
     public static final Function<double[], double[]> ROLLING_AVERAGE = data -> {
         val next = new double[data.length];
@@ -94,7 +92,7 @@ public class HopkinsTransform {
                 MortRates::getState);
         logger.info("Mortality rates loaded and indexed");
 
-        val idxFirstFriday = Arrays.binarySearch(dates, LocalDate.of(2020, 3, 20));
+        val idxFirstFriday = Arrays.binarySearch(dates, LocalDate.of(2020, 3, 6));
         var db = demographics.usStatesAndDC()
                 .map(s -> {
                     val j = new Jurisdiction();
@@ -211,7 +209,7 @@ public class HopkinsTransform {
             if (a2 >= 0 && b2 < 0) return 1;
             return a.compareTo(b);
         });
-        try (Writer out = new BufferedWriter(new FileWriter(new File(OUTPUT_DIR, "rates.txt")))) {
+        try (Writer out = new BufferedWriter(new FileWriter(new File("rates.txt")))) {
             new StatefulBeanToCsvBuilder<Rates>(out)
                     .withSeparator('|')
                     .withMappingStrategy(strat)
