@@ -18,14 +18,14 @@ public class Main implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
-        if (args.containsOption("hopkins")) {
-            appCtx.getBean(HopkinsTransform.class)
-                    .transform();
-        }
-
         if (args.containsOption("mortality")) {
             appCtx.getBean(Mortality.class)
                     .emit(Files.newBufferedWriter(Path.of("mortality.csv")));
+        }
+
+        if (args.containsOption("hopkins")) {
+            appCtx.getBean(HopkinsTransform.class)
+                    .transform();
         }
 
         appCtx.getBean(ReportJsonEmitter.class)

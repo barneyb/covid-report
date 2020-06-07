@@ -9,11 +9,16 @@ import lombok.val;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.time.LocalDate;
 
 @SpringBootApplication
+@ComponentScan(excludeFilters =
+        @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = Store.class))
 public class CovidReportApplication {
 
 	public static void main(String[] args) {
@@ -40,6 +45,11 @@ public class CovidReportApplication {
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         mapper.setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE);
         return mapper;
+    }
+
+    @Bean
+    public Store usStore() {
+	    return new Store(Path.of("database-us.json"));
     }
 
 }
