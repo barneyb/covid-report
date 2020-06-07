@@ -31,6 +31,8 @@ public class IndexedWorld {
                 cover.stream()
                         .filter(it -> it.getDemographics().isState()),
                 it -> new Pair<>(it.getDemographics().getCountry(), it.getDemographics().getState()));
+
+        // this also ends up with protectorates (e.g., Greenland of Denmark)
         statesOfCountry = new Index<>(
                 cover.stream()
                         .filter(it -> it.getDemographics().isState()),
