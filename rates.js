@@ -1,4 +1,5 @@
 google.charts.load('current', {'packages': ['annotationchart']});
+const LS_KEY = "covid-rates-state";
 state = {
     hotSeries: new Set([
         "Worldwide",
@@ -11,7 +12,18 @@ state = {
         "US",
         "Oregon, US",
     ]),
-}
+};
+try {
+    cache = window.localStorage.getItem(LS_KEY);
+    if (cache) {
+        state = JSON.parse(cache, (k, v) => {
+            if (v instanceof Array && (k === "hotSeries" || k === "expanded")) {
+                return new Set(v);
+            }
+            return v;
+        });
+    }
+} catch (e) {}
 setState = s => {
     if (typeof s === "function") {
         s = s(state);
@@ -20,6 +32,8 @@ setState = s => {
         ...state,
         ...s,
     };
+    window.localStorage.setItem(LS_KEY, JSON.stringify(state, (k, v) =>
+        v instanceof Set ? Array.from(v) : v));
     render(state);
 }
 buildToggler = sn => key =>

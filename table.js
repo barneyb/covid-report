@@ -376,7 +376,7 @@ function init(rawData) {
     window.setState = s => {
         const prev = state;
         state = {
-            ...state,
+            ...prev,
             ...(typeof s === "function" ? s(prev) : s),
         };
         window.localStorage.setItem(LS_KEY, JSON.stringify(state));
