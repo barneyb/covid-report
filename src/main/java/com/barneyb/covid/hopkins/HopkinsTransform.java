@@ -2,8 +2,6 @@ package com.barneyb.covid.hopkins;
 
 import com.barneyb.covid.Store;
 import com.barneyb.covid.hopkins.csv.*;
-import com.barneyb.covid.model.DataPoint;
-import com.barneyb.covid.model.Jurisdiction;
 import com.opencsv.bean.CsvToBeanBuilder;
 import com.opencsv.bean.HeaderColumnNameMappingStrategy;
 import com.opencsv.bean.StatefulBeanToCsvBuilder;
@@ -14,13 +12,16 @@ import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.io.*;
-import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -35,6 +36,7 @@ public class HopkinsTransform {
 
     public static final File TIME_SERIES_DIR = new File(DATA_DIR, "csse_covid_19_time_series");
     public static final File GLOBAL_CASES_FILE = new File(TIME_SERIES_DIR, "time_series_covid19_confirmed_global.csv");
+    public static final File GLOBAL_DEATHS_FILE = new File(TIME_SERIES_DIR, "time_series_covid19_deaths_global.csv");
     public static final File US_CASES_FILE = new File(TIME_SERIES_DIR, "time_series_covid19_confirmed_US.csv");
     public static final File US_DEATHS_FILE = new File(TIME_SERIES_DIR, "time_series_covid19_deaths_US.csv");
 
@@ -66,7 +68,12 @@ public class HopkinsTransform {
     public static final String WORLDWIDE = "Worldwide";
 
     @Autowired
-    private Store store;
+    @Qualifier("us")
+    Store usStore;
+
+    @Autowired
+    @Qualifier("worldwide")
+    Store wwStore;
 
     @SneakyThrows
     public void transform() {
@@ -80,10 +87,13 @@ public class HopkinsTransform {
         val dateHeaders = buildDateHeaders(dates);
         logger.info("Headers built");
 
+        val globalCases = new IndexedWorld(demographics, rawGlobal, dateHeaders);
+        val globalDeaths = new IndexedWorld(demographics, loadGlobalData(GLOBAL_DEATHS_FILE), dateHeaders);
+        logger.info("Global series loaded and indexed");
+
         val usCases = new IndexedUS(demographics, loadUSData(US_CASES_FILE), dateHeaders);
-        logger.info("US cases loaded and indexed");
         val usDeaths = new IndexedUS(demographics, loadUSData(US_DEATHS_FILE), dateHeaders);
-        logger.info("US deaths loaded and indexed");
+        logger.info("US series loaded and indexed");
         val mortRates = new UniqueIndex<>(
                 new CsvToBeanBuilder<MortRates>(new FileReader("mortality.csv"))
                         .withType(MortRates.class)
@@ -92,35 +102,22 @@ public class HopkinsTransform {
                 MortRates::getState);
         logger.info("Mortality rates loaded and indexed");
 
-        val idxFirstFriday = Arrays.binarySearch(dates, LocalDate.of(2020, 3, 6));
-        var db = demographics.usStatesAndDC()
-                .map(s -> {
-                    val j = new Jurisdiction();
-                    j.setName(s.getState());
-                    j.setPopulation(s.getPopulation());
-                    j.setMortalityRates(mortRates.get(s.getState()).unwrapRates());
-                    val cases = usCases.getByState(j.getName()).getData();
-                    val deaths = usDeaths.getByState(j.getName()).getData();
-                    assert cases.length == deaths.length : "case and death series are different lengths";
-                    val points = new ArrayList<DataPoint>();
-                    for (int i = idxFirstFriday, l = cases.length; i < l; i += 7) {
-                        assert dates[i].getDayOfWeek().equals(DayOfWeek.FRIDAY) : "not a friday?";
-                        points.add(new DataPoint(
-                                dates[i],
-                                (int) cases[i],
-                                (int) deaths[i]));
-                    }
-                    j.setPoints(points);
-                    return j;
-                })
-                .collect(Collectors.toList());
-        logger.info("Jurisdictions initialized");
-        store.replaceTheWholeThing(db);
-        store.flush();
-        logger.info("Database JSON written out");
+        new StoreBuilder<>(dates,
+                usCases,
+                usDeaths,
+                Demographics::getState,
+                (iu, d) -> iu.getByState(d.getState())
+        ).updateStore(usStore, demographics.usStatesAndDC(), j ->
+                j.setMortalityRates(mortRates.get(j.getName()).unwrapRates()));
+        logger.info("US database rebuilt");
 
-        val globalCases = new IndexedWorld(demographics, rawGlobal, dateHeaders);
-        logger.info("Global cases loaded and indexed");
+        new StoreBuilder<>(dates,
+                globalCases,
+                globalDeaths,
+                Demographics::getCountry,
+                (iw, d) -> iw.getByCountry(d.getCountry())
+        ).updateStore(wwStore, demographics.countries());
+        logger.info("Worldwide database rebuilt");
 
         // fake "worldwide" demographics
         val wwDemo = new Demographics();
@@ -130,7 +127,7 @@ public class HopkinsTransform {
                 .map(Demographics::getPopulation)
                 .reduce(0L, Long::sum));
 
-        // sum up globals to get worldwide
+        // sum up global coverage to get worldwide
         val ww = globalCases.cover()
                 .reduce(TimeSeries::plus)
                 .orElseThrow();

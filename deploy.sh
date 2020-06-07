@@ -21,7 +21,6 @@ if [ $DO_JAR -eq 0 ]; then
   cp target/*.jar covid.jar
 fi
 
-
 rsync -a \
   --progress --stats \
   *.html \

@@ -1,13 +1,15 @@
 /*
  * Oh hai! Fancy meeting you here. You look fabulous, by the way. Very healthy.
  */
-function init(rawData) {
+function init(rawData, datasetName, hotRows = [], extraTotals = {}) {
     const HunThou = 100000;
     const Week = 7;
     const fTrue = () => true;
     const IDENTITY = v => v;
     const isNum = v =>
         typeof v === "number" || v instanceof Number;
+    const isActualNumber = v =>
+        !isNaN(v) && isFinite(v)
     const formatDate = ld => {
         const ps = ld.split("-")
             .map(p => parseInt(p, 10));
@@ -19,7 +21,7 @@ function init(rawData) {
     };
     const nfpMap = new Map();
     const formatNumber = (v, places = 0) => {
-        if (isNaN(v)) return '';
+        if (!isActualNumber(v)) return '';
         if (!nfpMap.has(places)) {
             nfpMap.set(places, new Intl.NumberFormat("en-US", {
                 minimumFractionDigits: places,
@@ -29,7 +31,7 @@ function init(rawData) {
         return nfpMap.get(places).format(v);
     };
     const formatPercent = (v, places = 1) => {
-        if (isNaN(v)) return '';
+        if (!isActualNumber(v)) return '';
         return formatNumber(v * 100, places) + "%"
     };
     const formatDeathRate = v => formatNumber(v, 1)
@@ -234,7 +236,7 @@ function init(rawData) {
                 }
                 return fs;
             }),
-            rates: Object.keys(j.mortality_rates)
+            rates: Object.keys(j.mortality_rates || {})
                 .reduce((rs, k) => ({
                     ...rs,
                     [k]: j.mortality_rates[k] / 365.24 * Week,
@@ -261,7 +263,7 @@ function init(rawData) {
                 }
                 return fs;
             }),
-            rates: Object.keys(rawData.jurisdictions[0].mortality_rates)
+            rates: Object.keys(rawData.jurisdictions[0].mortality_rates || {})
                 .reduce((rs, k) => ({
                     ...rs,
                     [k]: sumUp(j => j.pop * j.rates[k])
@@ -269,13 +271,9 @@ function init(rawData) {
                 }), {}),
         }
     }
-    dataRecords.push(
-        buildTotal("Total", dataRecords),
-        buildTotal("Excluding NY", dataRecords
-            .filter(r => r.name !== "New York")),
-        buildTotal("Excluding NY & NJ", dataRecords
-            .filter(r => r.name !== "New York" && r.name !== "New Jersey")),
-    );
+    dataRecords.push(buildTotal("Total", dataRecords));
+    Object.keys(extraTotals).forEach(n =>
+        dataRecords.push(buildTotal(n, dataRecords.filter(extraTotals[n]))));
     for (const rec of dataRecords) {
         rec.groups = rawData.points
             .reduce((agg, p, pidx) => {
@@ -372,8 +370,7 @@ function init(rawData) {
         };
     }
 
-    const OLD_LS_KEY = "covid-report-state";
-    const LS_KEY = "covid-table-state";
+    const LS_KEY = `covid-${datasetName}-state`;
     let state = {};
     let tableState = {};
     window.setState = s => {
@@ -416,7 +413,11 @@ function init(rawData) {
             .map(r =>
                 tag('tr', r.join ? r.join("") : r))
             .join("\n");
-    const numComp = (a, b) => a - b;
+    const numComp = (a, b) => {
+        if (isActualNumber(a)) return isActualNumber(b) ? a - b : 1;
+        if (isActualNumber(b)) return -1;
+        return 0;
+    };
     const strComp = (a, b) => a < b ? -1 : a > b ? 1 : 0;
     const revComp = sort => (a, b) => sort(b, a);
     const $ = document.querySelector.bind(document);
@@ -432,11 +433,6 @@ function init(rawData) {
     $("#reset-to-defaults").addEventListener("click", () => {
         window.localStorage.setItem(LS_KEY, JSON.stringify({
             sidebar: true,
-            coldGroups: rawData.points
-                .slice()
-                .reverse()
-                .slice(4)
-                .map(it => it.label),
         }));
         window.location.reload();
     })
@@ -540,6 +536,8 @@ function init(rawData) {
                 r,
                 r.groups[g]["Case Rate"],
             ])
+            .filter(([_, v]) => isActualNumber(v))
+            .filter(([_, v]) => isActualNumber(v._change))
             .sort(([_, a], [__, b]) => b._change - a._change);
         const tp = ds.reduce((s, d) => s + d[0].pop, 0);
         bar.innerHTML = ds
@@ -607,20 +605,22 @@ function init(rawData) {
         let state = {
             sortCol: 0,
             sortAsc: true,
-            hotRows: ["Oregon", "Montana", "New York"],
+            hotRows,
             sidebar: false,
-            coldGroups: [],
+            coldGroups: rawData.points
+                .slice()
+                .reverse()
+                .slice(4)
+                .map(it => it.label),
             coldSeries: series
                 .filter(it =>
                     it.scope === "point" ? it.cold : !it.hot)
                 .map(it => it.name),
         };
         try {
-            const oldCache = window.localStorage.getItem(OLD_LS_KEY);
-            const cache = window.localStorage.getItem(LS_KEY) || oldCache;
-            if (oldCache) {
-                window.localStorage.removeItem(OLD_LS_KEY);
-            }
+            const cache = window.localStorage.getItem(LS_KEY);
+            window.localStorage.removeItem("covid-report-state");
+            window.localStorage.removeItem("covid-table-state");
             if (cache) {
                 state = {
                     ...state,
@@ -631,7 +631,3 @@ function init(rawData) {
         return state;
     });
 }
-
-fetch("./table-us.json")
-    .then(resp => resp.json())
-    .then(init);

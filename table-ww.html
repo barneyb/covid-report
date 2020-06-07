@@ -1,14 +1,14 @@
 <?doctype html>
 <html lang="en">
 <head>
-<title>US COVID-19 by Jurisdiction</title>
+<title>Worldwide COVID-19 by Country</title>
 <link href="main.css" type="text/css" rel="stylesheet" />
 <link href="table.css" type="text/css" rel="stylesheet" />
 </head>
 <body class="table">
 <div id="navbar">
-    <a href="table-ww.html">Worldwide Data Table</a>
-    <span>US Data Table</span>
+    <span>Worldwide Data Table</span>
+    <a href="index.html">US Data Table</a>
     <a href="rates.html">Combined Rate Chart</a>
 </div>
 <button id="show-sidebar" class="trigger" title="Show customization bar">&lt;</button>
@@ -17,7 +17,7 @@
     <button id="hide-sidebar" class="trigger" title="Hide customization bar">&gt;</button>
     <div class="content"></div>
 </div>
-<h1>US COVID-19 by Jurisdiction</h1>
+<h1>Worldwide COVID-19 by Country</h1>
 <div class="bar-layout" title="Total population arranged by change in case rate over last week.">
     <strong>Case Rate</strong>
     <span class="good-label">Decreasing</span>
@@ -31,16 +31,11 @@
 </table>
 <hr />
 <p>Dates are <em>reporting</em> dates; how current they are varies between
-    jurisdictions. All data are updated daily, including historical correction.
+    countries. All data are updated daily, including historical correction.
 </p>
-<p>Series w/ "Rate" or "DR" in their name are per week per 100K population.
+<p>Series w/ "Rate" in their name are per week per 100K population.
 </p>
-<p>New York's and New Jersey's disproportionate case load makes the total row
-    difficult to interpret as a "national average". Additional total rows are
-    provided with these jurisdictions excluded.
-</p>
-<p>You can download the raw tables as <a href="table-us.tsv">table-us.tsv</a>
-    and <a href="mortality.csv">mortality.csv</a>.
+<p>You can download the raw table as <a href="table-ww.tsv">table-ww.tsv</a>.
 </p>
 <hr />
 <p>COVID-19 and population data from
@@ -48,18 +43,11 @@
     Repository</a> by the Center for Systems Science and Engineering (CSSE) at
     Johns Hopkins University.
 </p>
-<p>Mortality data from
-    <a href="https://wonder.cdc.gov/controller/datarequest/D140">https://wonder.cdc.gov/controller/datarequest/D140</a>
-    using year 2016.
-</p>
 <script src="table.js" type="application/javascript"></script>
 <script type="application/javascript">
-    fetch("./table-us.json")
+    fetch("./table-ww.json")
         .then(resp => resp.json())
-        .then(d => init(d, 'table-us', ["Oregon", "Montana", "New York"], {
-            "Excluding NY": r => r.name !== "New York",
-            "Excluding NY & NJ": r => r.name !== "New York" && r.name !== "New Jersey",
-        }));
+        .then(d => init(d, 'table-ww', ["Brazil", "Italy", "Russia", "US"]));
 </script>
 </body>
 </html>
