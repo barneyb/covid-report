@@ -422,7 +422,6 @@ function init(rawData) {
     const foot = $("#main-table tfoot");
     const bar = $(".bar-layout .bar");
     const sidebar = $("#sidebar .content");
-    $("#updated").innerText = `Updated ${formatDate(rawData.date)}`;
     $("#show-sidebar")
         .addEventListener("click", () => setState({sidebar: true}))
     $("#hide-sidebar")

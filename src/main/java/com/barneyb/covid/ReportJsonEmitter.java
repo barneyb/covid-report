@@ -42,7 +42,7 @@ public class ReportJsonEmitter implements Emitter {
     private Report buildReport() {
         val dates = store.getDatesWithCases();
         val report = new Report();
-        report.date = dates.last();
+        report.date = LocalDate.now();
         report.jurisdictions = store.getAllJurisdictions()
                 .stream()
 //                .filter(j -> "New York" .equals(j.getName()) || "Oregon" .equals(j.getName()))
