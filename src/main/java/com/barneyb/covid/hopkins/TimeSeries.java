@@ -13,12 +13,6 @@ import java.util.function.ToDoubleBiFunction;
 @Data
 public class TimeSeries {
 
-    public static TimeSeries zeros(Demographics demographics, String[] dateHeaders) {
-        return new TimeSeries(
-                demographics,
-                new double[dateHeaders.length]);
-    }
-
     private Demographics demographics;
 
     @ToString.Exclude

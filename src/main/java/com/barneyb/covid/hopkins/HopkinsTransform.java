@@ -3,28 +3,21 @@ package com.barneyb.covid.hopkins;
 import com.barneyb.covid.Store;
 import com.barneyb.covid.hopkins.csv.*;
 import com.opencsv.bean.CsvToBeanBuilder;
-import com.opencsv.bean.HeaderColumnNameMappingStrategy;
-import com.opencsv.bean.StatefulBeanToCsvBuilder;
 import com.opencsv.enums.CSVReaderNullFieldIndicator;
 import lombok.SneakyThrows;
 import lombok.val;
-import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 @Component
 public class HopkinsTransform {
@@ -41,31 +34,6 @@ public class HopkinsTransform {
     public static final File US_DEATHS_FILE = new File(TIME_SERIES_DIR, "time_series_covid19_deaths_US.csv");
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("M/d/yy");
-    public static final Function<double[], double[]> ROLLING_AVERAGE = data -> {
-        val next = new double[data.length];
-        Queue<Double> queue = new LinkedList<>();
-        double sum = 0;
-        for (int i = 0, l = next.length; i < l; i++) {
-            queue.add(data[i]);
-            sum += data[i];
-            while (queue.size() > 7) sum -= queue.remove();
-            next[i] = sum / queue.size();
-        }
-        return next;
-    };
-    public static final Function<double[], double[]> DELTA = data -> {
-        val next = new double[data.length];
-        double prev = next[0] = data[0];
-        for (int i = 1, l = next.length; i < l; i++) {
-            next[i] = data[i] - prev;
-            prev = data[i];
-        }
-        return next;
-    };
-    public static final BiFunction<Demographics, Double, Double> PER_100K = (d, v) ->
-            v / (d.getPopulation() / 100_000);
-
-    public static final String WORLDWIDE = "Worldwide";
 
     @Autowired
     @Qualifier("us")
@@ -119,102 +87,9 @@ public class HopkinsTransform {
         ).updateStore(wwStore, demographics.countries());
         logger.info("Worldwide database rebuilt");
 
-        // fake "worldwide" demographics
-        val wwDemo = new Demographics();
-        wwDemo.setCombinedKey(WORLDWIDE);
-        wwDemo.setPopulation(globalCases.cover()
-                .map(TimeSeries::getDemographics)
-                .map(Demographics::getPopulation)
-                .reduce(0L, Long::sum));
-
-        // sum up global coverage to get worldwide
-        val ww = globalCases.cover()
-                .reduce(TimeSeries::plus)
-                .orElseThrow();
-        ww.setDemographics(wwDemo);
-        logger.info("Worldwide series aggregated");
-
-        val us = globalCases.getByCountry("US");
-        val ny = usCases.getByState("New York");
-        val usNoNyDemo = new Demographics();
-        usNoNyDemo.setCombinedKey("US Except NY");
-        usNoNyDemo.setPopulation(us.getDemographics().getPopulation() - ny.getDemographics().getPopulation());
-        val usNoNy = TimeSeries.zeros(usNoNyDemo, dateHeaders)
-                .plus(us)
-                .minus(ny);
-        logger.info("US Except NY series aggregated");
-
-        val countSeries = new LinkedList<>(List.of(ww, usNoNy,
-                globalCases.getByCountryAndState("China", "Hubei")));
-        List.of("China", "Italy", "Brazil", "France", "Russia", "US")
-                .stream()
-                .map(globalCases::getByCountry)
-                .forEach(countSeries::add);
-        List.of("Arizona", "California", "Connecticut", "Florida", "Georgia", "Illinois", "Louisiana", "Maryland", "Massachusetts", "Michigan", "New Jersey", "New York", "Oregon", "Pennsylvania", "Texas", "Virginia")
-                .stream()
-                .map(usCases::getByState)
-                .forEach(countSeries::add);
-        List.of("Alameda", "Contra Costa", "Los Angeles", "Marin", "Napa", "Orange", "San Diego", "San Francisco", "San Mateo", "Santa Clara", "Solano", "Sonoma", "Ventura")
-                .stream()
-                .map(c -> usCases.getByStateAndLocality("California", c))
-                .forEach(countSeries::add);
-        List.of("Clackamas", "Marion", "Multnomah", "Washington")
-                .stream()
-                .map(c -> usCases.getByStateAndLocality("Oregon", c))
-                .forEach(countSeries::add);
-        List.of("Nassau", "New York City", "Rockland", "Suffolk", "Westchester")
-                .stream()
-                .map(c -> usCases.getByStateAndLocality("New York", c))
-                .forEach(countSeries::add);
-        logger.info("Raw series built");
-        val series = countSeries.stream()
-                .map(s -> s
-                        .map(DELTA)
-                        .map(ROLLING_AVERAGE)
-                        .transform(PER_100K))
-                .collect(Collectors.toList());
-        logger.info("Average rate series transformed");
-
-        val rates = new ArrayList<Rates>(dateHeaders.length);
-        for (int i = 0; i < dates.length; i++) {
-            LocalDate d = dates[i];
-            val r = new Rates(d, new ArrayListValuedHashMap<>());
-            for (val s : series) {
-                r.getJurisdictions()
-                        .get(s.getDemographics().getCombinedKey())
-                        .add(s.getData()[i]);
-            }
-            rates.add(r);
-        }
-        logger.info("Rates table created");
-
-        val strat = new HeaderColumnNameMappingStrategy<Rates>();
-        strat.setType(Rates.class);
-        strat.setColumnOrderOnWrite((a, b) -> {
-            if ("DATE".equals(a)) return -1;
-            if ("DATE".equals(b)) return 1;
-            if (WORLDWIDE.equals(a)) return -1;
-            if (WORLDWIDE.equals(b)) return 1;
-            val a1 = a.indexOf(',');
-            val b1 = b.indexOf(',');
-            if (a1 < 0 && b1 < 0) return a.compareTo(b);
-            if (a1 < 0) return -1;
-            if (b1 < 0) return 1;
-            val a2 = a.indexOf(',', a1 + 1);
-            val b2 = b.indexOf(',', b1 + 1);
-            if (a2 < 0 && b2 >= 0) return -1;
-            if (a2 >= 0 && b2 < 0) return 1;
-            return a.compareTo(b);
-        });
-        try (Writer out = new BufferedWriter(new FileWriter(new File("rates.txt")))) {
-            new StatefulBeanToCsvBuilder<Rates>(out)
-                    .withSeparator('|')
-                    .withMappingStrategy(strat)
-                    .withApplyQuotesToAll(false)
-                    .build()
-                    .write(rates);
-        }
-        logger.info("Rates datafile written");
+        new RatesBuilder(dates, globalCases, usCases)
+                .emit(new File("rates.txt"));
+        logger.info("Case rates rebuilt");
     }
 
     private String[] buildDateHeaders(LocalDate[] dates) {
