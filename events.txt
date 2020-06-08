@@ -9,7 +9,9 @@ Date|Jurisdiction|Event|Description
 5/1|Texas, US|Texas Restaurants/Malls Reopen|
 5/15|Oregon, US|OR First 28 Counties Enter Phase 1|
 5/22|Marion, Oregon, US|OR MarionCo Phase 1|
+5/25|US|George Floyd Died|
 5/29|Illinois, US|Illinois Lifts Stay-at-Home|
+5/28|Oregon, US|Portland Protests Begin|
 6/1|Washington, Oregon, US|OR WashCo Phase 1|
 6/1|Michigan, US|Michigan Lifts Stay-at-Home|
 6/5|Pennsylvania, US|Pennsylvania Lifts Stay-at-Home|
