@@ -22,7 +22,7 @@ public class Rates {
     private LocalDate date;
 
     @CsvBindAndJoinByName(column = ".*", elementType = Double.class, mapType = HashSetValuedHashMap.class)
-    @CsvNumber("0.##")
+    @CsvNumber("0.###")
     private MultiValuedMap<String, Double> jurisdictions;
 
 }

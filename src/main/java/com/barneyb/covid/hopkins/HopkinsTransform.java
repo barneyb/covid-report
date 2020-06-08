@@ -88,8 +88,12 @@ public class HopkinsTransform {
         logger.info("Worldwide database rebuilt");
 
         new RatesBuilder(dates, globalCases, usCases)
-                .emit(new File("rates.txt"));
+                .emit(new File("rates-cases.txt"));
         logger.info("Case rates rebuilt");
+
+        new RatesBuilder(dates, globalDeaths, usDeaths)
+                .emit(new File("rates-deaths.txt"));
+        logger.info("Death rates rebuilt");
     }
 
     private String[] buildDateHeaders(LocalDate[] dates) {

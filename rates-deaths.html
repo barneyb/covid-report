@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-    <title>New Case Rates</title>
+    <title>Death Rates</title>
     <link href="main.css" type="text/css" rel="stylesheet" />
     <!--suppress JSUnresolvedLibraryURL -->
     <script type="text/javascript"
@@ -12,9 +12,10 @@
 <div id="navbar">
     <a href="table-ww.html">Worldwide Data Table</a>
     <a href="index.html">US Data Table</a>
-    <span>Combined Rate Chart</span>
+    <a href="rates-cases.html">Combined Cases Chart</a>
+    <span>Combined Deaths Chart</span>
 </div>
-<h1>New Cases per Day per 100,000 Population (7-day Rolling Average)</h1>
+<h1>Deaths per Day per 100,000 Population (7-day Rolling Average)</h1>
 <div id="picker"
      style="float:left;box-sizing:border-box;width:16em;padding:0.3em;height:calc(80vh + 0.5px);overflow:auto;border:1px solid #ccc;border-right-width:0">
 </div>
@@ -27,7 +28,8 @@
     interpret as a "national average" from mid-March to mid-May. A "US Except
     NY" series is provided with New York excluded.
 </p>
-<p>You can download the raw tables as <a href="rates.txt">rates.txt</a> and
+<p>You can download the raw tables as
+    <a href="rates-deaths.txt">rates-deaths.txt</a> and
     <a href="events.txt">events.txt</a>.
 </p>
 <hr />
@@ -38,5 +40,8 @@
 </p>
 <p>Event data from various media and government sources.
 </p>
+<script type="application/javascript">
+    init("./rates-deaths.txt");
+</script>
 </body>
 </html>

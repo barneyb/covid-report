@@ -49,7 +49,7 @@ public class RatesBuilder {
     };
 
     public static final BiFunction<Demographics, Double, Double> PER_100K = (d, v) ->
-            v / (d.getPopulation() / 100_000);
+            v / (1.0 * d.getPopulation() / 100_000);
 
     final LocalDate[] dates;
     final IndexedWorld idxWorld;
