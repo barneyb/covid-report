@@ -1,14 +1,3 @@
-.delta-up-wow       { background-color: hsl( 15,  90%,  55%); }
-.delta-up-lots      { background-color: hsl( 15,  80%,  65%); }
-.delta-up-some      { background-color: hsl( 15,  70%,  75%); }
-.delta-up-bit       { background-color: hsl( 15,  60%,  85%); }
-.delta-up-smidge    { background-color: hsl( 15,  50%,  95%); }
-.delta-down-smidge  { background-color: hsl( 92,  50%,  95%); }
-.delta-down-bit     { background-color: hsl( 92,  60%,  85%); }
-.delta-down-some    { background-color: hsl( 92,  70%,  75%); }
-.delta-down-lots    { background-color: hsl( 92,  80%,  65%); }
-.delta-down-zero    { background-color: hsl( 92,  90%,  55%); }
-
 .bar-layout {
     display: block;
     width: 35em;

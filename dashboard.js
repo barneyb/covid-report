@@ -1,23 +1,11 @@
 function init(data) {
     $("#updated").innerHTML = "Updated: " + formatDate(data.date);
-    const breaks = [
-        -1,    "delta-down-zero",
-        -0.6,  "delta-down-lots",
-        -0.25, "delta-down-some",
-        -0.1,  "delta-down-bit",
-         0,    "delta-down-smidge",
-         0.1,  "delta-up-smidge",
-         0.25, "delta-up-bit",
-         0.6,  "delta-up-some",
-         0.8,  "delta-up-lots",
-    ]
-    const classForDelta = val => {
-        if (!val) return null;
-        for (var b = 0; b < breaks.length; b += 2) {
-            if (val < breaks[b]) return breaks[b + 1];
-        }
-        return "delta-up-wow";
-    };
+    const colorForDelta = val => {
+        const h = val < 0 ? 92 : 15; // green/red
+        const s = 50 + Math.min(1, Math.abs(val)) * 40;
+        const l = 95 - Math.min(1, Math.abs(val)) * 40;
+        return "hsl(" + h + "," + s + "%," + l + "%)";
+    }
     const drawBar = (element, deltas) => {
         const ds = deltas
             .filter(it => isActualNumber(it.delta))
@@ -27,8 +15,7 @@ function init(data) {
             .map(it =>
                 tag('span', '', {
                     title: it.name + " (" + formatPercent(it.delta) + ")",
-                    className: classForDelta(it.delta),
-                    style: `width:${Math.round(it.pop / tp * 10000) / 100}%`
+                    style: `width:${Math.round(it.pop / tp * 10000) / 100}%;background-color:${colorForDelta(it.delta)}`
                 }))
             .join("\n");
     };
