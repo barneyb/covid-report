@@ -2,8 +2,11 @@ package com.barneyb.covid.hopkins;
 
 import com.barneyb.covid.Store;
 import com.barneyb.covid.hopkins.csv.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.opencsv.bean.CsvToBeanBuilder;
 import com.opencsv.enums.CSVReaderNullFieldIndicator;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.SneakyThrows;
 import lombok.val;
 import org.slf4j.Logger;
@@ -15,9 +18,18 @@ import org.springframework.stereotype.Component;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static com.barneyb.covid.hopkins.RatesBuilder.DELTA;
+import static com.barneyb.covid.hopkins.RatesBuilder.ROLLING_AVERAGE;
 
 @Component
 public class HopkinsTransform {
@@ -42,6 +54,84 @@ public class HopkinsTransform {
     @Autowired
     @Qualifier("worldwide")
     Store wwStore;
+
+    @Autowired
+    ObjectMapper mapper;
+
+
+    @SneakyThrows
+    public void spew(Object model) {
+        val out = Files.newOutputStream(Path.of("dashboard.json"));
+        mapper
+//                .writerWithDefaultPrettyPrinter() // todo: comment out?
+                .writeValue(out, model);
+        out.close();
+    }
+
+    @Data
+    @AllArgsConstructor
+    private static class Delta {
+        String name;
+        long pop;
+        double delta;
+    }
+
+    @Data
+    @AllArgsConstructor
+    private static class Spark {
+        String name;
+        int total;
+        double[] deltas;
+    }
+
+    @Data
+    private static class Dash {
+        LocalDate date;
+        List<Delta> worldCaseRateDeltas;
+        List<Delta> usCaseRateDeltas;
+        List<Delta> orCaseRateDeltas;
+        Spark worldSpark;
+        Spark usSpark;
+        Spark orSpark;
+        Spark washCoSpark;
+        Spark multCoSpark;
+
+        private static List<Delta> computeDeltas(Stream<TimeSeries> stream) {
+            return stream
+                    .map(s -> {
+                        double[] data = s.getData();
+                        final int t2 = data.length - 1,
+                                t1 = t2 - 7,
+                                t0 = t1 - 7;
+                        final double val = data[t2] - data[t1],
+                                prev = data[t1] - data[t0],
+                                delta = prev == 0
+                                        ? 10 // Any increase from zero means tenfold! By fiat!
+                                        : (val - prev) / prev;
+                        return new Delta(
+                                s.getDemographics().getCombinedKey(),
+                                s.getDemographics().getPopulation(),
+                                delta);
+                    })
+                    .collect(Collectors.toList());
+        }
+
+        private static Spark spark(TimeSeries s) {
+            val data = s.getData();
+            int len = data.length;
+            return new Spark(
+                    s.getDemographics().getCombinedKey(),
+                    (int) data[len - 1],
+                    Optional.of(Arrays.copyOfRange(data, len - 21, len))
+                            .map(DELTA)
+                            .map(ROLLING_AVERAGE)
+                            .map(d -> {
+                                int l = d.length;
+                                return Arrays.copyOfRange(d, l - 14, l);
+                            })
+                            .orElseThrow());
+        }
+    }
 
     @SneakyThrows
     public void transform() {
@@ -69,6 +159,19 @@ public class HopkinsTransform {
                         .parse(),
                 MortRates::getState);
         logger.info("Mortality rates loaded and indexed");
+
+        val dash = new Dash();
+        dash.setDate(LocalDate.now());
+        dash.worldCaseRateDeltas = Dash.computeDeltas(globalCases.countries());
+        dash.usCaseRateDeltas = Dash.computeDeltas(usCases.allStates());
+        dash.orCaseRateDeltas = Dash.computeDeltas(usCases.getLocalitiesOfState("Oregon"));
+        dash.worldSpark = Dash.spark(globalCases.getWorldwide());
+        dash.usSpark = Dash.spark(globalCases.getByCountry("US"));
+        dash.orSpark = Dash.spark(usCases.getByState("Oregon"));
+        dash.washCoSpark = Dash.spark(usCases.getByStateAndLocality("Oregon", "Washington"));
+        dash.multCoSpark = Dash.spark(usCases.getByStateAndLocality("Oregon", "Multnomah"));
+        spew(dash);
+        logger.info("Dashboard rebuilt");
 
         new StoreBuilder<>(dates,
                 usCases,

@@ -21,9 +21,9 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class RatesBuilder {
+import static com.barneyb.covid.hopkins.IndexedWorld.WORLDWIDE;
 
-    public static final String WORLDWIDE = "Worldwide";
+public class RatesBuilder {
 
     public static final Function<double[], double[]> ROLLING_AVERAGE = data -> {
         val next = new double[data.length];
@@ -62,20 +62,6 @@ public class RatesBuilder {
     }
 
     private LinkedList<TimeSeries> build() {
-        // fake "worldwide" demographics
-        val wwDemo = new Demographics();
-        wwDemo.setCombinedKey(WORLDWIDE);
-        wwDemo.setPopulation(idxWorld.cover()
-                .map(TimeSeries::getDemographics)
-                .map(Demographics::getPopulation)
-                .reduce(0L, Long::sum));
-
-        // sum up global coverage to get worldwide
-        val ww = idxWorld.cover()
-                .reduce(TimeSeries::plus)
-                .orElseThrow();
-        ww.setDemographics(wwDemo);
-
         val us = idxWorld.getByCountry("US");
         val ny = idxUs.getByState("New York");
         val usNoNyDemo = new Demographics();
@@ -84,7 +70,7 @@ public class RatesBuilder {
         val usNoNy = us.minus(ny);
         usNoNy.setDemographics(usNoNyDemo);
 
-        val countSeries = new LinkedList<>(List.of(ww, usNoNy,
+        val countSeries = new LinkedList<>(List.of(idxWorld.getWorldwide(), usNoNy,
                 idxWorld.getByCountryAndState("China", "Hubei")));
         List.of("China", "Italy", "Brazil", "France", "Russia", "US")
                 .stream()
