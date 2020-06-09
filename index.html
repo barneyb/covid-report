@@ -1,47 +1,77 @@
 <?doctype html>
 <html lang="en">
 <head>
-<title>US COVID-19 by Jurisdiction</title>
-<link href="main.css" type="text/css" rel="stylesheet" />
-<link href="table.css" type="text/css" rel="stylesheet" />
+    <title>COVID-19 Dashboard</title>
+    <link href="main.css" type="text/css" rel="stylesheet" />
+    <link href="dashboard.css" type="text/css" rel="stylesheet" />
 </head>
 <body class="table">
 <div id="navbar">
+    <span>Dashboard</span>
     <a href="table-ww.html">Worldwide Data Table</a>
-    <span>US Data Table</span>
+    <a href="table-us.html">US Data Table</a>
     <a href="rates-cases.html">Combined Cases Chart</a>
     <a href="rates-deaths.html">Combined Deaths Chart</a>
 </div>
-<button id="show-sidebar" class="trigger" title="Show customization bar">&lt;</button>
-<div id="sidebar">
-    <button id="reset-to-defaults" class="trigger" title="Reset all customizations">Reset</button>
-    <button id="hide-sidebar" class="trigger" title="Hide customization bar">&gt;</button>
-    <div class="content"></div>
+<h1>COVID-19 Dashboard</h1>
+<h2 id="updated"></h2>
+<h3>Worldwide</h3>
+<div class="colset">
+    <div class="col">
+        <div id="world-spark" class="spark"></div>
+    </div>
+    <div class="col">
+        <div id="world-bar" class="bar-layout" title="World population arranged by change in case rate over last week.">
+            <strong>Case Rate</strong>
+            <span class="good-label">Decreasing</span>
+            <span class="bad-label">Increasing</span>
+            <span class="bar"></span>
+        </div>
+    </div>
 </div>
-<h1>US COVID-19 by Jurisdiction</h1>
-<div class="bar-layout" title="Total population arranged by change in case rate over last week.">
-    <strong>Case Rate</strong>
-    <span class="good-label">Decreasing</span>
-    <span class="bad-label">Increasing</span>
-    <span class="bar"></span>
+<h3>United States</h3>
+<div class="colset">
+    <div class="col">
+        <div id="us-spark" class="spark"></div>
+    </div>
+    <div class="col">
+        <div id="us-bar" class="bar-layout" title="US population arranged by change in case rate over last week.">
+            <strong>Case Rate</strong>
+            <span class="good-label">Decreasing</span>
+            <span class="bad-label">Increasing</span>
+            <span class="bar"></span>
+        </div>
+    </div>
 </div>
-<table id="main-table">
-    <thead></thead>
-    <tbody></tbody>
-    <tfoot></tfoot>
-</table>
+<h3>Oregon, US</h3>
+<div class="colset">
+    <div class="col">
+        <div id="or-spark" class="spark"></div>
+    </div>
+    <div class="col">
+        <div id="or-bar" class="bar-layout" title="Oregon population arranged by change in case rate over last week.">
+            <strong>Case Rate</strong>
+            <span class="good-label">Decreasing</span>
+            <span class="bad-label">Increasing</span>
+            <span class="bar"></span>
+        </div>
+    </div>
+</div>
+<h3>Washington County, OR</h3>
+<div class="colset">
+    <div class="col">
+        <div id="washco-spark" class="spark"></div>
+    </div>
+</div>
+<h3>Multnomah County, OR</h3>
+<div class="colset">
+    <div class="col">
+        <div id="multco-spark" class="spark"></div>
+    </div>
+</div>
 <hr />
-<p>Dates are <em>reporting</em> dates; how current they are varies between
-    jurisdictions. All data are updated daily, including historical correction.
-</p>
-<p>Series w/ "Rate" or "DR" in their name are per week per 100K population.
-</p>
-<p>New York's and New Jersey's disproportionate case load makes the total row
-    difficult to interpret as a "national average". Additional total rows are
-    provided with these jurisdictions excluded.
-</p>
-<p>You can download the raw tables as <a href="table-us.tsv">table-us.tsv</a>
-    and <a href="mortality.csv">mortality.csv</a>.
+<p>All data are updated daily, including historical correction; how current they
+    are varies between jurisdictions.
 </p>
 <hr />
 <p>COVID-19 and population data from
@@ -49,18 +79,7 @@
     Repository</a> by the Center for Systems Science and Engineering (CSSE) at
     Johns Hopkins University.
 </p>
-<p>Mortality data from
-    <a href="https://wonder.cdc.gov/controller/datarequest/D140">https://wonder.cdc.gov/controller/datarequest/D140</a>
-    using year 2016.
-</p>
-<script src="table.js" type="application/javascript"></script>
-<script type="application/javascript">
-    fetch("./table-us.json")
-        .then(resp => resp.json())
-        .then(d => init(d, 'table-us', ["Oregon", "Montana", "New York"], {
-            "Excluding NY": r => r.name !== "New York",
-            "Excluding NY & NJ": r => r.name !== "New York" && r.name !== "New Jersey",
-        }));
-</script>
+<script src="lib.js" type="application/javascript"></script>
+<script src="dashboard.js" type="application/javascript"></script>
 </body>
 </html>

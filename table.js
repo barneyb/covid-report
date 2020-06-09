@@ -2,42 +2,7 @@
  * Oh hai! Fancy meeting you here. You look fabulous, by the way. Very healthy.
  */
 function init(rawData, datasetName, hotRows = [], extraTotals = {}) {
-    const HunThou = 100000;
     const Week = 7;
-    const fTrue = () => true;
-    const IDENTITY = v => v;
-    const isNum = v =>
-        typeof v === "number" || v instanceof Number;
-    const isActualNumber = v =>
-        !isNaN(v) && isFinite(v)
-    const formatDate = ld => {
-        const ps = ld.split("-")
-            .map(p => parseInt(p, 10));
-        return new Date(ps[0], ps[1] - 1, ps[2])
-            .toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-            });
-    };
-    const nfpMap = new Map();
-    const formatNumber = (v, places = 0) => {
-        if (!isActualNumber(v)) return '';
-        if (!nfpMap.has(places)) {
-            nfpMap.set(places, new Intl.NumberFormat("en-US", {
-                minimumFractionDigits: places,
-                maximumFractionDigits: places,
-            }));
-        }
-        return nfpMap.get(places).format(v);
-    };
-    const formatPercent = (v, places = 1) => {
-        if (!isActualNumber(v)) return '';
-        return formatNumber(v * 100, places) + "%"
-    };
-    const formatDeathRate = v => formatNumber(v, 1)
-    const formatDeathRateSegment = v => formatNumber(v, 2)
-
-    const Delta = "&#x1D6AB;"
     const series = [
         {
             scope: "jurisdiction",
@@ -403,28 +368,14 @@ function init(rawData, datasetName, hotRows = [], extraTotals = {}) {
     window.toggleHotRow = toggleBuilder('hotRows');
     window.toggleGroup = toggleBuilder('coldGroups');
     window.toggleSeries = toggleBuilder('coldSeries');
-    const tag = (el, c, attrs) =>
-        `<${el}${Object.keys(attrs || {})
-            .map(k => ` ${k === "className" ? "class" : k}="${attrs[k]}"`)
-            .join('')}>${c && c.join ? c.filter(IDENTITY)
-            .join("") : c || ''}</${el}>`;
     const injectRows = (node, rows) =>
         node.innerHTML = rows
             .map(r =>
                 tag('tr', r.join ? r.join("") : r))
             .join("\n");
-    const numComp = (a, b) => {
-        if (isActualNumber(a)) return isActualNumber(b) ? a - b : 1;
-        if (isActualNumber(b)) return -1;
-        return 0;
-    };
-    const strComp = (a, b) => a < b ? -1 : a > b ? 1 : 0;
-    const revComp = sort => (a, b) => sort(b, a);
-    const $ = document.querySelector.bind(document);
     const head = $("#main-table thead");
     const body = $("#main-table tbody");
     const foot = $("#main-table tfoot");
-    const bar = $(".bar-layout .bar");
     const sidebar = $("#sidebar .content");
     $("#show-sidebar")
         .addEventListener("click", () => setState({sidebar: true}))
@@ -471,25 +422,6 @@ function init(rawData, datasetName, hotRows = [], extraTotals = {}) {
                 return tag('th', c.name, attrs)
             })
                 .join("");
-        const breaks = [
-            -0.6,  "delta-down-lots",
-            -0.25, "delta-down-some",
-            -0.1,  "delta-down-bit",
-             0,    "delta-down-smidge",
-             0.1,  "delta-up-smidge",
-             0.25, "delta-up-bit",
-             0.6,  "delta-up-some",
-             0.8,  "delta-up-lots",
-        ]
-        const classForDelta = val => {
-            if (!val) return null;
-            if (!val.hasOwnProperty("_change")) return null;
-            if (val === 0) return "delta-down-zero";
-            for (var b = 0; b < breaks.length; b += 2) {
-                if (val._change < breaks[b]) return breaks[b + 1];
-            }
-            return "delta-up-wow";
-        };
         const renderRow = (r, el, num, extraClass) =>
             tag(el, num)
             + state.columns.map((c, i) => {
@@ -528,26 +460,6 @@ function init(rawData, datasetName, hotRows = [], extraTotals = {}) {
             sublabelRow,
             labelRow,
         ]);
-        const ps = rawData.points;
-        const g = ps[ps.length - 1].label;
-        const ds = dataRecords
-            .filter(r => !r.total)
-            .map(r => [
-                r,
-                r.groups[g]["Case Rate"],
-            ])
-            .filter(([_, v]) => isActualNumber(v))
-            .filter(([_, v]) => isActualNumber(v._change))
-            .sort(([_, a], [__, b]) => b._change - a._change);
-        const tp = ds.reduce((s, d) => s + d[0].pop, 0);
-        bar.innerHTML = ds
-            .map(([r, v]) =>
-                tag('span', '', {
-                    title: r.name + " (" + formatPercent(v._change) + ")",
-                    className: classForDelta(v),
-                    style: `width:${Math.round(r.pop / tp * 10000) / 100}%`
-                }))
-            .join("\n");
         if (state.sidebar) {
             const chkbx = (label, checked, attrs, desc) => {
                 if (checked) {

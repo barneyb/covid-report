@@ -24,3 +24,19 @@ body {
     text-decoration: none;
     color: #009;
 }
+h3 {
+    border-top: 1px solid #ccc;
+    padding-top: 0.5em;
+}
+.colset {
+    display: flex;
+}
+.colset .col {
+    margin: 0 1em;
+}
+.colset .col:first-child {
+    margin-left: 0;
+}
+.colset .col:last-child {
+    margin-right: 0;
+}
