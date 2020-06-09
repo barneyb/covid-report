@@ -161,7 +161,7 @@ public class HopkinsTransform {
         logger.info("Mortality rates loaded and indexed");
 
         val dash = new Dash();
-        dash.setDate(LocalDate.now());
+        dash.setDate(dates[dates.length - 1].plusDays(1));
         dash.worldCaseRateDeltas = Dash.computeDeltas(globalCases.countries());
         dash.usCaseRateDeltas = Dash.computeDeltas(usCases.allStates());
         dash.orCaseRateDeltas = Dash.computeDeltas(usCases.getLocalitiesOfState("Oregon"));

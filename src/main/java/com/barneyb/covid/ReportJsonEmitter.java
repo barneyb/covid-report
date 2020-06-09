@@ -38,7 +38,6 @@ public class ReportJsonEmitter implements Emitter {
 
     private Report buildReport(Store store) {
         val report = new Report();
-        report.date = LocalDate.now();
         val dates = store.getDatesWithCases();
         report.jurisdictions = store.getAllJurisdictions()
                 .stream()
@@ -81,7 +80,6 @@ public class ReportJsonEmitter implements Emitter {
 
     @Getter
     private static class Report {
-        LocalDate date;
         List<Point> points;
         List<Juris> jurisdictions;
     }
