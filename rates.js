@@ -1,7 +1,7 @@
 google.charts.load('current', {'packages': ['annotationchart']});
 function init(dataUrl) {
     let annChart;
-    const LS_KEY = "covid-rates-state";
+    window.LS_KEY = "covid-rates-state";
     let state = {
         hotSeries: new Set([
             "Worldwide",
@@ -18,15 +18,19 @@ function init(dataUrl) {
     try {
         cache = window.localStorage.getItem(LS_KEY);
         if (cache) {
-            state = JSON.parse(cache, (k, v) => {
-                if (v instanceof Array && (k === "hotSeries" || k === "expanded")) {
-                    return new Set(v);
-                }
-                return v;
-            });
+            state = {
+                ...state,
+                ...JSON.parse(cache, (k, v) => {
+                    if (v instanceof Array && (k === "hotSeries" || k === "expanded")) {
+                        return new Set(v);
+                    }
+                    return v;
+                })
+            };
         }
-    } catch (e) {}
-    const setState = s => {
+    } catch (e) {
+    }
+    window.setState = s => {
         if (typeof s === "function") {
             s = s(state);
         }
@@ -63,7 +67,13 @@ function init(dataUrl) {
     );
     window.toggleExpanded = buildToggler("expanded");
     const render = state => {
-        drawPicker(state);
+        if (state.sidebar) {
+            sidebar.innerHTML = drawPicker(state);
+            document.body.className = "sidebar";
+        } else {
+            sidebar.innerText = "";
+            document.body.className = "";
+        }
     }
     Promise.all([
         fetch(dataUrl)
@@ -208,7 +218,7 @@ function init(dataUrl) {
                 return content;
             }
         }
-        document.getElementById('picker').innerHTML = '<div>' +
+        return '<div>' +
             '</div>' +
             drawTree(tree);
     }

@@ -335,7 +335,7 @@ function init(rawData, datasetName, hotRows = [], extraTotals = {}) {
         };
     }
 
-    const LS_KEY = `covid-${datasetName}-state`;
+    window.LS_KEY = `covid-${datasetName}-state`;
     let state = {};
     let tableState = {};
     window.setState = s => {
@@ -376,17 +376,6 @@ function init(rawData, datasetName, hotRows = [], extraTotals = {}) {
     const head = $("#main-table thead");
     const body = $("#main-table tbody");
     const foot = $("#main-table tfoot");
-    const sidebar = $("#sidebar .content");
-    $("#show-sidebar")
-        .addEventListener("click", () => setState({sidebar: true}))
-    $("#hide-sidebar")
-        .addEventListener("click", () => setState({sidebar: false}))
-    $("#reset-to-defaults").addEventListener("click", () => {
-        window.localStorage.setItem(LS_KEY, JSON.stringify({
-            sidebar: true,
-        }));
-        window.location.reload();
-    })
     const render = state => {
         const labelPointCells = () =>
             tag('th')

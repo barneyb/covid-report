@@ -45,3 +45,14 @@ const numComp = (a, b) => {
 };
 const strComp = (a, b) => a < b ? -1 : a > b ? 1 : 0;
 const revComp = sort => (a, b) => sort(b, a);
+const sidebar = $("#sidebar .content");
+$("#show-sidebar")
+    .addEventListener("click", () => setState({sidebar: true}))
+$("#hide-sidebar")
+    .addEventListener("click", () => setState({sidebar: false}))
+$("#reset-to-defaults").addEventListener("click", () => {
+    window.localStorage.setItem(LS_KEY, JSON.stringify({
+        sidebar: true,
+    }));
+    window.location.reload();
+})

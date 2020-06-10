@@ -24,6 +24,70 @@ body {
     text-decoration: none;
     color: #009;
 }
+button.trigger {
+    float: right;
+    border-style: solid;
+    border-width: 1px;
+    font-family: Consolas, monospace;
+    font-size: 1.3rem;
+    background-color: white;
+    padding: 0.2em 0.7em;
+    border-radius: 3px;
+}
+button.trigger:hover {
+    background-color: #eeeef3;
+}
+#reset-to-defaults {
+    float: left !important;
+    font-size: 1rem;
+    border-radius: 2px;
+}
+#show-sidebar {
+    display: block;
+    position: fixed;
+    right: 1rem;
+    top: 3rem;
+}
+#sidebar {
+    display: none;
+}
+.sidebar #show-sidebar {
+    display: none;
+}
+.sidebar #sidebar {
+    display: block;
+    position: fixed;
+    right: 1rem;
+    top: 3rem;
+    width: 20em;
+    z-index: 999;
+    background-color: white;
+    border-left: 1px solid #ccc;
+    border-bottom: 1px solid #ccc;
+    border-bottom-left-radius: 5px;
+    padding: 1em;
+    margin: -1rem;
+    box-shadow: 0.5em 0.6em 1.5em 0.5em #ccc;
+}
+#sidebar .content {
+    margin-top: 3em;
+    overflow: auto;
+    max-height: 80vh;
+}
+#sidebar section label {
+    display: block;
+    user-select: none;
+    margin: 0.5em;
+    margin-left: 2em;
+}
+#sidebar section label input {
+    margin-left: -1.5em;
+    margin-right: 0.5em;
+}
+#sidebar section label .desc {
+    font-size: 90%;
+    color: #666;
+}
 h3 {
     border-top: 1px solid #ccc;
     padding-top: 0.5em;
