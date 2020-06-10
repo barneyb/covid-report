@@ -18,16 +18,19 @@ import org.springframework.stereotype.Component;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.barneyb.covid.hopkins.IndexedDemographics.US_EXCEPT_NY_KEY;
 import static com.barneyb.covid.hopkins.RatesBuilder.DELTA;
 import static com.barneyb.covid.hopkins.RatesBuilder.ROLLING_AVERAGE;
 
@@ -121,7 +124,7 @@ public class HopkinsTransform {
             int len = data.length;
             return new Spark(
                     s.getDemographics().getCombinedKey(),
-                    (int) data[len - 1],
+                    (int) s.getCurrent(),
                     Optional.of(Arrays.copyOfRange(data, len - 21, len))
                             .map(DELTA)
                             .map(ROLLING_AVERAGE)
@@ -159,6 +162,40 @@ public class HopkinsTransform {
                         .parse(),
                 MortRates::getState);
         logger.info("Mortality rates loaded and indexed");
+
+
+        try (val out = new PrintWriter(Files.newBufferedWriter(Path.of("jurisdictions.txt")))) {
+            out.println(IndexedDemographics.WORLDWIDE_KEY);
+            demographics
+                    .cover()
+                    .filter(d -> !d.isCompleteness())
+                    .map(d -> {
+                        try {
+                            if (d.isCountry())
+                                return globalCases.getByCountry(d.getCountry());
+                            if ("US".equals(d.getCountry())) {
+                                if (d.isState())
+                                    return usCases.getByState(d.getState());
+                                if (d.isLocality())
+                                    return usCases.getByStateAndLocality(d.getState(), d.getLocality());
+                            } else if (d.isState())
+                                return globalCases.getByCountryAndState(d.getCountry(), d.getState());
+                        } catch (UnknownKeyException ignored) {
+                        }
+                        return null;
+                    })
+                    .filter(Objects::nonNull)
+                    .filter(it -> it.getCurrent() > 0)
+                    .map(TimeSeries::getDemographics)
+                    .map(d -> {
+                        if (d.isCountry()) return d.getCountry();
+                        if (d.isState()) return d.getCountry() + "|" + d.getState();
+                        return d.getCountry() + "|" + d.getState() + "|" + d.getLocality();
+                    })
+                    .sorted()
+                    .forEach(out::println);
+            out.println(US_EXCEPT_NY_KEY); // this is a "country" too!
+        }
 
         val dash = new Dash();
         dash.setDate(dates[dates.length - 1].plusDays(1));
