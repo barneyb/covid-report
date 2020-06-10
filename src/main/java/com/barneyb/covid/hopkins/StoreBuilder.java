@@ -6,10 +6,9 @@ import com.barneyb.covid.model.DataPoint;
 import com.barneyb.covid.model.Jurisdiction;
 import lombok.val;
 
-import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -49,11 +48,12 @@ public class StoreBuilder<I> {
     }
 
     private ArrayList<DataPoint> buildPoints(LocalDate[] dates, double[] cases, double[] deaths) {
-        val idxFirstFriday = Arrays.binarySearch(dates, LocalDate.of(2020, 3, 6));
+        val days = (int) ChronoUnit.DAYS.between(
+                LocalDate.of(2020, 3, 6),
+                dates[dates.length - 1]) / 7 * 7 + 1;
         assert cases.length == deaths.length : "case and death series are different lengths";
         val points = new ArrayList<DataPoint>();
-        for (int i = idxFirstFriday, l = cases.length; i < l; i += 7) {
-            assert dates[i].getDayOfWeek().equals(DayOfWeek.FRIDAY) : "not a friday?";
+        for (int i = cases.length - days, l = cases.length; i < l; i += 7) {
             points.add(new DataPoint(
                     dates[i],
                     (int) cases[i],
