@@ -37,7 +37,7 @@ public abstract class AbstractIndex<K, V, M> {
 
     public final M get(K key) {
         if (!index.containsKey(key)) {
-            throw new IllegalArgumentException("Unknown key: '" + key + "'");
+            throw new UnknownKeyException("Unknown key: '" + key + "'");
         }
         return getInternal(key);
     }
