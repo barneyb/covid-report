@@ -72,13 +72,10 @@ public class RatesBuilder {
 
         val countSeries = new LinkedList<>(List.of(idxWorld.getWorldwide(), usNoNy,
                 idxWorld.getByCountryAndState("China", "Hubei")));
+        idxUs.statesAndDC().forEach(countSeries::add);
         List.of("China", "Italy", "Brazil", "France", "Russia", "US")
                 .stream()
                 .map(idxWorld::getByCountry)
-                .forEach(countSeries::add);
-        List.of("Arizona", "California", "Connecticut", "Florida", "Georgia", "Illinois", "Louisiana", "Maryland", "Massachusetts", "Michigan", "New Jersey", "New York", "Oregon", "Pennsylvania", "Texas", "Virginia")
-                .stream()
-                .map(idxUs::getByState)
                 .forEach(countSeries::add);
         List.of("Alameda", "Contra Costa", "Los Angeles", "Marin", "Napa", "Orange", "San Diego", "San Francisco", "San Mateo", "Santa Clara", "Solano", "Sonoma", "Ventura")
                 .stream()

@@ -163,7 +163,7 @@ public class HopkinsTransform {
         val dash = new Dash();
         dash.setDate(dates[dates.length - 1].plusDays(1));
         dash.worldCaseRateDeltas = Dash.computeDeltas(globalCases.countries());
-        dash.usCaseRateDeltas = Dash.computeDeltas(usCases.allStates());
+        dash.usCaseRateDeltas = Dash.computeDeltas(usCases.statesAndDC());
         dash.orCaseRateDeltas = Dash.computeDeltas(usCases.getLocalitiesOfState("Oregon"));
         dash.worldSpark = Dash.spark(globalCases.getWorldwide());
         dash.usSpark = Dash.spark(globalCases.getByCountry("US"));

@@ -23,14 +23,14 @@ public class IndexedUS {
         byStateAndLocality = new UniqueIndex<>(cover.stream()
                 .filter(it -> it.getDemographics().isLocality()),
                 it -> new Pair<>(it.getDemographics().getState(), it.getDemographics().getLocality()));
-        byState = new UniqueIndex<>(localsByState.getKeys()
-                .stream()
-                .map(state -> localsByState.get(state)
+        byState = new UniqueIndex<>(demographics
+                .usStatesAndDC()
+                .map(d -> localsByState.get(d.getState())
                         .stream()
                         .reduce(TimeSeries::plus)
                         .map(ts -> {
                             ts.setDemographics(
-                                    demographics.getByCountryAndState("US", state));
+                                    demographics.getByCountryAndState("US", d.getState()));
                             return ts;
                         })
                         .orElseThrow()
@@ -42,7 +42,7 @@ public class IndexedUS {
         return cover.stream();
     }
 
-    public Stream<TimeSeries> allStates() {
+    public Stream<TimeSeries> statesAndDC() {
         return byState.values();
     }
 
