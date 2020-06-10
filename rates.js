@@ -38,29 +38,31 @@ function init(dataUrl) {
             v instanceof Set ? Array.from(v) : v));
         render(state);
     }
-    const buildToggler = sn => key =>
+    const actOnChart = fn =>
+        google.charts.setOnLoadCallback(() =>
+            setTimeout(() =>
+                fn(annChart)))
+    const buildToggler = (sn, on, off) => key =>
         setState(s => {
             const set = new Set(s[sn]);
             if (set.has(key)) {
                 set.delete(key);
+                off && off(key);
             } else {
                 set.add(key);
+                on && on(key);
             }
             return {
                 [sn]: set,
             };
         });
-    window.toggleSeries = buildToggler("hotSeries");
+    window.toggleSeries = buildToggler(
+        "hotSeries",
+            k => actOnChart(c => c.showDataColumns(state.headers.indexOf(k))),
+            k => actOnChart(c => c.hideDataColumns(state.headers.indexOf(k))),
+    );
     window.toggleExpanded = buildToggler("expanded");
     const render = state => {
-        google.charts.setOnLoadCallback(() => {
-            setTimeout(() => {
-                annChart.showDataColumns(state.headers.map((_, i) => i));
-                annChart.hideDataColumns(state.headers
-                    .map((h, i) => state.hotSeries.has(h) ? null : i)
-                    .filter(it => it != null));
-            });
-        });
         drawPicker(state);
     }
     Promise.all([
@@ -146,12 +148,18 @@ function init(dataUrl) {
         annChart = new google.visualization.AnnotationChart(
             document.getElementById('ann_chart'));
         annChart.draw(table, options);
-        annChart.hideDataColumns(headers.slice(1).map((_, i) => i));
         window.addEventListener(
             "resize",
             () => annChart.draw(table, options),
         );
         annChart.setVisibleChartRange(new Date(2020, 3 - 1, 15));
+        const on = [];
+        const off = [];
+        headers.forEach((h, i) => state.hotSeries.has(h)
+            ? on.push(i)
+            : off.push(i));
+        on.length && annChart.showDataColumns(on);
+        off.length && annChart.hideDataColumns(off);
     }
 
     function drawPicker({headers, hotSeries, expanded}) {
