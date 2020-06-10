@@ -28,3 +28,9 @@ build/
 ### VS Code ###
 .vscode/
 /src/main/resources/application-default.properties
+
+*.json
+*.csv
+*.txt
+*.tsv
+/covid.jar
