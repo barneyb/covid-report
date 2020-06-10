@@ -291,7 +291,7 @@ function init(rawData, datasetName, hotRows = [], extraTotals = {}) {
             series[0],
             ...rawData.points
                 .slice(2) // never allow the first two points
-                .filter(p => !state.coldGroups.includes(p.label))
+                .filter((_, i) => !state.coldGroupIdxs.includes(i + 2))
                 .reverse()
                 .flatMap((p, pidx) =>
                     hotSeries
@@ -345,7 +345,7 @@ function init(rawData, datasetName, hotRows = [], extraTotals = {}) {
             ...(typeof s === "function" ? s(prev) : s),
         };
         window.localStorage.setItem(LS_KEY, JSON.stringify(state));
-        if (state.coldGroups !== prev.coldGroups || state.coldSeries !== prev.coldSeries) {
+        if (state.coldGroupIdxs !== prev.coldGroupIdxs || state.coldSeries !== prev.coldSeries) {
             tableState = buildTable(state);
         }
         render({
@@ -366,7 +366,7 @@ function init(rawData, datasetName, hotRows = [], extraTotals = {}) {
             return {[cn]: next};
         });
     window.toggleHotRow = toggleBuilder('hotRows');
-    window.toggleGroup = toggleBuilder('coldGroups');
+    window.toggleGroup = toggleBuilder('coldGroupIdxs');
     window.toggleSeries = toggleBuilder('coldSeries');
     const injectRows = (node, rows) =>
         node.innerHTML = rows
@@ -479,12 +479,13 @@ function init(rawData, datasetName, hotRows = [], extraTotals = {}) {
                 tag('section', [
                     tag('h3', 'Week Ending On'),
                     ...rawData.points
+                        .map((p, i) => [p, i, !state.coldGroupIdxs.includes(i)])
                         .slice(2) // ignore the first two points
-                        .map(p => formatDate(p.date))
+                        .map(([p, i, h]) => [formatDate(p.date), i, h])
                         .reverse()
-                        .map(l =>
-                            chkbx(l, !state.coldGroups.includes(l), {
-                                onclick: `toggleGroup('${l}')`,
+                        .map(([l, i, h]) =>
+                            chkbx(l, h, {
+                                onclick: `toggleGroup(${i})`,
                             })),
                 ]),
                 tag('section', [
@@ -519,11 +520,11 @@ function init(rawData, datasetName, hotRows = [], extraTotals = {}) {
             sortAsc: true,
             hotRows,
             sidebar: false,
-            coldGroups: rawData.points
+            coldGroupIdxs: rawData.points
+                .map((_, i) => i)
                 .slice()
                 .reverse()
-                .slice(4)
-                .map(it => it.label),
+                .slice(4),
             coldSeries: series
                 .filter(it =>
                     it.scope === "point" ? it.cold : !it.hot)
