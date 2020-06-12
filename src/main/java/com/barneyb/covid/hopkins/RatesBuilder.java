@@ -21,7 +21,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static com.barneyb.covid.hopkins.IndexedWorld.WORLDWIDE;
+import static com.barneyb.covid.hopkins.IndexedDemographics.WORLDWIDE_KEY;
 
 public class RatesBuilder {
 
@@ -62,15 +62,7 @@ public class RatesBuilder {
     }
 
     private LinkedList<TimeSeries> build() {
-        val us = idxWorld.getByCountry("US");
-        val ny = idxUs.getByState("New York");
-        val usNoNyDemo = new Demographics();
-        usNoNyDemo.setCombinedKey("US Except NY");
-        usNoNyDemo.setPopulation(us.getDemographics().getPopulation() - ny.getDemographics().getPopulation());
-        val usNoNy = us.minus(ny);
-        usNoNy.setDemographics(usNoNyDemo);
-
-        val countSeries = new LinkedList<>(List.of(idxWorld.getWorldwide(), usNoNy,
+        val countSeries = new LinkedList<>(List.of(idxWorld.getWorldwide(), idxUs.getUsExceptNy(),
                 idxWorld.getByCountryAndState("China", "Hubei")));
         idxUs.statesAndDC().forEach(countSeries::add);
         List.of("China", "Italy", "Brazil", "France", "Russia", "US")
@@ -118,8 +110,8 @@ public class RatesBuilder {
         strat.setColumnOrderOnWrite((a, b) -> {
             if ("DATE".equals(a)) return -1;
             if ("DATE".equals(b)) return 1;
-            if (WORLDWIDE.equals(a)) return -1;
-            if (WORLDWIDE.equals(b)) return 1;
+            if (WORLDWIDE_KEY.equals(a)) return -1;
+            if (WORLDWIDE_KEY.equals(b)) return 1;
             val a1 = a.indexOf(',');
             val b1 = b.indexOf(',');
             if (a1 < 0 && b1 < 0) return a.compareTo(b);

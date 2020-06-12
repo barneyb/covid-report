@@ -1,6 +1,7 @@
 package com.barneyb.covid.hopkins;
 
 import com.barneyb.covid.hopkins.csv.USTimeSeries;
+import lombok.Getter;
 
 import java.util.Collection;
 import java.util.stream.Collectors;
@@ -8,6 +9,8 @@ import java.util.stream.Stream;
 
 public class IndexedUS {
 
+    @Getter
+    private final TimeSeries usExceptNy;
     private final Collection<TimeSeries> cover;
     private final Index<String, TimeSeries> localsByState;
     private final UniqueIndex<Pair<String>, TimeSeries> byStateAndLocality;
@@ -36,6 +39,11 @@ public class IndexedUS {
                         .orElseThrow()
                 ),
                 it -> it.getDemographics().getState());
+        usExceptNy = cover.stream()
+            .reduce(TimeSeries::plus)
+            .orElseThrow()
+            .minus(byState.get("New York"));
+        usExceptNy.setDemographics(demographics.getUsExceptNy());
     }
 
     public Stream<TimeSeries> cover() {
