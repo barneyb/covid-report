@@ -1,9 +1,7 @@
 package com.barneyb.covid.hopkins;
 
-import com.barneyb.covid.hopkins.csv.Demographics;
 import com.barneyb.covid.hopkins.csv.GlobalTimeSeries;
 import lombok.Getter;
-import lombok.val;
 
 import java.util.Collection;
 import java.util.function.Predicate;
@@ -11,8 +9,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class IndexedWorld {
-
-    public static final String WORLDWIDE = "Worldwide";
 
     @Getter
     private final TimeSeries worldwide;
@@ -34,16 +30,10 @@ public class IndexedWorld {
                 cover.stream()
                         .filter(it -> it.getDemographics().isCountry()),
                 it -> it.getDemographics().getCountry());
-        val wwDemo = new Demographics();
-        wwDemo.setCombinedKey(WORLDWIDE);
-        wwDemo.setPopulation(cover()
-                .map(TimeSeries::getDemographics)
-                .map(Demographics::getPopulation)
-                .reduce(0L, Long::sum));
         worldwide = cover()
                 .reduce(TimeSeries::plus)
                 .orElseThrow();
-        worldwide.setDemographics(wwDemo);
+        worldwide.setDemographics(demographics.getWorldwide());
         byCountryAndState = new UniqueIndex<>(
                 cover.stream()
                         .filter(it -> it.getDemographics().isState()),
