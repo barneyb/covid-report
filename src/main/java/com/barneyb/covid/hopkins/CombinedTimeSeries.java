@@ -1,23 +1,18 @@
 package com.barneyb.covid.hopkins;
 
 import com.barneyb.covid.hopkins.csv.Demographics;
-import lombok.AccessLevel;
-import lombok.Data;
-import lombok.Setter;
 import lombok.ToString;
 
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-@Data
-public class CombinedTimeSeries implements WithDemographics {
+@ToString
+public class CombinedTimeSeries implements WithDemographics<CombinedTimeSeries> {
 
-    @Setter(AccessLevel.PRIVATE)
     @ToString.Exclude
-    private TimeSeries cases;
-    @Setter(AccessLevel.PRIVATE)
+    final private TimeSeries cases;
     @ToString.Exclude
-    private TimeSeries deaths;
+    final private TimeSeries deaths;
 
     @Override
     public Demographics getDemographics() {
@@ -33,8 +28,17 @@ public class CombinedTimeSeries implements WithDemographics {
     public double getTotalCases() {
         return this.cases.getCurrent();
     }
+
     public double getTotalDeaths() {
         return this.deaths.getCurrent();
+    }
+
+    public TimeSeries getCasesSeries() {
+        return this.cases;
+    }
+
+    public TimeSeries getDeathsSeries() {
+        return this.deaths;
     }
 
     public CombinedTimeSeries(TimeSeries cases, TimeSeries deaths) {
@@ -42,6 +46,13 @@ public class CombinedTimeSeries implements WithDemographics {
         assert cases.getPointCount() == deaths.getPointCount();
         this.cases = cases;
         this.deaths = deaths;
+    }
+
+    public CombinedTimeSeries withDemographics(Demographics demo) {
+        return new CombinedTimeSeries(
+                cases.withDemographics(demo),
+                deaths.withDemographics(demo)
+        );
     }
 
     public CombinedTimeSeries plus(CombinedTimeSeries other) {

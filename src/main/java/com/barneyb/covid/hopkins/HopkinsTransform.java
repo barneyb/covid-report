@@ -102,8 +102,9 @@ public class HopkinsTransform {
         Spark washCoSpark;
         Spark multCoSpark;
 
-        private static List<Delta> computeDeltas(Stream<TimeSeries> stream) {
+        private static List<Delta> computeDeltas(Stream<CombinedTimeSeries> stream) {
             return stream
+                    .map(CombinedTimeSeries::getCasesSeries)
                     .map(s -> {
                         double[] data = s.getData();
                         final int t2 = data.length - 1,
@@ -122,8 +123,8 @@ public class HopkinsTransform {
                     .collect(Collectors.toList());
         }
 
-        private static Spark spark(TimeSeries s) {
-            val data = s.getData();
+        private static Spark spark(CombinedTimeSeries s) {
+            val data = s.getCasesSeries().getData();
             int len = data.length;
             return new Spark(
                     s.getDemographics().getCombinedKey(),
@@ -196,12 +197,10 @@ public class HopkinsTransform {
             w.write(dates[dates.length - 1].plusDays(1).toString());
         }
         val dateHeaders = buildDateHeaders(dates);
-        val globalCases = new IndexedWorld(demographics, rawGlobal, dateHeaders);
-        val globalDeaths = new IndexedWorld(demographics, loadGlobalData(GLOBAL_DEATHS_FILE), dateHeaders);
+        val idxGlobal = new IndexedWorld(demographics, rawGlobal, loadGlobalData(GLOBAL_DEATHS_FILE), dateHeaders);
         logStep("Global series loaded and indexed");
 
-        val usCases = new IndexedUS(demographics, loadUSData(US_CASES_FILE), dateHeaders);
-        val usDeaths = new IndexedUS(demographics, loadUSData(US_DEATHS_FILE), dateHeaders);
+        val idxUs = new IndexedUS(demographics, loadUSData(US_CASES_FILE), loadUSData(US_DEATHS_FILE), dateHeaders);
         val mortRates = new UniqueIndex<>(
                 new CsvToBeanBuilder<MortRates>(new FileReader("mortality.csv"))
                         .withType(MortRates.class)
@@ -216,26 +215,14 @@ public class HopkinsTransform {
                 .map(d -> {
                     try {
                         if (d.isCountry())
-                            return new CombinedTimeSeries(
-                                    globalCases.getByCountry(d.getCountry()),
-                                    globalDeaths.getByCountry(d.getCountry())
-                            );
+                            return idxGlobal.getByCountry(d.getCountry());
                         if ("US".equals(d.getCountry())) {
                             if (d.isState())
-                                return new CombinedTimeSeries(
-                                        usCases.getByState(d.getState()),
-                                        usDeaths.getByState(d.getState())
-                                );
+                                return idxUs.getByState(d.getState());
                             if (d.isLocality())
-                                return new CombinedTimeSeries(
-                                        usCases.getByStateAndLocality(d.getState(), d.getLocality()),
-                                        usDeaths.getByStateAndLocality(d.getState(), d.getLocality())
-                                );
+                                return idxUs.getByStateAndLocality(d.getState(), d.getLocality());
                         } else if (d.isState())
-                            return new CombinedTimeSeries(
-                                    globalCases.getByCountryAndState(d.getCountry(), d.getState()),
-                                    globalDeaths.getByCountryAndState(d.getCountry(), d.getState())
-                            );
+                            return idxGlobal.getByCountryAndState(d.getCountry(), d.getState());
                     } catch (UnknownKeyException ignored) {
                     }
                     return null;
@@ -243,10 +230,7 @@ public class HopkinsTransform {
                 .filter(Objects::nonNull)
                 .filter(it -> it.getTotalCases() > 0)
                 .collect(Collectors.toList());
-        jurisdictions.add(0, new CombinedTimeSeries(
-                globalCases.getWorldwide(),
-                globalDeaths.getWorldwide()
-        ));
+        jurisdictions.add(0, idxGlobal.getWorldwide());
         try (Writer w = Files.newBufferedWriter(outputDir.resolve("jurisdictions.csv"))) {
             new StatefulBeanToCsvBuilder<J>(w)
                     .withApplyQuotesToAll(false)
@@ -262,20 +246,19 @@ public class HopkinsTransform {
 
         val dash = new Dash();
         dash.setDate(dates[dates.length - 1].plusDays(1));
-        dash.worldCaseRateDeltas = Dash.computeDeltas(globalCases.countries());
-        dash.usCaseRateDeltas = Dash.computeDeltas(usCases.statesAndDC());
-        dash.orCaseRateDeltas = Dash.computeDeltas(usCases.getLocalitiesOfState("Oregon"));
-        dash.worldSpark = Dash.spark(globalCases.getWorldwide());
-        dash.usSpark = Dash.spark(globalCases.getByCountry("US"));
-        dash.orSpark = Dash.spark(usCases.getByState("Oregon"));
-        dash.washCoSpark = Dash.spark(usCases.getByStateAndLocality("Oregon", "Washington"));
-        dash.multCoSpark = Dash.spark(usCases.getByStateAndLocality("Oregon", "Multnomah"));
+        dash.worldCaseRateDeltas = Dash.computeDeltas(idxGlobal.countries());
+        dash.usCaseRateDeltas = Dash.computeDeltas(idxUs.statesAndDC());
+        dash.orCaseRateDeltas = Dash.computeDeltas(idxUs.getLocalitiesOfState("Oregon"));
+        dash.worldSpark = Dash.spark(idxGlobal.getWorldwide());
+        dash.usSpark = Dash.spark(idxGlobal.getByCountry("US"));
+        dash.orSpark = Dash.spark(idxUs.getByState("Oregon"));
+        dash.washCoSpark = Dash.spark(idxUs.getByStateAndLocality("Oregon", "Washington"));
+        dash.multCoSpark = Dash.spark(idxUs.getByStateAndLocality("Oregon", "Multnomah"));
         spew(dash);
         logStep("Dashboard rebuilt");
 
         new StoreBuilder<>(dates,
-                usCases,
-                usDeaths,
+                idxUs,
                 Demographics::getState,
                 (iu, d) -> iu.getByState(d.getState())
         ).updateStore(usStore, demographics.usStatesAndDC(), j ->
@@ -283,18 +266,17 @@ public class HopkinsTransform {
         logStep("US database rebuilt");
 
         new StoreBuilder<>(dates,
-                globalCases,
-                globalDeaths,
+                idxGlobal,
                 Demographics::getCountry,
                 (iw, d) -> iw.getByCountry(d.getCountry())
         ).updateStore(wwStore, demographics.countries());
         logStep("Worldwide database rebuilt");
 
-        new RatesBuilder(dates, globalCases, usCases)
+        new RatesBuilder(dates, CombinedTimeSeries::getCasesSeries, idxGlobal, idxUs)
                 .emit(outputDir.resolve("rates-cases.txt"));
         logStep("Case rates rebuilt");
 
-        new RatesBuilder(dates, globalDeaths, usDeaths)
+        new RatesBuilder(dates, CombinedTimeSeries::getDeathsSeries, idxGlobal, idxUs)
                 .emit(outputDir.resolve("rates-deaths.txt"));
         logStep("Death rates rebuilt");
     }

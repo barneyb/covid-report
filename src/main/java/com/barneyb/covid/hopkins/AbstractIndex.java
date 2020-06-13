@@ -53,7 +53,7 @@ public abstract class AbstractIndex<K, V, M> {
         return index.containsKey(key);
     }
 
-    public Set<K> getKeys() {
+    public Set<K> keySet() {
         return index.keySet();
     }
 

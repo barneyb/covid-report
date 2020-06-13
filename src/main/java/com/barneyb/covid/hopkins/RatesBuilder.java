@@ -19,6 +19,7 @@ import java.util.Queue;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.barneyb.covid.hopkins.IndexedDemographics.WORLDWIDE_KEY;
 
@@ -51,34 +52,49 @@ public class RatesBuilder {
             v / (1.0 * d.getPopulation() / 100_000);
 
     final LocalDate[] dates;
+    final Function<CombinedTimeSeries, TimeSeries> seriesExtractor;
     final IndexedWorld idxWorld;
     final IndexedUS idxUs;
 
-    public RatesBuilder(LocalDate[] dates, IndexedWorld idxWorld, IndexedUS idxUs) {
+    public RatesBuilder(LocalDate[] dates,
+                        Function<CombinedTimeSeries, TimeSeries> seriesExtractor,
+                        IndexedWorld idxWorld,
+                        IndexedUS idxUs
+    ) {
         this.dates = dates;
+        this.seriesExtractor = seriesExtractor;
         this.idxWorld = idxWorld;
         this.idxUs = idxUs;
     }
 
-    private LinkedList<TimeSeries> build() {
-        val countSeries = new LinkedList<>(List.of(idxWorld.getWorldwide(), idxUs.getUsExceptNy(),
-                idxWorld.getByCountryAndState("China", "Hubei")));
-        idxUs.statesAndDC().forEach(countSeries::add);
+    private List<TimeSeries> build() {
+        val countSeries = Stream.concat(
+                Stream.of(
+                    idxWorld.getWorldwide(),
+                    idxUs.getUsExceptNy(),
+                    idxWorld.getByCountryAndState("China", "Hubei")),
+                idxUs.statesAndDC())
+                .map(seriesExtractor)
+                .collect(Collectors.toList());
         List.of("China", "Italy", "Brazil", "France", "Russia", "US")
                 .stream()
                 .map(idxWorld::getByCountry)
+                .map(seriesExtractor)
                 .forEach(countSeries::add);
         List.of("Alameda", "Contra Costa", "Los Angeles", "Marin", "Napa", "Orange", "San Diego", "San Francisco", "San Mateo", "Santa Clara", "Solano", "Sonoma", "Ventura")
                 .stream()
                 .map(c -> idxUs.getByStateAndLocality("California", c))
+                .map(seriesExtractor)
                 .forEach(countSeries::add);
         List.of("Clackamas", "Marion", "Multnomah", "Washington")
                 .stream()
                 .map(c -> idxUs.getByStateAndLocality("Oregon", c))
+                .map(seriesExtractor)
                 .forEach(countSeries::add);
         List.of("Nassau", "New York City", "Rockland", "Suffolk", "Westchester")
                 .stream()
                 .map(c -> idxUs.getByStateAndLocality("New York", c))
+                .map(seriesExtractor)
                 .forEach(countSeries::add);
         return countSeries;
     }
