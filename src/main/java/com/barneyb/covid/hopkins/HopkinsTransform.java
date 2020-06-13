@@ -138,41 +138,48 @@ public class HopkinsTransform {
         }
     }
 
+    private long _prev;
+    private void logStep(String message) {
+        long now = System.currentTimeMillis();
+        if (_prev == 0) {
+            logger.info(message);
+        } else {
+            logger.info(message + " (" + (now - _prev) + " ms)");
+        }
+        _prev = now;
+    }
+
     @SneakyThrows
     public void transform() {
+        logStep("Starting transform");
         if (!Files.exists(outputDir)) {
             Files.createDirectories(outputDir);
         } else if (!Files.isDirectory(outputDir)) {
             throw new RuntimeException("Non-directory '" + outputDir + "' found.");
         }
-        logger.info("Starting transform");
         val demographics = loadDemographics();
-        logger.info("Demographics loaded");
+        logStep("Demographics loaded and indexed");
+
         val rawGlobal = loadGlobalData(GLOBAL_CASES_FILE);
-        logger.info("Globals loaded");
         val dates = extractDates(rawGlobal.get(0));
         try (Writer w = Files.newBufferedWriter(outputDir.resolve("last-update.txt"))) {
             // add a day for the UTC/LocalDate dance
             w.write(dates[dates.length - 1].plusDays(1).toString());
         }
-        logger.info("Dates extracted");
         val dateHeaders = buildDateHeaders(dates);
-        logger.info("Headers built");
-
         val globalCases = new IndexedWorld(demographics, rawGlobal, dateHeaders);
         val globalDeaths = new IndexedWorld(demographics, loadGlobalData(GLOBAL_DEATHS_FILE), dateHeaders);
-        logger.info("Global series loaded and indexed");
+        logStep("Global series loaded and indexed");
 
         val usCases = new IndexedUS(demographics, loadUSData(US_CASES_FILE), dateHeaders);
         val usDeaths = new IndexedUS(demographics, loadUSData(US_DEATHS_FILE), dateHeaders);
-        logger.info("US series loaded and indexed");
         val mortRates = new UniqueIndex<>(
                 new CsvToBeanBuilder<MortRates>(new FileReader("mortality.csv"))
                         .withType(MortRates.class)
                         .build()
                         .parse(),
                 MortRates::getState);
-        logger.info("Mortality rates loaded and indexed");
+        logStep("US series loaded and indexed");
 
         val dash = new Dash();
         dash.setDate(dates[dates.length - 1].plusDays(1));
@@ -185,7 +192,7 @@ public class HopkinsTransform {
         dash.washCoSpark = Dash.spark(usCases.getByStateAndLocality("Oregon", "Washington"));
         dash.multCoSpark = Dash.spark(usCases.getByStateAndLocality("Oregon", "Multnomah"));
         spew(dash);
-        logger.info("Dashboard rebuilt");
+        logStep("Dashboard rebuilt");
 
         new StoreBuilder<>(dates,
                 usCases,
@@ -194,7 +201,7 @@ public class HopkinsTransform {
                 (iu, d) -> iu.getByState(d.getState())
         ).updateStore(usStore, demographics.usStatesAndDC(), j ->
                 j.setMortalityRates(mortRates.get(j.getName()).unwrapRates()));
-        logger.info("US database rebuilt");
+        logStep("US database rebuilt");
 
         new StoreBuilder<>(dates,
                 globalCases,
@@ -202,15 +209,15 @@ public class HopkinsTransform {
                 Demographics::getCountry,
                 (iw, d) -> iw.getByCountry(d.getCountry())
         ).updateStore(wwStore, demographics.countries());
-        logger.info("Worldwide database rebuilt");
+        logStep("Worldwide database rebuilt");
 
         new RatesBuilder(dates, globalCases, usCases)
                 .emit(outputDir.resolve("rates-cases.txt"));
-        logger.info("Case rates rebuilt");
+        logStep("Case rates rebuilt");
 
         new RatesBuilder(dates, globalDeaths, usDeaths)
                 .emit(outputDir.resolve("rates-deaths.txt"));
-        logger.info("Death rates rebuilt");
+        logStep("Death rates rebuilt");
     }
 
     private String[] buildDateHeaders(LocalDate[] dates) {
