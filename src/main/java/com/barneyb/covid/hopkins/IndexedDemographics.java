@@ -27,6 +27,7 @@ public class IndexedDemographics {
         this.cover = demographics;
         worldwide = new Demographics();
         worldwide.setUid(WORLDWIDE_UID);
+        worldwide.setCountry(WORLDWIDE_KEY);
         worldwide.setCombinedKey(WORLDWIDE_KEY);
         worldwide.setPopulation(cover()
                 .map(Demographics::getPopulation)
@@ -47,6 +48,7 @@ public class IndexedDemographics {
                 Demographics::getState);
         usExceptNy = new Demographics();
         usExceptNy.setUid(US_EXCEPT_NY_UID);
+        usExceptNy.setCountry(US_EXCEPT_NY_KEY);
         usExceptNy.setCombinedKey(US_EXCEPT_NY_KEY);
         usExceptNy.setPopulation(byCountry.get("US").getPopulation() - usStates.get("New York").getPopulation());
         byUid.add(usExceptNy);

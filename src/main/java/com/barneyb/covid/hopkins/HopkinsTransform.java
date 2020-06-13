@@ -3,7 +3,9 @@ package com.barneyb.covid.hopkins;
 import com.barneyb.covid.Store;
 import com.barneyb.covid.hopkins.csv.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.opencsv.bean.CsvBindByName;
 import com.opencsv.bean.CsvToBeanBuilder;
+import com.opencsv.bean.StatefulBeanToCsvBuilder;
 import com.opencsv.enums.CSVReaderNullFieldIndicator;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -16,9 +18,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
+import java.io.*;
 import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -26,6 +26,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -138,6 +139,34 @@ public class HopkinsTransform {
         }
     }
 
+    private static class J {
+        @CsvBindByName(column = "UID")
+        final int uid;
+        @CsvBindByName(column = "COUNTRY")
+        final String country;
+        @CsvBindByName(column = "STATE")
+        final String state;
+        @CsvBindByName(column = "LOCALITY")
+        final String locality;
+        @CsvBindByName(column = "POPULATION")
+        final long pop;
+        @CsvBindByName(column = "CASES")
+        final long cases;
+        @CsvBindByName(column = "DEATHS")
+        final long deaths;
+        // todo: mortality rates?
+
+        J(Demographics demo, double cases, double deaths) {
+            this.uid = demo.getUid();
+            this.country = demo.getCountry();
+            this.state = demo.getState();
+            this.locality = demo.getLocality();
+            this.pop = demo.getPopulation();
+            this.cases = (long) cases;
+            this.deaths = (long) deaths;
+        }
+    }
+
     private long _prev;
     private void logStep(String message) {
         long now = System.currentTimeMillis();
@@ -180,6 +209,56 @@ public class HopkinsTransform {
                         .parse(),
                 MortRates::getState);
         logStep("US series loaded and indexed");
+
+        val jurisdictions = demographics
+                .cover()
+                .filter(d -> !d.isCompleteness())
+                .map(d -> {
+                    try {
+                        if (d.isCountry())
+                            return new CombinedTimeSeries(
+                                    globalCases.getByCountry(d.getCountry()),
+                                    globalDeaths.getByCountry(d.getCountry())
+                            );
+                        if ("US".equals(d.getCountry())) {
+                            if (d.isState())
+                                return new CombinedTimeSeries(
+                                        usCases.getByState(d.getState()),
+                                        usDeaths.getByState(d.getState())
+                                );
+                            if (d.isLocality())
+                                return new CombinedTimeSeries(
+                                        usCases.getByStateAndLocality(d.getState(), d.getLocality()),
+                                        usDeaths.getByStateAndLocality(d.getState(), d.getLocality())
+                                );
+                        } else if (d.isState())
+                            return new CombinedTimeSeries(
+                                    globalCases.getByCountryAndState(d.getCountry(), d.getState()),
+                                    globalDeaths.getByCountryAndState(d.getCountry(), d.getState())
+                            );
+                    } catch (UnknownKeyException ignored) {
+                    }
+                    return null;
+                })
+                .filter(Objects::nonNull)
+                .filter(it -> it.getTotalCases() > 0)
+                .collect(Collectors.toList());
+        jurisdictions.add(0, new CombinedTimeSeries(
+                globalCases.getWorldwide(),
+                globalDeaths.getWorldwide()
+        ));
+        try (Writer w = Files.newBufferedWriter(outputDir.resolve("jurisdictions.csv"))) {
+            new StatefulBeanToCsvBuilder<J>(w)
+                    .withApplyQuotesToAll(false)
+                    .build()
+                    .write(jurisdictions
+                            .stream()
+                            .map(p -> new J(
+                                    p.getDemographics(),
+                                    p.getTotalCases(),
+                                    p.getTotalDeaths())));
+        }
+
 
         val dash = new Dash();
         dash.setDate(dates[dates.length - 1].plusDays(1));
