@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import lombok.val;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -22,9 +23,8 @@ import java.time.LocalDate;
         @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = Store.class))
 public class CovidReportApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(CovidReportApplication.class, args);
-	}
+    @Value("${covid-report.output.dir}")
+    Path outputDir;
 
 	@Bean
     public ObjectMapper objectMapper() {
@@ -51,13 +51,17 @@ public class CovidReportApplication {
     @Bean
     @Qualifier("us")
     public Store usStore() {
-	    return new Store(Path.of("database-us.json"));
+	    return new Store(outputDir.resolve("database-us.json"));
     }
 
     @Bean
     @Qualifier("worldwide")
     public Store worldwideStore() {
-	    return new Store(Path.of("database-ww.json"));
+	    return new Store(outputDir.resolve("database-ww.json"));
+    }
+
+    public static void main(String[] args) {
+        SpringApplication.run(CovidReportApplication.class, args);
     }
 
 }

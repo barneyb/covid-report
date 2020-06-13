@@ -7,7 +7,8 @@ const isNum = v =>
 const isActualNumber = v =>
     !isNaN(v) && isFinite(v)
 const formatDate = ld => {
-    const ps = ld.split("-")
+    const ps = ld.trim()
+        .split("-")
         .map(p => parseInt(p, 10));
     return new Date(ps[0], ps[1] - 1, ps[2])
         .toLocaleDateString("en-US", {
@@ -46,13 +47,18 @@ const numComp = (a, b) => {
 const strComp = (a, b) => a < b ? -1 : a > b ? 1 : 0;
 const revComp = sort => (a, b) => sort(b, a);
 const sidebar = $("#sidebar .content");
-$("#show-sidebar")
-    .addEventListener("click", () => setState({sidebar: true}))
-$("#hide-sidebar")
-    .addEventListener("click", () => setState({sidebar: false}))
-$("#reset-to-defaults").addEventListener("click", () => {
-    window.localStorage.setItem(LS_KEY, JSON.stringify({
-        sidebar: true,
-    }));
-    window.location.reload();
-})
+if (sidebar) {
+    $("#show-sidebar")
+        .addEventListener("click", () => setState({sidebar: true}))
+    $("#hide-sidebar")
+        .addEventListener("click", () => setState({sidebar: false}))
+    $("#reset-to-defaults").addEventListener("click", () => {
+        window.localStorage.setItem(LS_KEY, JSON.stringify({
+            sidebar: true,
+        }));
+        window.location.reload();
+    })
+}
+fetch("data/last-update.txt")
+    .then(r => r.text())
+    .then(d => $("#navbar").innerHTML += tag("span", "Updated: " + formatDate(d), {className: "updated-at"}))

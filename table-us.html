@@ -9,7 +9,7 @@
 <div id="navbar">
     <a href="index.html">Dashboard</a>
     <a href="table-ww.html">Worldwide Data Table</a>
-    <span>US Data Table</span>
+    <a href="table-us.html" class="active">US Data Table</a>
     <a href="rates-cases.html">Combined Cases Chart</a>
     <a href="rates-deaths.html">Combined Deaths Chart</a>
 </div>
@@ -35,7 +35,7 @@
     difficult to interpret as a "national average". Additional total rows are
     provided with these jurisdictions excluded.
 </p>
-<p>You can download the raw tables as <a href="table-us.tsv">table-us.tsv</a>
+<p>You can download the raw tables as <a href="data/table-us.tsv">table-us.tsv</a>
     and <a href="mortality.csv">mortality.csv</a>.
 </p>
 <hr />
@@ -51,7 +51,7 @@
 <script src="lib.js" type="application/javascript"></script>
 <script src="table.js" type="application/javascript"></script>
 <script type="application/javascript">
-    fetch("./table-us.json")
+    fetch("data/table-us.json")
         .then(resp => resp.json())
         .then(d => init(d, 'table-us', ["Oregon", "Montana", "New York"], {
             "Excluding NY": r => r.name !== "New York",

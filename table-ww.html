@@ -8,7 +8,7 @@
 <body class="table">
 <div id="navbar">
     <a href="index.html">Dashboard</a>
-    <span>Worldwide Data Table</span>
+    <a href="table-ww.html" class="active">Worldwide Data Table</a>
     <a href="table-us.html">US Data Table</a>
     <a href="rates-cases.html">Combined Cases Chart</a>
     <a href="rates-deaths.html">Combined Deaths Chart</a>
@@ -31,7 +31,7 @@
 </p>
 <p>Series w/ "Rate" in their name are per week per 100K population.
 </p>
-<p>You can download the raw table as <a href="table-ww.tsv">table-ww.tsv</a>.
+<p>You can download the raw table as <a href="data/table-ww.tsv">table-ww.tsv</a>.
 </p>
 <hr />
 <p>COVID-19 and population data from
@@ -42,7 +42,7 @@
 <script src="lib.js" type="application/javascript"></script>
 <script src="table.js" type="application/javascript"></script>
 <script type="application/javascript">
-    fetch("./table-ww.json")
+    fetch("data/table-ww.json")
         .then(resp => resp.json())
         .then(d => init(d, 'table-ww', ["Brazil", "Italy", "Russia", "US"]));
 </script>

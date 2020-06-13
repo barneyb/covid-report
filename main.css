@@ -6,23 +6,32 @@ body {
 #navbar {
     position: fixed;
     width: 100%;
+    box-sizing: border-box;
     margin: -3rem -1rem;
-    padding: 0.3em 1em 0;
+    padding: 0 1em;
     background-color: #def;
     z-index: 99999;
     box-shadow: 0 0.5rem 0.5rem 0.25rem white;
 }
-#navbar span {
-    display: inline-block;
-    background-color: white;
-    padding: 0.3em 0.5em;
-    font-weight: bold;
-}
 #navbar a,
 #navbar a:visited {
+    display: inline-block;
+    margin-top: 0.3rem;
     padding: 0.3em 0.5em;
     text-decoration: none;
     color: #009;
+}
+#navbar a.active {
+    background-color: white;
+    font-weight: bold;
+    color: #000;
+}
+#navbar .updated-at {
+    float: right;
+    margin-top: 0.5rem;
+    font-weight: normal;
+    font-style: italic;
+    background-color: inherit;
 }
 button.trigger {
     float: right;

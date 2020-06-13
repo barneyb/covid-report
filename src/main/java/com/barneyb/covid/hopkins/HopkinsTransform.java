@@ -13,11 +13,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
@@ -47,6 +49,9 @@ public class HopkinsTransform {
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("M/d/yy");
 
+    @Value("${covid-report.output.dir}")
+    Path outputDir;
+
     @Autowired
     @Qualifier("us")
     Store usStore;
@@ -61,7 +66,7 @@ public class HopkinsTransform {
 
     @SneakyThrows
     public void spew(Object model) {
-        val out = Files.newOutputStream(Path.of("dashboard.json"));
+        val out = Files.newOutputStream(outputDir.resolve("dashboard.json"));
         mapper
 //                .writerWithDefaultPrettyPrinter() // todo: comment out?
                 .writeValue(out, model);
@@ -135,12 +140,21 @@ public class HopkinsTransform {
 
     @SneakyThrows
     public void transform() {
+        if (!Files.exists(outputDir)) {
+            Files.createDirectories(outputDir);
+        } else if (!Files.isDirectory(outputDir)) {
+            throw new RuntimeException("Non-directory '" + outputDir + "' found.");
+        }
         logger.info("Starting transform");
         val demographics = loadDemographics();
         logger.info("Demographics loaded");
         val rawGlobal = loadGlobalData(GLOBAL_CASES_FILE);
         logger.info("Globals loaded");
         val dates = extractDates(rawGlobal.get(0));
+        try (Writer w = Files.newBufferedWriter(outputDir.resolve("last-update.txt"))) {
+            // add a day for the UTC/LocalDate dance
+            w.write(dates[dates.length - 1].plusDays(1).toString());
+        }
         logger.info("Dates extracted");
         val dateHeaders = buildDateHeaders(dates);
         logger.info("Headers built");
@@ -191,11 +205,11 @@ public class HopkinsTransform {
         logger.info("Worldwide database rebuilt");
 
         new RatesBuilder(dates, globalCases, usCases)
-                .emit(new File("rates-cases.txt"));
+                .emit(outputDir.resolve("rates-cases.txt"));
         logger.info("Case rates rebuilt");
 
         new RatesBuilder(dates, globalDeaths, usDeaths)
-                .emit(new File("rates-deaths.txt"));
+                .emit(outputDir.resolve("rates-deaths.txt"));
         logger.info("Death rates rebuilt");
     }
 

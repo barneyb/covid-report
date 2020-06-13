@@ -8,10 +8,9 @@ import lombok.SneakyThrows;
 import lombok.val;
 import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.Writer;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -93,7 +92,7 @@ public class RatesBuilder {
     }
 
     @SneakyThrows
-    public void emit(File destination) {
+    public void emit(Path destination) {
         val series = build().stream()
                 .map(s -> s
                         .map(DELTA)
@@ -131,7 +130,7 @@ public class RatesBuilder {
             if (a2 >= 0 && b2 < 0) return 1;
             return a.compareTo(b);
         });
-        try (Writer out = new BufferedWriter(new FileWriter(destination))) {
+        try (Writer out = Files.newBufferedWriter(destination)) {
             new StatefulBeanToCsvBuilder<Rates>(out)
                     .withSeparator('|')
                     .withMappingStrategy(strat)

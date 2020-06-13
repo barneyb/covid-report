@@ -1,5 +1,4 @@
 function init(data) {
-    $("#updated").innerHTML = "Updated: " + formatDate(data.date);
     const colorForDelta = val => {
         const h = val < 0 ? 92 : 15; // green/red
         const s = 50 + Math.min(1, Math.abs(val)) * 40;
@@ -46,6 +45,6 @@ function init(data) {
     drawSpark($("#washco-spark"), data.wash_co_spark)
     drawSpark($("#multco-spark"), data.mult_co_spark)
 }
-fetch("dashboard.json")
+fetch("data/dashboard.json")
     .then(r => r.json())
     .then(init)

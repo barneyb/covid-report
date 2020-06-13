@@ -29,8 +29,6 @@ build/
 .vscode/
 /src/main/resources/application-default.properties
 
-*.json
-*.csv
-*.txt
-*.tsv
+/cdc-data-*.json
+/data
 /covid.jar

@@ -10,7 +10,7 @@
     <a href="table-ww.html">Worldwide Data Table</a>
     <a href="table-us.html">US Data Table</a>
     <a href="rates-cases.html">Combined Cases Chart</a>
-    <span>Combined Deaths Chart</span>
+    <a href="rates-deaths.html" class="active">Combined Deaths Chart</a>
 </div>
 <button id="show-sidebar" class="trigger" title="Show customization bar">&lt;</button>
 <div id="sidebar">
@@ -33,7 +33,7 @@
     NY" series is provided with New York excluded.
 </p>
 <p>You can download the raw tables as
-    <a href="rates-deaths.txt">rates-deaths.txt</a> and
+    <a href="data/rates-deaths.txt">rates-deaths.txt</a> and
     <a href="events.txt">events.txt</a>.
 </p>
 <hr />
@@ -50,7 +50,7 @@
 <script type="text/javascript" src="lib.js"></script>
 <script type="text/javascript" src="rates.js"></script>
 <script type="application/javascript">
-    init("./rates-deaths.txt");
+    init("data/rates-deaths.txt");
 </script>
 </body>
 </html>
