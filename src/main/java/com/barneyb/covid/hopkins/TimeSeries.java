@@ -2,19 +2,18 @@ package com.barneyb.covid.hopkins;
 
 import com.barneyb.covid.hopkins.csv.CsvTimeSeries;
 import com.barneyb.covid.hopkins.csv.Demographics;
-import lombok.Data;
-import lombok.ToString;
-import lombok.val;
+import lombok.*;
 
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.ToDoubleBiFunction;
 
 @Data
-public class TimeSeries {
+public class TimeSeries implements WithDemographics {
 
     private Demographics demographics;
 
+    @Setter(AccessLevel.PRIVATE)
     @ToString.Exclude
     private double[] data;
 
