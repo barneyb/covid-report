@@ -25,19 +25,19 @@ public class IndexedDemographics {
 
     public IndexedDemographics(Collection<Demographics> demographics) {
         this.cover = demographics;
-        worldwide = new Demographics();
-        worldwide.setUid(WORLDWIDE_UID);
-        worldwide.setCountry(WORLDWIDE_KEY);
-        worldwide.setCombinedKey(WORLDWIDE_KEY);
-        worldwide.setPopulation(cover()
-                .map(Demographics::getPopulation)
-                .reduce(0L, Long::sum));
         byUid = new UniqueIndex<>(demographics, Demographics::getUid);
-        byUid.add(worldwide);
         byCountry = new UniqueIndex<>(
                 demographics.stream()
                         .filter(Demographics::isCountry),
                 Demographics::getCountry);
+        worldwide = new Demographics();
+        worldwide.setUid(WORLDWIDE_UID);
+        worldwide.setCountry(WORLDWIDE_KEY);
+        worldwide.setCombinedKey(WORLDWIDE_KEY);
+        worldwide.setPopulation(byCountry.values()
+                .map(Demographics::getPopulation)
+                .reduce(0L, Long::sum));
+        byUid.add(worldwide);
         byCountryAndState = new UniqueIndex<>(
                 demographics.stream()
                         .filter(Demographics::isState),
