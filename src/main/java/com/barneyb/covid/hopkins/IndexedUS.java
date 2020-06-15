@@ -1,5 +1,6 @@
 package com.barneyb.covid.hopkins;
 
+import com.barneyb.covid.hopkins.csv.Demographics;
 import com.barneyb.covid.hopkins.csv.USTimeSeries;
 import lombok.Getter;
 import lombok.val;
@@ -11,8 +12,7 @@ import java.util.stream.Stream;
 public class IndexedUS {
 
     @Getter
-    private final CombinedTimeSeries usExceptNy;
-    private final Collection<CombinedTimeSeries> cover;
+    private CombinedTimeSeries usExceptNy;
     private final Index<String, CombinedTimeSeries> localsByState;
     private final UniqueIndex<Pair<String>, CombinedTimeSeries> byStateAndLocality;
     private final UniqueIndex<String, CombinedTimeSeries> byState;
@@ -26,7 +26,7 @@ public class IndexedUS {
                         dateHeaders,
                         it))
                 .collect(Collectors.toMap(TimeSeries::getDemographics, it -> it));
-        cover = rawDeaths.stream()
+        val cover = rawDeaths.stream()
                 .map(it -> new TimeSeries(demographics.getByUid(it.getUid()),
                         dateHeaders,
                         it))
@@ -52,15 +52,14 @@ public class IndexedUS {
                         .orElseThrow()
                 ),
                 it -> it.getDemographics().getState());
-        usExceptNy = cover.stream()
-                .reduce(CombinedTimeSeries::plus)
-                .map(ts -> ts.withDemographics(demographics.getUsExceptNy()))
-                .orElseThrow()
-                .minus(byState.get("New York"));
     }
 
-    public Stream<CombinedTimeSeries> cover() {
-        return cover.stream();
+    public void createUsExceptNy(Demographics d) {
+        usExceptNy = statesAndDC()
+                .reduce(CombinedTimeSeries::plus)
+                .map(ts -> ts.withDemographics(d))
+                .orElseThrow()
+                .minus(byState.get("New York"));
     }
 
     public Stream<CombinedTimeSeries> statesAndDC() {

@@ -14,30 +14,20 @@ public class IndexedDemographics {
     public static final String US_EXCEPT_NY_KEY = "US Except NY";
 
     @Getter
-    private final Demographics worldwide;
+    private Demographics worldwide;
     @Getter
-    private final Demographics usExceptNy;
-    private final Collection<Demographics> cover;
+    private Demographics usExceptNy;
     private final UniqueIndex<Integer, Demographics> byUid;
     private final UniqueIndex<String, Demographics> byCountry;
     private final UniqueIndex<Pair<String>, Demographics> byCountryAndState;
     private final UniqueIndex<String, Demographics> usStates;
 
     public IndexedDemographics(Collection<Demographics> demographics) {
-        this.cover = demographics;
         byUid = new UniqueIndex<>(demographics, Demographics::getUid);
         byCountry = new UniqueIndex<>(
                 demographics.stream()
                         .filter(Demographics::isCountry),
                 Demographics::getCountry);
-        worldwide = new Demographics();
-        worldwide.setUid(WORLDWIDE_UID);
-        worldwide.setCountry(WORLDWIDE_KEY);
-        worldwide.setCombinedKey(WORLDWIDE_KEY);
-        worldwide.setPopulation(byCountry.values()
-                .map(Demographics::getPopulation)
-                .reduce(0L, Long::sum));
-        byUid.add(worldwide);
         byCountryAndState = new UniqueIndex<>(
                 demographics.stream()
                         .filter(Demographics::isState),
@@ -46,16 +36,25 @@ public class IndexedDemographics {
                 demographics.stream()
                     .filter(d -> d.getUid() >= 84000000 && d.getUid() < 84001000),
                 Demographics::getState);
+    }
+
+    public void createWorldwide(long population) {
+        assert worldwide == null;
+        worldwide = new Demographics();
+        worldwide.setUid(WORLDWIDE_UID);
+        worldwide.setCombinedKey(WORLDWIDE_KEY);
+        worldwide.setPopulation(population);
+        byUid.add(worldwide);
+    }
+
+    public void createUsExceptNy(long population) {
+        assert usExceptNy == null;
         usExceptNy = new Demographics();
         usExceptNy.setUid(US_EXCEPT_NY_UID);
         usExceptNy.setCountry(US_EXCEPT_NY_KEY);
         usExceptNy.setCombinedKey(US_EXCEPT_NY_KEY);
-        usExceptNy.setPopulation(byCountry.get("US").getPopulation() - usStates.get("New York").getPopulation());
+        usExceptNy.setPopulation(population);
         byUid.add(usExceptNy);
-    }
-
-    public Stream<Demographics> cover() {
-        return cover.stream();
     }
 
     public Stream<Demographics> usStatesAndDC() {

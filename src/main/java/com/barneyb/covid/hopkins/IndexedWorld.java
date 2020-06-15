@@ -1,5 +1,6 @@
 package com.barneyb.covid.hopkins;
 
+import com.barneyb.covid.hopkins.csv.Demographics;
 import com.barneyb.covid.hopkins.csv.GlobalTimeSeries;
 import lombok.Getter;
 import lombok.val;
@@ -12,8 +13,7 @@ import java.util.stream.Stream;
 public class IndexedWorld {
 
     @Getter
-    private final CombinedTimeSeries worldwide;
-    private final Collection<CombinedTimeSeries> cover;
+    private CombinedTimeSeries worldwide;
     private final UniqueIndex<String, CombinedTimeSeries> byCountry;
     private final UniqueIndex<Pair<String>, CombinedTimeSeries> byCountryAndState;
     private final Index<String, CombinedTimeSeries> statesOfCountry;
@@ -30,7 +30,7 @@ public class IndexedWorld {
                         dateHeaders,
                         it))
                 .collect(Collectors.toMap(TimeSeries::getDemographics, it -> it));
-        cover = rawDeaths.stream()
+        val cover = rawDeaths.stream()
                 .map(it -> new TimeSeries(
                         it.isCountry()
                                 ? demographics.getByCountry(it.getCountry())
@@ -46,10 +46,6 @@ public class IndexedWorld {
                 cover.stream()
                         .filter(it -> it.getDemographics().isCountry()),
                 it -> it.getDemographics().getCountry());
-        worldwide = cover()
-                .reduce(CombinedTimeSeries::plus)
-                .map(it -> it.withDemographics(demographics.getWorldwide()))
-                .orElseThrow();
         byCountryAndState = new UniqueIndex<>(
                 cover.stream()
                         .filter(it -> it.getDemographics().isState()),
@@ -74,8 +70,11 @@ public class IndexedWorld {
                 .forEach(byCountry::add);
     }
 
-    public Stream<CombinedTimeSeries> cover() {
-        return cover.stream();
+    public void createWorldwide(Demographics d) {
+        worldwide = countries()
+                .reduce(CombinedTimeSeries::plus)
+                .map(it -> it.withDemographics(d))
+                .orElseThrow();
     }
 
     public Stream<CombinedTimeSeries> countries() {

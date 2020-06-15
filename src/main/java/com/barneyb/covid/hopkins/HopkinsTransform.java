@@ -198,9 +198,23 @@ public class HopkinsTransform {
         }
         val dateHeaders = buildDateHeaders(dates);
         val idxGlobal = new IndexedWorld(demographics, rawGlobal, loadGlobalData(GLOBAL_DEATHS_FILE), dateHeaders);
+        demographics.createWorldwide(idxGlobal
+                .countries()
+                .map(CombinedTimeSeries::getDemographics)
+                .map(Demographics::getPopulation)
+                .reduce(0L, Long::sum));
+        idxGlobal.createWorldwide(demographics.getWorldwide());
         logStep("Global series loaded and indexed");
 
         val idxUs = new IndexedUS(demographics, loadUSData(US_CASES_FILE), loadUSData(US_DEATHS_FILE), dateHeaders);
+        demographics.createUsExceptNy(idxUs
+                .statesAndDC()
+                .map(CombinedTimeSeries::getDemographics)
+                .filter(d -> !"New York".equals(d.getState()))
+                .map(Demographics::getPopulation)
+                .reduce(0L, Long::sum));
+        idxUs.createUsExceptNy(demographics.getUsExceptNy());
+
         val mortRates = new UniqueIndex<>(
                 new CsvToBeanBuilder<MortRates>(new FileReader("mortality.csv"))
                         .withType(MortRates.class)
