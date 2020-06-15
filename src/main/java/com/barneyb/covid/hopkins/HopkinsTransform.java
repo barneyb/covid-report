@@ -24,10 +24,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
+import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -169,6 +168,7 @@ public class HopkinsTransform {
     }
 
     private long _prev;
+
     private void logStep(String message) {
         long now = System.currentTimeMillis();
         if (_prev == 0) {
@@ -209,40 +209,75 @@ public class HopkinsTransform {
                 MortRates::getState);
         logStep("US series loaded and indexed");
 
-        val jurisdictions = demographics
-                .cover()
-                .filter(d -> !d.isCompleteness())
-                .map(d -> {
-                    try {
-                        if (d.isCountry())
-                            return idxGlobal.getByCountry(d.getCountry());
-                        if ("US".equals(d.getCountry())) {
-                            if (d.isState())
-                                return idxUs.getByState(d.getState());
-                            if (d.isLocality())
-                                return idxUs.getByStateAndLocality(d.getState(), d.getLocality());
-                        } else if (d.isState())
-                            return idxGlobal.getByCountryAndState(d.getCountry(), d.getState());
-                    } catch (UnknownKeyException ignored) {
-                    }
-                    return null;
-                })
-                .filter(Objects::nonNull)
-                .filter(it -> it.getTotalCases() > 0)
-                .collect(Collectors.toList());
-        jurisdictions.add(0, idxGlobal.getWorldwide());
+        @AllArgsConstructor
+        class Slice {
+            final String key;
+            final Stream<CombinedTimeSeries> stream;
+        }
+
+        Pattern NON_LETTER = Pattern.compile("[^a-z]+");
+        // worldwide & countries
+        var slices = Stream.of(new Slice("global", Stream.concat(
+                Stream.of(idxGlobal.getWorldwide()),
+                idxGlobal.countries()
+        )));
+        // e.g., china & provinces
+        slices = Stream.concat(slices, idxGlobal.countriesWithStates()
+                .map(c -> new Slice(c, Stream.concat(
+                        Stream.of(idxGlobal.getByCountry(c)),
+                        idxGlobal.getStatesOfCountry(c)
+                ))));
+        // us & states
+        slices = Stream.concat(slices, Stream.of(new Slice("us", Stream.concat(
+                Stream.of(idxGlobal.getByCountry("US")),
+                idxUs.statesAndDC()
+        ))));
+        // e.g., oregon & counties
+        slices = Stream.concat(slices, demographics.usStatesAndDC()
+                .map(Demographics::getState)
+                .map(s -> new Slice(s, Stream.concat(
+                        Stream.of(idxUs.getByState(s)),
+                        idxUs.getLocalitiesOfState(s)
+                ))));
+
+        Function<TimeSeries, String> labeler = s -> NON_LETTER.matcher(s
+                .getDemographics()
+                .getCombinedKey()
+                .toLowerCase()
+        ).replaceAll("-");
+        val hotDemos = new TreeSet<>(Comparator.comparing(CombinedTimeSeries::getDemographics));
+        slices.forEach(slice -> {
+            val key = NON_LETTER.matcher(slice.key.toLowerCase()).replaceAll("-");
+            try (Writer cw = Files.newBufferedWriter(outputDir.resolve(key + "-cases.csv"));
+                 Writer dw = Files.newBufferedWriter(outputDir.resolve(key + "-deaths.csv"))) {
+                slice.stream
+                        .filter(it -> it.getTotalCases() > 0)
+                        .forEach(s -> {
+                            hotDemos.add(s);
+                            try {
+                                cw.write(asUidIntCsv(s.getCasesSeries(), labeler));
+                                dw.write(asUidIntCsv(s.getDeathsSeries(), labeler));
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        });
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
+        logStep("Slices rebuilt");
         try (Writer w = Files.newBufferedWriter(outputDir.resolve("jurisdictions.csv"))) {
             new StatefulBeanToCsvBuilder<J>(w)
                     .withApplyQuotesToAll(false)
                     .build()
-                    .write(jurisdictions
+                    .write(hotDemos
                             .stream()
                             .map(p -> new J(
                                     p.getDemographics(),
                                     p.getTotalCases(),
                                     p.getTotalDeaths())));
         }
-
+        logStep("Jurisdictions rebuilt");
 
         val dash = new Dash();
         dash.setDate(dates[dates.length - 1].plusDays(1));
@@ -279,6 +314,17 @@ public class HopkinsTransform {
         new RatesBuilder(dates, CombinedTimeSeries::getDeathsSeries, idxGlobal, idxUs)
                 .emit(outputDir.resolve("rates-deaths.txt"));
         logStep("Death rates rebuilt");
+    }
+
+    private String asUidIntCsv(TimeSeries s, Function<TimeSeries, String> labeler) {
+        val sb = new StringBuilder();
+        sb.append(s.getDemographics().getUid());
+        sb.append(',').append(labeler.apply(s));
+        for (val d : s.getData()) {
+            sb.append(',').append((int) (d + 0.5));
+        }
+        sb.append('\n');
+        return sb.toString();
     }
 
     private String[] buildDateHeaders(LocalDate[] dates) {

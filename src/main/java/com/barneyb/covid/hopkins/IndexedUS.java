@@ -35,8 +35,11 @@ public class IndexedUS {
                         ds
                 ))
                 .collect(Collectors.toUnmodifiableList());
-        localsByState = new Index<>(cover, it -> it.getDemographics().getState());
+        localsByState = new Index<>(cover.stream()
+                .filter(it -> !it.getDemographics().isCompleteness()),
+                it -> it.getDemographics().getState());
         byStateAndLocality = new UniqueIndex<>(cover.stream()
+                .filter(it -> !it.getDemographics().isCompleteness())
                 .filter(it -> it.getDemographics().isLocality()),
                 it -> new Pair<>(it.getDemographics().getState(), it.getDemographics().getLocality()));
         byState = new UniqueIndex<>(demographics
@@ -72,8 +75,10 @@ public class IndexedUS {
         return byStateAndLocality.get(new Pair<>(state, locality));
     }
 
-    public Collection<String> statesWithLocalities() {
-        return localsByState.keySet();
+    public Stream<String> statesWithLocalities() {
+        return byState.keySet()
+                .stream()
+                .filter(s -> localsByState.get(s).size() > 1);
     }
 
     public Stream<CombinedTimeSeries> getLocalitiesOfState(String state) {

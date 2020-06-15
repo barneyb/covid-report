@@ -68,11 +68,8 @@ public class IndexedWorld {
                         .filter(it -> country.equals(
                                 it.getDemographics().getCountry()))
                         .reduce(CombinedTimeSeries::plus)
-                        .map(s -> {
-                            s.withDemographics(
-                                    demographics.getByCountry(country));
-                            return s;
-                        })
+                        .map(s -> s.withDemographics(
+                                demographics.getByCountry(country)))
                         .orElseThrow())
                 .forEach(byCountry::add);
     }
@@ -93,8 +90,11 @@ public class IndexedWorld {
         return byCountryAndState.get(country, state);
     }
 
-    public Collection<String> countriesWithStates() {
-        return statesOfCountry.keySet();
+    public Stream<String> countriesWithStates() {
+        return byCountry.keySet()
+                .stream()
+                .filter(statesOfCountry::containsKey)
+                .filter(c -> statesOfCountry.get(c).size() > 1);
     }
 
     public Stream<CombinedTimeSeries> getStatesOfCountry(String country) {
