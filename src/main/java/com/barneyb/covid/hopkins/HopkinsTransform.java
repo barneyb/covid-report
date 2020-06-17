@@ -108,6 +108,8 @@ public class HopkinsTransform implements InitializingBean {
         Spark washCoSpark;
         Spark multCoSpark;
 
+        private static final int SPARK_DAYS = 21;
+
         private static List<Delta> computeDeltas(Stream<CombinedTimeSeries> stream) {
             return stream
                     .map(CombinedTimeSeries::getCasesSeries)
@@ -135,12 +137,12 @@ public class HopkinsTransform implements InitializingBean {
             return new Spark(
                     s.getDemographics().getCombinedKey(),
                     (int) data[len - 1],
-                    Optional.of(Arrays.copyOfRange(data, len - 21, len))
+                    Optional.of(Arrays.copyOfRange(data, len - SPARK_DAYS - 7, len))
                             .map(DELTA)
                             .map(ROLLING_AVERAGE)
                             .map(d -> {
                                 int l = d.length;
-                                return Arrays.copyOfRange(d, l - 14, l);
+                                return Arrays.copyOfRange(d, l - SPARK_DAYS, l);
                             })
                             .orElseThrow());
         }
