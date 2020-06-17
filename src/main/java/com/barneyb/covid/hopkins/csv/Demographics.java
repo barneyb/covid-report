@@ -2,9 +2,10 @@ package com.barneyb.covid.hopkins.csv;
 
 import com.opencsv.bean.CsvBindByName;
 import lombok.Data;
+import org.apache.commons.lang3.builder.CompareToBuilder;
 
 @Data
-public class Demographics {
+public class Demographics implements Comparable<Demographics> {
 
     @CsvBindByName(column = "UID")
     private int uid;
@@ -41,4 +42,12 @@ public class Demographics {
         return locality != null;
     }
 
+    @Override
+    public int compareTo(Demographics o) {
+        return new CompareToBuilder()
+                .append(country, o.country)
+                .append(state, o.state)
+                .append(locality, o.locality)
+                .toComparison();
+    }
 }
