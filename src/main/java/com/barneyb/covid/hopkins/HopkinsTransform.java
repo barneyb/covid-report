@@ -11,14 +11,14 @@ import lombok.SneakyThrows;
 import lombok.val;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.IOException;
 import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -34,20 +34,18 @@ import static com.barneyb.covid.hopkins.RatesBuilder.DELTA;
 import static com.barneyb.covid.hopkins.RatesBuilder.ROLLING_AVERAGE;
 
 @Component
-public class HopkinsTransform {
+public class HopkinsTransform implements InitializingBean {
 
     private static final Logger logger = LoggerFactory.getLogger(HopkinsTransform.class);
-
-    public static final File DATA_DIR = new File("../COVID-19/csse_covid_19_data");
-    public static final File UID_LOOKUP_FILE = new File(DATA_DIR, "UID_ISO_FIPS_LookUp_Table.csv");
-
-    public static final File TIME_SERIES_DIR = new File(DATA_DIR, "csse_covid_19_time_series");
-    public static final File GLOBAL_CASES_FILE = new File(TIME_SERIES_DIR, "time_series_covid19_confirmed_global.csv");
-    public static final File GLOBAL_DEATHS_FILE = new File(TIME_SERIES_DIR, "time_series_covid19_deaths_global.csv");
-    public static final File US_CASES_FILE = new File(TIME_SERIES_DIR, "time_series_covid19_confirmed_US.csv");
-    public static final File US_DEATHS_FILE = new File(TIME_SERIES_DIR, "time_series_covid19_deaths_US.csv");
-
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("M/d/yy");
+
+    @Value("${covid-report.hopkins.dir}")
+    Path dataDir;
+    private Path uidLookupFile;
+    private Path globalCasesFile;
+    private Path globalDeathsFile;
+    private Path usCasesFile;
+    private Path usDeathsFile;
 
     @Value("${covid-report.output.dir}")
     Path outputDir;
@@ -63,6 +61,15 @@ public class HopkinsTransform {
     @Autowired
     ObjectMapper mapper;
 
+    @Override
+    public void afterPropertiesSet() {
+        uidLookupFile = dataDir.resolve("UID_ISO_FIPS_LookUp_Table.csv");
+        val tsDir = dataDir.resolve("csse_covid_19_time_series");
+        globalCasesFile = tsDir.resolve("time_series_covid19_confirmed_global.csv");
+        globalDeathsFile = tsDir.resolve("time_series_covid19_deaths_global.csv");
+        usCasesFile = tsDir.resolve("time_series_covid19_confirmed_US.csv");
+        usDeathsFile = tsDir.resolve("time_series_covid19_deaths_US.csv");
+    }
 
     @SneakyThrows
     public void spew(Object model) {
@@ -162,14 +169,14 @@ public class HopkinsTransform {
         val demographics = loadDemographics();
         logStep("Demographics loaded and indexed");
 
-        val rawGlobal = loadGlobalData(GLOBAL_CASES_FILE);
+        val rawGlobal = loadGlobalData(globalCasesFile);
         val dates = extractDates(rawGlobal.get(0));
         try (Writer w = Files.newBufferedWriter(outputDir.resolve("last-update.txt"))) {
             // add a day for the UTC/LocalDate dance
             w.write(dates[dates.length - 1].plusDays(1).toString());
         }
         val dateHeaders = buildDateHeaders(dates);
-        val idxGlobal = new IndexedWorld(demographics, rawGlobal, loadGlobalData(GLOBAL_DEATHS_FILE), dateHeaders);
+        val idxGlobal = new IndexedWorld(demographics, rawGlobal, loadGlobalData(globalDeathsFile), dateHeaders);
         demographics.createWorldwide(idxGlobal
                 .countries()
                 .map(CombinedTimeSeries::getDemographics)
@@ -178,7 +185,7 @@ public class HopkinsTransform {
         idxGlobal.createWorldwide(demographics.getWorldwide());
         logStep("Global series loaded and indexed");
 
-        val idxUs = new IndexedUS(demographics, loadUSData(US_CASES_FILE), loadUSData(US_DEATHS_FILE), dateHeaders);
+        val idxUs = new IndexedUS(demographics, loadUSData(usCasesFile), loadUSData(usDeathsFile), dateHeaders);
         demographics.createUsExceptNy(idxUs
                 .statesAndDC()
                 .map(CombinedTimeSeries::getDemographics)
@@ -250,24 +257,24 @@ public class HopkinsTransform {
                 .toArray(LocalDate[]::new);
     }
 
-    private List<USTimeSeries> loadUSData(File src) throws FileNotFoundException {
-        return new CsvToBeanBuilder<USTimeSeries>(new FileReader(src))
+    private List<USTimeSeries> loadUSData(Path src) throws IOException {
+        return new CsvToBeanBuilder<USTimeSeries>(Files.newBufferedReader(src))
                 .withType(USTimeSeries.class)
                 .withFieldAsNull(CSVReaderNullFieldIndicator.EMPTY_SEPARATORS)
                 .build()
                 .parse();
     }
 
-    private List<GlobalTimeSeries> loadGlobalData(File src) throws FileNotFoundException {
-        return new CsvToBeanBuilder<GlobalTimeSeries>(new FileReader(src))
+    private List<GlobalTimeSeries> loadGlobalData(Path src) throws IOException {
+        return new CsvToBeanBuilder<GlobalTimeSeries>(Files.newBufferedReader(src))
                 .withType(GlobalTimeSeries.class)
                 .withFieldAsNull(CSVReaderNullFieldIndicator.EMPTY_SEPARATORS)
                 .build()
                 .parse();
     }
 
-    private IndexedDemographics loadDemographics() throws FileNotFoundException {
-        return new IndexedDemographics(new CsvToBeanBuilder<Demographics>(new FileReader(UID_LOOKUP_FILE))
+    private IndexedDemographics loadDemographics() throws IOException {
+        return new IndexedDemographics(new CsvToBeanBuilder<Demographics>(Files.newBufferedReader(uidLookupFile))
                 .withType(Demographics.class)
                 .withFieldAsNull(CSVReaderNullFieldIndicator.EMPTY_SEPARATORS)
                 .build()
