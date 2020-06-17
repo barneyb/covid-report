@@ -18,20 +18,17 @@ import java.util.stream.Stream;
 public class StoreBuilder<I> {
 
     final LocalDate[] dates;
-    final I cases;
-    final I deaths;
+    I index;
     final Function<Demographics, String> extractName;
-    final BiFunction<I, Demographics, TimeSeries> extractData;
+    final BiFunction<I, Demographics, CombinedTimeSeries> extractData;
 
     StoreBuilder(LocalDate[] dates,
-                 I cases,
-                 I deaths,
+                 I index,
                  Function<Demographics, String> extractName,
-                 BiFunction<I, Demographics, TimeSeries> extractData
+                 BiFunction<I, Demographics, CombinedTimeSeries> extractData
     ) {
         this.dates = dates;
-        this.cases = cases;
-        this.deaths = deaths;
+        this.index = index;
         this.extractName = extractName;
         this.extractData = extractData;
     }
@@ -40,10 +37,11 @@ public class StoreBuilder<I> {
         val j = new Jurisdiction();
         j.setName(extractName.apply(d));
         j.setPopulation(d.getPopulation());
+        val cts = extractData.apply(this.index, d);
         j.setPoints(buildPoints(
                 dates,
-                extractData.apply(this.cases, d).getData(),
-                extractData.apply(this.deaths, d).getData()));
+                cts.getCasesSeries().getData(),
+                cts.getDeathsSeries().getData()));
         return j;
     }
 

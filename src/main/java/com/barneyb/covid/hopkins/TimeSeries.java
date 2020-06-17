@@ -2,20 +2,22 @@ package com.barneyb.covid.hopkins;
 
 import com.barneyb.covid.hopkins.csv.CsvTimeSeries;
 import com.barneyb.covid.hopkins.csv.Demographics;
-import lombok.*;
+import lombok.Data;
+import lombok.ToString;
+import lombok.val;
 
+import java.util.Arrays;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.ToDoubleBiFunction;
 
 @Data
-public class TimeSeries implements WithDemographics {
+public class TimeSeries implements WithDemographics<TimeSeries> {
 
-    private Demographics demographics;
+    final private Demographics demographics;
 
-    @Setter(AccessLevel.PRIVATE)
     @ToString.Exclude
-    private double[] data;
+    final private double[] data;
 
     @ToString.Include
     public int getPointCount() {
@@ -41,6 +43,13 @@ public class TimeSeries implements WithDemographics {
         for (int i = 0, l = this.data.length; i < l; i++) {
             this.data[i] = raw.getDataPoint(dateHeaders[i]);
         }
+    }
+
+    public TimeSeries withDemographics(Demographics demo) {
+        return new TimeSeries(
+                demo,
+                Arrays.copyOf(data, data.length)
+        );
     }
 
     public TimeSeries plus(TimeSeries other) {
