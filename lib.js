@@ -61,4 +61,28 @@ if (sidebar) {
 }
 fetch("data/last-update.txt")
     .then(r => r.text())
-    .then(d => $("#navbar").innerHTML += tag("span", "Updated: " + formatDate(d), {className: "updated-at"}))
+    .then(d => $("#navbar").innerHTML += tag("span", "Updated: " + formatDate(d), {className: "updated-at"}));
+promiseJurisdictions = fetch("data/jurisdictions.csv")
+    .then(r => r.text())
+    .then(r => r.trim()
+        .split("\n")
+        .map(l => {
+            const parts = l.split(",");
+
+            return parts;
+        }))
+    .then(ls => {
+        const headers = ls[0]
+            .map(h => h.toLowerCase());
+        return ls.slice(1)
+            .map(l => {
+                const j = {};
+                for (let i = 0; i < headers.length; i++) {
+                    j[headers[i]] = l[i];
+                }
+                j.cases = parseInt(j.cases);
+                j.deaths = parseInt(j.deaths);
+                j.population = parseInt(j.population);
+                return j;
+            });
+    });

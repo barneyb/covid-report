@@ -40,7 +40,7 @@ function init(dataUrl) {
         };
         window.localStorage.setItem(LS_KEY, JSON.stringify(state, (k, v) =>
             v instanceof Set ? Array.from(v) : v));
-        render(state);
+        render(state)
     }
     const actOnChart = fn =>
         google.charts.setOnLoadCallback(() =>
@@ -80,18 +80,49 @@ function init(dataUrl) {
             .then(r => r.text())
             .then(r => r.trim()
                 .split("\n")
-                .map(r => r.split("|"))),
+                .map(l => l.split("|"))),
         fetch("./events.txt")
             .then(r => r.text())
             .then(r => r.trim()
                 .split("\n")
-                .map(r => r.split("|"))),
+                .map(l => l.split("|"))),
+        promiseJurisdictions
+            .then(js => {
+                const add = (tree, key, parts) => {
+                    const name = parts[0];
+                    if (parts.length === 1) {
+                        tree[name] = {
+                            name,
+                            key,
+                        };
+                        return tree;
+                    }
+                    if (!tree.hasOwnProperty(name)) {
+                        console.warn("Missing '" + name + "' level for " + key + "?!");
+                        return tree;
+                    }
+                    const it = tree[name];
+                    if (it.children == null) {
+                        it.children = {};
+                    }
+                    add(it.children, key, parts.slice(1))
+                    it.childCount = 1; // tee-hee: Object.keys(it.children).length;
+                    return tree;
+                };
+                return js.reduce((items, j) => {
+                    const parts = [j.country];
+                    if (j.state) parts.push(j.state);
+                    if (j.locality) parts.push(j.locality);
+                    return add(items, j.uid, parts);
+                    }, {});
+            }),
     ])
-        .then(([lines, events]) => {
+        .then(([lines, events, tree]) => {
             const headers = lines.shift()
             headers.shift(); // cull the date column
             setState({
                 headers,
+                tree,
             });
             google.charts.setOnLoadCallback(() =>
                 drawChart(headers, lines, events))
@@ -172,33 +203,7 @@ function init(dataUrl) {
         off.length && annChart.hideDataColumns(off);
     }
 
-    function drawPicker({headers, hotSeries, expanded}) {
-        const add = (tree, key, parts) => {
-            const name = parts[0];
-            if (parts.length === 1) {
-                tree[parts[0]] = {
-                    name,
-                    key,
-                };
-                return tree;
-            }
-            if (!tree.hasOwnProperty(name)) {
-                console.warn("Missing '" + name + "' level for " + key + "?!");
-                return tree;
-            }
-            const it = tree[name];
-            if (it.children == null) {
-                it.children = {};
-            }
-            add(it.children, key, parts.slice(1))
-            it.childCount = Object.keys(it.children).length;
-            return tree;
-        };
-        const tree = headers
-            .reduce((items, key) =>
-                add(items, key, key.split(",")
-                    .map(s => s.trim())
-                    .reverse()), {});
+    function drawPicker({tree, hotSeries, expanded}) {
         const drawTree = (tree, depth = 0) =>
             Object.keys(tree)
                 .map(k => tree[k])
@@ -208,7 +213,7 @@ function init(dataUrl) {
             const exp = expanded.has(key);
             const content = '<div style="display:flex;align-content:start;justify-content:start;user-select:none;margin-left:' + (1.3 * depth) + 'em">' +
                 '<div style="font-family:monospace;cursor:pointer;margin-right:0.5em" onclick="toggleExpanded(\'' + key + '\')">' + (childCount ? exp ? '&#9660;' : '&#9658;' : '&nbsp;') + '</div>' +
-                '<label style="display:block">' +
+                '<label style="display:block;white-space:nowrap">' +
                 '<input type="checkbox"' + (hotSeries.has(key) ? ' checked' : '') + ' value="' + key + '" onclick="toggleSeries(\'' + key + '\')" /> ' + name +
                 '</label>' +
                 '</div>';
