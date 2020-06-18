@@ -16,3 +16,4 @@ Date|Jurisdiction|Event|Description
 6/1|Michigan, US|Michigan Lifts Stay-at-Home|
 6/5|Pennsylvania, US|Pennsylvania Lifts Stay-at-Home|
 6/5|Oregon, US|OR First 26 Counties Enter Phase 2|
+6/19|Multnomah, Oregon, US|OR MultCo Phase 1|
