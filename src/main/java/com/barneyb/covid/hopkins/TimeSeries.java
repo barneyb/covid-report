@@ -26,7 +26,11 @@ public class TimeSeries implements WithDemographics<TimeSeries> {
 
     @ToString.Include
     public double getCurrent() {
-        return this.data[this.data.length - 1];
+        return getDaysAgo(0);
+    }
+
+    public double getDaysAgo(int daysAgo) {
+        return this.data[this.data.length - 1 - daysAgo];
     }
 
     private TimeSeries(Demographics demographics, double[] data) {
