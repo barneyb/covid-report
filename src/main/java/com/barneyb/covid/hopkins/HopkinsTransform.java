@@ -5,10 +5,7 @@ import com.barneyb.covid.hopkins.csv.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.opencsv.bean.CsvToBeanBuilder;
 import com.opencsv.enums.CSVReaderNullFieldIndicator;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.SneakyThrows;
-import lombok.val;
+import lombok.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
@@ -24,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -89,24 +87,31 @@ public class HopkinsTransform implements InitializingBean {
     }
 
     @Data
+    @RequiredArgsConstructor
     @AllArgsConstructor
     private static class Spark {
+        @NonNull
         String name;
+        @NonNull
         int total;
-        double[] deltas;
+        @NonNull
+        int daily;
+        @NonNull
+        double[] values;
+        List<Delta> breakdown;
     }
 
     @Data
     private static class Dash {
-        LocalDate date;
-        List<Delta> worldCaseRateDeltas;
-        List<Delta> usCaseRateDeltas;
-        List<Delta> orCaseRateDeltas;
-        Spark worldSpark;
-        Spark usSpark;
-        Spark orSpark;
-        Spark washCoSpark;
-        Spark multCoSpark;
+        List<Spark> sparks = new ArrayList<>();
+
+        private void addSpark(CombinedTimeSeries s, Stream<CombinedTimeSeries> breakdown) {
+            sparks.add(spark(s, breakdown));
+        }
+
+        private void addSpark(CombinedTimeSeries s) {
+            sparks.add(spark(s));
+        }
 
         private static final int SPARK_DAYS = 21;
 
@@ -131,12 +136,19 @@ public class HopkinsTransform implements InitializingBean {
                     .collect(Collectors.toList());
         }
 
+        private static Spark spark(CombinedTimeSeries s, Stream<CombinedTimeSeries> breakdown) {
+            val spark = spark(s);
+            spark.breakdown = computeDeltas(breakdown);
+            return spark;
+        }
+
         private static Spark spark(CombinedTimeSeries s) {
             val data = s.getCasesSeries().getData();
             int len = data.length;
             return new Spark(
                     s.getDemographics().getCombinedKey(),
                     (int) data[len - 1],
+                    (int) (data[len - 1] - data[len - 2]),
                     Optional.of(Arrays.copyOfRange(data, len - SPARK_DAYS - 7, len))
                             .map(DELTA)
                             .map(ROLLING_AVERAGE)
@@ -205,15 +217,19 @@ public class HopkinsTransform implements InitializingBean {
         logStep("US series loaded and indexed");
 
         val dash = new Dash();
-        dash.setDate(dates[dates.length - 1].plusDays(1));
-        dash.worldCaseRateDeltas = Dash.computeDeltas(idxGlobal.countries());
-        dash.usCaseRateDeltas = Dash.computeDeltas(idxUs.statesAndDC());
-        dash.orCaseRateDeltas = Dash.computeDeltas(idxUs.getLocalitiesOfState("Oregon"));
-        dash.worldSpark = Dash.spark(idxGlobal.getWorldwide());
-        dash.usSpark = Dash.spark(idxGlobal.getByCountry("US"));
-        dash.orSpark = Dash.spark(idxUs.getByState("Oregon"));
-        dash.washCoSpark = Dash.spark(idxUs.getByStateAndLocality("Oregon", "Washington"));
-        dash.multCoSpark = Dash.spark(idxUs.getByStateAndLocality("Oregon", "Multnomah"));
+        dash.addSpark(idxGlobal.getWorldwide(), idxGlobal.countries());
+        dash.addSpark(idxGlobal.getByCountry("US"), idxUs.statesAndDC());
+        dash.addSpark(idxUs.getByState("Oregon"), idxUs.getLocalitiesOfState("Oregon"));
+        val wash = idxUs.getByStateAndLocality("Oregon", "Washington");
+        val mult = idxUs.getByStateAndLocality("Oregon", "Multnomah");
+        dash.addSpark(idxUs.getByStateAndLocality("Oregon", "Portland Metro"),
+                Stream.of(
+                        idxUs.getByStateAndLocality("Oregon", "Clackamas"),
+                        mult,
+                        wash
+                ));
+        dash.addSpark(mult);
+        dash.addSpark(wash);
         spew(dash);
         logStep("Dashboard rebuilt");
 
