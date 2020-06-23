@@ -86,7 +86,7 @@ public class RatesBuilder {
                 .map(c -> idxUs.getByStateAndLocality("California", c))
                 .map(seriesExtractor)
                 .forEach(countSeries::add);
-        List.of("Clackamas", "Marion", "Multnomah", "Washington")
+        List.of("Clackamas", "Marion", "Multnomah", "Washington", "Polk", "Portland Metro", "Salem Metro")
                 .stream()
                 .map(c -> idxUs.getByStateAndLocality("Oregon", c))
                 .map(seriesExtractor)
