@@ -37,9 +37,12 @@ function init(data) {
             ])
             .map(p => p.join(","))
             .join(" ");
+        const first = spark.values[0]
+        const last = spark.values[spark.values.length - 1]
+        const [h,s,l] = colorForDelta((last - first) / first);
         return tag('svg', [
                 tag('title', 'New cases per day'),
-                tag('polyline', '', {points,fill:"none",stroke:"red",'stroke-width':"2px"}),
+                tag('polyline', '', {points,fill:"none",stroke:`hsl(${h},${s+10}%,${l-20}%)`,'stroke-width':"2px"}),
             ], {width:width + "px",height:height + "px"});
     };
     const drawNum = (label, n) => {
