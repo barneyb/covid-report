@@ -29,7 +29,8 @@ function init(data) {
         const min = spark.values.reduce((a, b) => Math.min(a, b), 999999999)
         const max = spark.values.reduce((a, b) => Math.max(a, b), 0)
         const range = max - min;
-        const dx = (width - pad - pad) / (spark.values.length - 1)
+        const len = spark.values.length
+        const dx = (width - pad - pad) / (len - 1)
         const points = spark.values
             .map((d, i) => [
                 pad + i * dx,
@@ -38,10 +39,10 @@ function init(data) {
             .map(p => p.join(","))
             .join(" ");
         const first = spark.values[0]
-        const last = spark.values[spark.values.length - 1]
+        const last = spark.values[len - 1]
         const [h,s,l] = colorForDelta((last - first) / first);
         return tag('svg', [
-                tag('title', 'New cases per day'),
+                tag('title', `Average new cases per day (past ${len} days)`),
                 tag('polyline', '', {points,fill:"none",stroke:`hsl(${h},${s+10}%,${l-20}%)`,'stroke-width':"2px"}),
             ], {width:width + "px",height:height + "px"});
     };
@@ -68,7 +69,7 @@ function init(data) {
                             tag('span', 'Increasing', {className: 'bad-label'}),
                             tag('span', drawBar(s.breakdown), {className: 'bar'}),
                         ],
-                        {className: "bar-layout", title: "Population segments, ordered by change in case rate between this week and last"}));
+                        {className: "bar-layout", title: "Population segments, ordered by change in new case rate between this week and last"}));
                 }
                 return tag('h3', s.name) +
                     tag('div', cols
