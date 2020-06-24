@@ -38,7 +38,7 @@ function init(data) {
             .map(p => p.join(","))
             .join(" ");
         return tag('svg', [
-                tag('title', 'New cases per day per 100,000 population'),
+                tag('title', 'New cases per day'),
                 tag('polyline', '', {points,fill:"none",stroke:"red",'stroke-width':"2px"}),
             ], {width:width + "px",height:height + "px"});
     };
