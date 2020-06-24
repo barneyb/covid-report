@@ -46,7 +46,7 @@ function init(data) {
         return tag('div', [
             tag('span', label + ":", {style: "font-size:90%;float:left;margin-top:0.5em"}),
             tag('span', formatNumber(n), {style: "font-weight:bold;font-size:200%"}),
-        ], {style: "font-size:90%;text-align:right;margin-top:0.25em"});
+        ], {style: "text-align:right;margin-top:0.25em"});
     }
     const drawSparks = element => {
         element.innerHTML = data.sparks

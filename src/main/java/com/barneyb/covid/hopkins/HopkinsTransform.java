@@ -106,11 +106,11 @@ public class HopkinsTransform implements InitializingBean {
         List<Spark> sparks = new ArrayList<>();
 
         private void addSpark(CombinedTimeSeries s, Stream<CombinedTimeSeries> breakdown) {
-            sparks.add(spark(s, breakdown));
+            sparks.add(spark(s.getCasesSeries(), breakdown));
         }
 
         private void addSpark(CombinedTimeSeries s) {
-            sparks.add(spark(s));
+            sparks.add(spark(s.getCasesSeries()));
         }
 
         private static final int SPARK_DAYS = 21;
@@ -136,14 +136,14 @@ public class HopkinsTransform implements InitializingBean {
                     .collect(Collectors.toList());
         }
 
-        private static Spark spark(CombinedTimeSeries s, Stream<CombinedTimeSeries> breakdown) {
+        private static Spark spark(TimeSeries s, Stream<CombinedTimeSeries> breakdown) {
             val spark = spark(s);
             spark.breakdown = computeDeltas(breakdown);
             return spark;
         }
 
-        private static Spark spark(CombinedTimeSeries s) {
-            val data = s.getCasesSeries().getData();
+        private static Spark spark(TimeSeries s) {
+            val data = s.getData();
             int len = data.length;
             return new Spark(
                     s.getDemographics().getCombinedKey(),
