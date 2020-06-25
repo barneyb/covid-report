@@ -20,9 +20,3 @@
     height: 1.5em;
     float: left;
 }
-.bar-layout .good-label {
-    float: right;
-}
-.bar-layout .bad-label {
-    float: left;
-}

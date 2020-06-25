@@ -76,12 +76,10 @@ function init(data) {
                 if (s.breakdown) {
                     cols.push(tag('div',
                         [
-                            tag('strong', 'Case Rate'),
-                            tag('span', 'Decreasing', {className: 'good-label'}),
-                            tag('span', 'Increasing', {className: 'bad-label'}),
+                            tag('strong', 'Population Breakdown'),
                             tag('span', drawBar(s.breakdown), {className: 'bar'}),
                         ],
-                        {className: "bar-layout", title: "Population segments, ordered by change in new case rate between this week and last"}));
+                        {className: "bar-layout", title: "Week-over-week change in new case rate, by population segment"}));
                 }
                 return tag('h3', s.name) +
                     tag('div', cols
