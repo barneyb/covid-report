@@ -49,15 +49,21 @@ public class CovidReportApplication {
     }
 
     @Bean
-    @Qualifier("us")
-    public Store usStore() {
-	    return new Store(outputDir.resolve("database-us.json"));
-    }
-
-    @Bean
     @Qualifier("worldwide")
     public Store worldwideStore() {
 	    return new Store(outputDir.resolve("database-ww.json"));
+    }
+
+    @Bean
+    @Qualifier("us")
+    public Store usStore() {
+        return new Store(outputDir.resolve("database-us.json"));
+    }
+
+    @Bean
+    @Qualifier("or")
+    public Store orStore() {
+        return new Store(outputDir.resolve("database-or.json"));
     }
 
     public static void main(String[] args) {

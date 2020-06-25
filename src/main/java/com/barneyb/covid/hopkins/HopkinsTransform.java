@@ -49,12 +49,16 @@ public class HopkinsTransform implements InitializingBean {
     Path outputDir;
 
     @Autowired
+    @Qualifier("worldwide")
+    Store wwStore;
+
+    @Autowired
     @Qualifier("us")
     Store usStore;
 
     @Autowired
-    @Qualifier("worldwide")
-    Store wwStore;
+    @Qualifier("or")
+    Store orStore;
 
     @Autowired
     ObjectMapper mapper;
@@ -234,6 +238,13 @@ public class HopkinsTransform implements InitializingBean {
         logStep("Dashboard rebuilt");
 
         new StoreBuilder<>(dates,
+                idxGlobal,
+                Demographics::getCountry,
+                (iw, d) -> iw.getByCountry(d.getCountry())
+        ).updateStore(wwStore, demographics.countries());
+        logStep("Worldwide database rebuilt");
+
+        new StoreBuilder<>(dates,
                 idxUs,
                 Demographics::getState,
                 (iu, d) -> iu.getByState(d.getState())
@@ -242,11 +253,13 @@ public class HopkinsTransform implements InitializingBean {
         logStep("US database rebuilt");
 
         new StoreBuilder<>(dates,
-                idxGlobal,
-                Demographics::getCountry,
-                (iw, d) -> iw.getByCountry(d.getCountry())
-        ).updateStore(wwStore, demographics.countries());
-        logStep("Worldwide database rebuilt");
+                idxUs,
+                Demographics::getLocality,
+                (iu, d) -> iu.getByStateAndLocality("Oregon", d.getLocality())
+        ).updateStore(orStore, idxUs.getLocalitiesOfState("Oregon")
+                .filter(s -> !s.getDemographics().getLocality().endsWith("Metro"))
+                .map(CombinedTimeSeries::getDemographics));
+        logStep("OR database rebuilt");
 
         new RatesBuilder(dates, CombinedTimeSeries::getCasesSeries, idxGlobal, idxUs)
                 .emit(outputDir.resolve("rates-cases.txt"));

@@ -238,7 +238,7 @@ function init(rawData, datasetName, hotRows = [], extraTotals = {}) {
     }
     dataRecords.push(buildTotal("Total", dataRecords));
     Object.keys(extraTotals).forEach(n =>
-        dataRecords.push(buildTotal(n, dataRecords.filter(extraTotals[n]))));
+        dataRecords.push(buildTotal(n, dataRecords.filter(it => !it.total && extraTotals[n](it)))));
     for (const rec of dataRecords) {
         rec.groups = rawData.points
             .reduce((agg, p, pidx) => {

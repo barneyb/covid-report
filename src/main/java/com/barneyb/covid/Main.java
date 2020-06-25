@@ -23,12 +23,16 @@ public class Main implements ApplicationRunner {
     ApplicationContext appCtx;
 
     @Autowired
+    @Qualifier("worldwide")
+    Store wwStore;
+
+    @Autowired
     @Qualifier("us")
     Store usStore;
 
     @Autowired
-    @Qualifier("worldwide")
-    Store wwStore;
+    @Qualifier("or")
+    Store orStore;
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
@@ -45,11 +49,14 @@ public class Main implements ApplicationRunner {
         val json = appCtx.getBean(ReportJsonEmitter.class);
         val tsv = appCtx.getBean(TsvEmitter.class);
 
+        json.emit(Files.newOutputStream(outputDir.resolve("table-ww.json")), wwStore);
+        tsv.emit(Files.newOutputStream(outputDir.resolve("table-ww.tsv")), wwStore);
+
         json.emit(Files.newOutputStream(outputDir.resolve("table-us.json")), usStore);
         tsv.emit(Files.newOutputStream(outputDir.resolve("table-us.tsv")), usStore);
 
-        json.emit(Files.newOutputStream(outputDir.resolve("table-ww.json")), wwStore);
-        tsv.emit(Files.newOutputStream(outputDir.resolve("table-ww.tsv")), wwStore);
+        json.emit(Files.newOutputStream(outputDir.resolve("table-or.json")), orStore);
+        tsv.emit(Files.newOutputStream(outputDir.resolve("table-or.tsv")), orStore);
     }
 
 }
