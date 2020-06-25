@@ -1,14 +1,26 @@
 function init(data) {
     const colorForDelta = val => {
-        const h = val < 0 ? 92 : 15; // green/red
-        const s = 50 + Math.min(1, Math.abs(val)) * 40;
-        const l = 95 - Math.min(1, Math.abs(val)) * 40;
-        return [h,s,l];
+        const zero = [50, 40, 90]
+        if (val > -0.001 && val < 0.001) {
+            return zero;
+        }
+        const dist = Math.min(1, Math.abs(val))
+        let end
+        if (val < 0) {
+            end = [178, 63, 45];
+        } else {
+            end = [13, 76, 46];
+        }
+        return [
+            zero[0] - (zero[0] - end[0]) * (val > 0 ? Math.sqrt(dist) : dist),
+            zero[1] - (zero[1] - end[1]) * (val > 0 ? Math.sqrt(dist) : dist),
+            zero[2] - (zero[2] - end[2]) * dist,
+        ];
     }
     const drawBar = deltas => {
         const ds = deltas
             .filter(it => isActualNumber(it.delta))
-            .sort((a, b) => b.delta - a.delta);
+            .sort((a, b) => a.delta - b.delta);
         const tp = ds.reduce((s, d) => s + d.pop, 0);
         return ds
             .map(it => {
@@ -43,7 +55,7 @@ function init(data) {
         const [h,s,l] = colorForDelta((last - first) / first);
         return tag('svg', [
                 tag('title', `Average new cases per day (past ${len} days)`),
-                tag('polyline', '', {points,fill:"none",stroke:`hsl(${h},${s+10}%,${l-20}%)`,'stroke-width':"2px"}),
+                tag('polyline', '', {points,fill:"none",stroke:`hsl(${h},${s+10}%,${l-10}%)`,'stroke-width':"2px"}),
             ], {width:width + "px",height:height + "px"});
     };
     const drawNum = (label, n) => {
