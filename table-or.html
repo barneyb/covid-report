@@ -7,7 +7,7 @@
 </head>
 <body class="table">
 <div id="navbar">
-    <a href="./">Dashboard</a>
+    <a href="./">Home</a>
     <a href="table-ww.html">Countries</a>
     <a href="table-us.html">US States</a>
     <a href="table-or.html" class="active">Oregon Counties</a>
@@ -53,7 +53,6 @@
                 return r.name === "Clackamas" || r.name === "Multnomah" || r.name === "Washington"
             },
             "Outside Portland": r => {
-                console.log(r)
                 return r.name !== "Clackamas" && r.name !== "Multnomah" && r.name !== "Washington"
             },
         }));

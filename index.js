@@ -35,24 +35,24 @@ function init(data) {
             })
             .join("\n");
     };
-    const drawSpark = spark => {
+    const drawSpark = values => {
         const width = 200;
         const height = 50;
         const pad = 3;
-        const min = spark.values.reduce((a, b) => Math.min(a, b), 999999999)
-        const max = spark.values.reduce((a, b) => Math.max(a, b), 0)
+        const min = values.reduce((a, b) => Math.min(a, b), 999999999)
+        const max = values.reduce((a, b) => Math.max(a, b), 0)
         const range = max - min;
-        const len = spark.values.length
+        const len = values.length
         const dx = (width - pad - pad) / (len - 1)
-        const points = spark.values
+        const points = values
             .map((d, i) => [
                 pad + i * dx,
                 height - pad - (d - min) / range * (height - pad - pad)
             ])
             .map(p => p.join(","))
             .join(" ");
-        const first = spark.values[0]
-        const last = spark.values[len - 1]
+        const first = values[0]
+        const last = values[len - 1]
         const [h,s,l] = colorForDelta((last - first) / first);
         return tag('svg', [
                 tag('title', `Average new cases per day (past ${len} days)`),
@@ -65,30 +65,30 @@ function init(data) {
             tag('span', formatNumber(n), {style: "font-weight:bold;font-size:200%"}),
         ], {style: "text-align:right;margin-top:0.25em"});
     }
-    const drawSparks = element => {
-        element.innerHTML = data.sparks
-            .map(s => {
+    const renderAreas = (element, areas) => {
+        element.innerHTML = areas
+            .map(a => {
                 const cols = [];
                 cols.push(tag('div', [
-                    drawSpark(s),
-                    drawNum("Daily", s.daily),
-                    drawNum("Total", s.total),
+                    drawSpark(a.values),
+                    drawNum("Daily", a.daily),
+                    drawNum("Total", a.total),
                     ], {className: "spark"}));
-                if (s.breakdown) {
+                if (a.segments) {
                     cols.push(tag('div',
                         [
                             tag('strong', 'Population Breakdown'),
-                            tag('span', drawBar(s.breakdown), {className: 'bar'}),
+                            tag('span', drawBar(a.segments), {className: 'bar'}),
                         ],
                         {className: "bar-layout", title: "Week-over-week change in new case rate, by population segment"}));
                 }
-                return tag('h3', s.name) +
+                return tag('h3', a.name) +
                     tag('div', cols
                         .map(c => tag('div', c, {className: "col"})), {className: "colset"})
             })
             .join("\n")
     };
-    drawSparks($("#sparks"))
+    renderAreas($("#areas"), data.areas)
 }
 fetch("data/dashboard.json")
     .then(r => r.json())
