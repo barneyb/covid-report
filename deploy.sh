@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 
+REMOTE_HOST=barneyb.com
+REMOTE_DIR=/vol/www/static/covid/
+
 cd `dirname $0`
 
 DO_JAR=0
+DO_REFRESH=1
 
 while [ "$1" != "" ]; do
   case $1 in
@@ -10,8 +14,12 @@ while [ "$1" != "" ]; do
       shift
       DO_JAR=1
       ;;
+    "--refresh")
+      shift
+      DO_REFRESH=0
+      ;;
     *)
-      echo "Usage `basename $0` [ --client-only ]"
+      echo "Usage `basename $0` [ --client-only ] [ --refresh ]"
       exit 1
   esac
 done
@@ -30,4 +38,8 @@ rsync -a \
   mortality.csv \
   covid.jar \
   hopkins \
-  barneyb.com:/vol/www/static/covid/
+  $REMOTE_HOST:$REMOTE_DIR
+
+if [ $DO_REFRESH -eq 0 ]; then
+  ssh $REMOTE_HOST bash $REMOTE_DIR/hopkins/refresh.sh
+fi
