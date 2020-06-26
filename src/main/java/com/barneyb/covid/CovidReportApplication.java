@@ -1,5 +1,6 @@
 package com.barneyb.covid;
 
+import com.barneyb.covid.hopkins.HopkinsTransform;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
@@ -26,8 +27,7 @@ public class CovidReportApplication {
     @Value("${covid-report.output.dir}")
     Path outputDir;
 
-	@Bean
-    public ObjectMapper objectMapper() {
+    private SimpleModule jsonLocalDateModule() {
         val module = new SimpleModule("LocalDateModule");
         module.addSerializer(LocalDate.class, new JsonSerializer<>() {
             @Override
@@ -41,8 +41,52 @@ public class CovidReportApplication {
                 return LocalDate.parse(p.getText());
             }
         });
+        return module;
+    }
+
+    @Bean
+    JsonSerializer<Double> jsonDoubleSerializer() {
+        return new JsonSerializer<>() {
+            @Override
+            public void serialize(Double value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
+                gen.writeNumber(String.format("%.2f", value));
+            }
+        };
+    }
+
+    private SimpleModule jsonHopkinsModule() {
+        val module = new SimpleModule("HopkinsModule");
+        val ds = jsonDoubleSerializer();
+        module.addSerializer(Double.class, ds);
+        module.addSerializer(double.class, ds);
+        module.addSerializer(double[].class, new JsonSerializer<>() {
+            @Override
+            public void serialize(double[] value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
+                gen.writeStartArray(value.length);
+                for (double d : value) {
+                    ds.serialize(d, gen, serializers);
+                }
+                gen.writeEndArray();
+            }
+        });
+        module.addSerializer(HopkinsTransform.Delta.class, new JsonSerializer<>() {
+            @Override
+            public void serialize(HopkinsTransform.Delta value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
+                gen.writeStartArray(3);
+                gen.writeString(value.getName());
+                gen.writeNumber(value.getPop());
+                ds.serialize(value.getDelta(), gen, serializers);
+                gen.writeEndArray();
+            }
+        });
+        return module;
+    }
+
+    @Bean
+    public ObjectMapper objectMapper() {
         val mapper = new ObjectMapper();
-        mapper.registerModule(module);
+        mapper.registerModule(jsonLocalDateModule());
+        mapper.registerModule(jsonHopkinsModule());
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         mapper.setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE);
         return mapper;

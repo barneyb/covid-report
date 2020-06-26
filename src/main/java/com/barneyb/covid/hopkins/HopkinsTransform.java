@@ -84,7 +84,7 @@ public class HopkinsTransform implements InitializingBean {
 
     @Data
     @AllArgsConstructor
-    private static class Delta {
+    public static class Delta {
         String name;
         long pop;
         double delta;

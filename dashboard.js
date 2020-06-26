@@ -19,6 +19,7 @@ function init(data) {
     }
     const drawBar = deltas => {
         const ds = deltas
+            .map(it => ({name: it[0], pop: it[1], delta: it[2]}))
             .filter(it => isActualNumber(it.delta))
             .sort((a, b) => a.delta - b.delta);
         const tp = ds.reduce((s, d) => s + d.pop, 0);
