@@ -17,28 +17,38 @@ function init(data) {
             zero[2] - (zero[2] - end[2]) * dist,
         ];
     }
-    const drawBar = deltas => {
-        const ds = deltas
+    const drawColumn = segments => {
+        const width = 30;
+        const height = 132;
+        const pad = 1;
+        const ds = segments
             .map(it => ({name: it[0], pop: it[1], delta: it[2]}))
             .filter(it => isActualNumber(it.delta))
-            .sort((a, b) => a.delta - b.delta);
+            .sort((a, b) => b.delta - a.delta);
         const tp = ds.reduce((s, d) => s + d.pop, 0);
-        return ds
-            .map(it => {
-                const [h,s,l] = colorForDelta(it.delta)
-                return tag('span', '', {
-                    title: it.name + " (" + formatPercent(it.delta) + ")",
-                    style: `width:${Math.round(it.pop / tp * 10000) / 100}%;background-color:hsl(${h},${s}%,${l}%)`,
-                    onmouseover: `this.style.backgroundColor='hsl(270,${s}%,${l}%)'`,
-                    onmouseout: `this.style.backgroundColor='hsl(${h},${s}%,${l}%)'`,
-                })
-            })
-            .join("\n");
-    };
+        const factor = (height - pad - pad) / tp;
+        return el('svg', {width:width + "px",height:height + "px"}, ds.reduce((agg, it) => {
+            const [h,s,l] = colorForDelta(it.delta);
+            return {
+                pop: agg.pop + it.pop,
+                rects: agg.rects.concat(el('rect', {
+                    x: pad,
+                    y: pad + Math.round(agg.pop * factor * 100) / 100,
+                    width: width - pad - pad,
+                    height: Math.round(it.pop * factor * 100) / 100,
+                    fill: `hsl(${h},${s}%,${l}%)`,
+                    onmouseover: `this.style.fill='hsl(270,${s}%,${l}%)'`,
+                    onmouseout: `this.style.fill='hsl(${h},${s}%,${l}%)'`,
+                }, [
+                    el('title', it.name + " (" + formatPercent(it.delta) + ")"),
+                ])),
+            };
+        }, {pop: 0, rects: []}).rects)
+    }
     const drawSpark = values => {
         const width = 200;
         const height = 50;
-        const pad = 3;
+        const pad = 1;
         const min = values.reduce((a, b) => Math.min(a, b), 999999999)
         const max = values.reduce((a, b) => Math.max(a, b), 0)
         const range = max - min;
@@ -75,12 +85,7 @@ function init(data) {
                     drawNum("Total", a.total),
                     ], {className: "spark"}));
                 if (a.segments) {
-                    cols.push(tag('div',
-                        [
-                            tag('strong', 'Population Breakdown'),
-                            tag('span', drawBar(a.segments), {className: 'bar'}),
-                        ],
-                        {className: "bar-layout", title: "Week-over-week change in new case rate, by population segment"}));
+                    cols.push(drawColumn(a.segments));
                 }
                 return tag('h3', a.name) +
                     tag('div', cols

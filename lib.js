@@ -39,6 +39,13 @@ const tag = (el, c, attrs) =>
         .map(k => ` ${k === "className" ? "class" : k}="${attrs[k]}"`)
         .join('')}>${c && c.join ? c.filter(IDENTITY)
         .join("") : c || ''}</${el}>`;
+const el = function(name, attrs, children) {
+    if (children == null && (attrs instanceof Array || typeof attrs === "string")) {
+        children = attrs;
+        attrs = undefined;
+    }
+    return tag(name, children, attrs)
+};
 const numComp = (a, b) => {
     if (isActualNumber(a)) return isActualNumber(b) ? a - b : 1;
     if (isActualNumber(b)) return -1;

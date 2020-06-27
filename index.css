@@ -1,22 +1,16 @@
-.bar-layout {
-    display: block;
-    width: 35em;
-    text-align: center;
-    font-size: 1rem;
-    font-weight: normal;
-    margin-bottom: 1em;
+h3 {
+    border-top: 1px solid #ccc;
+    padding-top: 0.5em;
 }
-.bar-layout span {
-    display: block;
+.colset {
+    display: flex;
 }
-.bar-layout .bar {
-    position: relative;
-    height: 1.5em;
-    border: 1px solid #999;
-    margin-top: 3px;
-    background-color: #f7f7f7;
+.colset .col {
+    margin: 0 1em;
 }
-.bar-layout .bar > * {
-    height: 1.5em;
-    float: left;
+.colset .col:first-child {
+    margin-left: 0;
+}
+.colset .col:last-child {
+    margin-right: 0;
 }
