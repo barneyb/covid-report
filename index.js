@@ -40,7 +40,7 @@ function init(data) {
                     onmouseover: `this.style.fill='hsl(270,${s}%,${l}%)'`,
                     onmouseout: `this.style.fill='hsl(${h},${s}%,${l}%)'`,
                 }, [
-                    el('title', it.name + " (" + formatPercent(it.delta) + ")"),
+                    el('title', it.name + " (" + formatPercent(it.delta, 1, true) + ", week-over-week)"),
                 ])),
             };
         }, {pop: 0, rects: []}).rects)

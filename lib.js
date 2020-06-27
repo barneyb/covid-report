@@ -27,9 +27,9 @@ const formatNumber = (v, places = 0) => {
     }
     return nfpMap.get(places).format(v);
 };
-const formatPercent = (v, places = 1) => {
+const formatPercent = (v, places = 1, plus=false) => {
     if (!isActualNumber(v)) return '';
-    return formatNumber(v * 100, places) + "%"
+    return (plus && v > 0 ? "+" : "") + formatNumber(v * 100, places) + "%"
 };
 const formatDeathRate = v => formatNumber(v, 1)
 const formatDeathRateSegment = v => formatNumber(v, 2)
