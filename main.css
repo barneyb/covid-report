@@ -2,6 +2,8 @@ body {
     font-family: 'Roboto', sans-serif; /* not actually gonna web-font it though */
     margin: 1rem;
     margin-top: 3rem;
+    --body-bgc: #fffcf7;
+    background-color: var(--body-bgc);
 }
 #navbar {
     position: fixed;
@@ -9,9 +11,9 @@ body {
     box-sizing: border-box;
     margin: -3rem -1rem;
     padding: 0 1em;
-    background-color: #def;
+    background-color: #ddeef7;
     z-index: 99999;
-    box-shadow: 0 0.5rem 0.5rem 0.25rem white;
+    box-shadow: 0 0.5rem 0.5rem 0.25rem var(--body-bgc);
 }
 #navbar a,
 #navbar a:visited {
@@ -22,7 +24,7 @@ body {
     color: #009;
 }
 #navbar a.active {
-    background-color: white;
+    background-color: var(--body-bgc);
     font-weight: bold;
     color: #000;
 }

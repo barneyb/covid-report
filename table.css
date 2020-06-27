@@ -11,18 +11,35 @@ th.total {
     border-color: #ccc;
 }
 tbody tr:nth-child(even),
-tfoot tr:nth-child(odd) .total {
+tfoot tr:nth-child(even) .total {
     background-color: #f7f7f7;
 }
 th,
 td {
     padding: 0.3em;
 }
+tbody,
+tfoot .total {
+    background-color: white;
+}
 tbody td:first-child {
+    text-align: right;
     color: #999;
+    background-color: var(--body-bgc);
+}
+thead,
+tfoot {
+    border-right: 1px solid #999;
+}
+thead tr:last-child th,
+tbody tr:last-child td {
+    border-bottom: 1px solid #999;
 }
 th.new-point {
     border-left: 1px solid #999;
+}
+tbody {
+    border-right: 1px solid #ccc;
 }
 td.new-point {
     border-left: 1px solid #ccc;
