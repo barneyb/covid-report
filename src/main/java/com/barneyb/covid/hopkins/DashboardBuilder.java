@@ -1,5 +1,6 @@
 package com.barneyb.covid.hopkins;
 
+import com.barneyb.covid.hopkins.csv.Demographics;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,6 +40,8 @@ public class DashboardBuilder {
                 ));
         dash.addArea(mult);
         dash.addArea(wash);
+        List.of("Arizona", "California", "Florida", "Texas").forEach(s ->
+            dash.addArea(idxUs.getByState(s), idxUs.getLocalitiesOfState(s)));
         try (val out = Files.newOutputStream(destination)) {
             mapper
 //                    .writerWithDefaultPrettyPrinter() // todo: comment out?
@@ -60,6 +63,8 @@ public class DashboardBuilder {
     private static class Area {
         @NonNull
         String name;
+        @NonNull
+        long pop;
         @NonNull
         int total;
         @NonNull
@@ -95,8 +100,10 @@ public class DashboardBuilder {
         private static Area of(TimeSeries series) {
             val data = series.getData();
             int len = data.length;
+            Demographics demo = series.getDemographics();
             return new Area(
-                    series.getDemographics().getCombinedKey(),
+                    demo.getCombinedKey(),
+                    demo.getPopulation(),
                     (int) data[len - 1],
                     (int) (data[len - 1] - data[len - 2]),
                     Optional.of(Arrays.copyOfRange(data, len - SPARK_DAYS - 7, len))
