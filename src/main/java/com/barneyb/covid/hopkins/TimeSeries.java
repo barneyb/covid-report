@@ -19,20 +19,6 @@ public class TimeSeries implements WithDemographics<TimeSeries> {
     @ToString.Exclude
     final private double[] data;
 
-    @ToString.Include
-    public int getPointCount() {
-        return this.data.length;
-    }
-
-    @ToString.Include
-    public double getCurrent() {
-        return getDaysAgo(0);
-    }
-
-    public double getDaysAgo(int daysAgo) {
-        return this.data[this.data.length - 1 - daysAgo];
-    }
-
     private TimeSeries(Demographics demographics, double[] data) {
         this.demographics = demographics;
         this.data = data;
@@ -87,6 +73,39 @@ public class TimeSeries implements WithDemographics<TimeSeries> {
 
     public TimeSeries map(Function<double[], double[]> map) {
         return new TimeSeries(demographics, map.apply(data));
+    }
+
+    @ToString.Include
+    public int getPointCount() {
+        return this.data.length;
+    }
+
+    @ToString.Include
+    public double getCurrent() {
+        return getDaysAgo(0);
+    }
+
+    public double getCurrentRate() {
+        return RatesBuilder.PER_100K.apply(demographics, getCurrent());
+    }
+
+    public double getDaysAgo(int daysAgo) {
+        return this.data[this.data.length - 1 - daysAgo];
+    }
+
+    public double getWeekOverWeek() {
+        final double prev = getDaysAgo(7) - getDaysAgo(14);
+        return prev == 0
+                ? 10 // Any increase from zero means tenfold! By fiat!
+                : (getNewThisWeek() - prev) / prev;
+    }
+
+    public double getNewThisWeek() {
+        return getCurrent() - getDaysAgo(7);
+    }
+
+    public double getNewThisWeekRate() {
+        return RatesBuilder.PER_100K.apply(demographics, getNewThisWeek());
     }
 
 }

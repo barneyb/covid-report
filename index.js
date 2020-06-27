@@ -88,34 +88,42 @@ function init(data) {
                 }),
             ]);
     };
-    const drawNum = (label, n, title) => {
-        return el('div', {className: "stat", title}, [
-            el('div', {className: "stat-label"}, label + ":"),
-            el('div', {className: "stat-value"}, formatNumber(n)),
+    const _statHelper = (label, val, title) =>
+        el('div', {className: "stat", title}, [
+            el('div', {className: "stat-label"}, label),
+            el('div', {className: "stat-value"}, val),
+        ])
+    const drawCountStat = (label, count, title) =>
+        _statHelper(label, formatNumber(count), title);
+    const drawRateStat = (rate, title) =>
+        _statHelper("per 100k", formatNumber(rate, 1), title)
+    const drawSection = section =>
+        el("section", [
+            el('h1', section.label),
+            el('div', {className: "cards"}, section.areas
+                .map(n => data.lookup[n])
+                .map(a => {
+                    const kids = [
+                        el('header',[
+                            el('h3', {title:a.name}, a.name),
+                        ]),
+                        el('div', {className: "spark-container"}, drawSpark(a.values)),
+                        drawCountStat("Total Cases", a.total, "Total cases"),
+                        a.pop && drawRateStat(a.total / a.pop * HunThou, "Total cases, per 100,000 population"),
+                        drawCountStat("Daily Cases", a.daily, "New cases per day"),
+                        a.pop && drawRateStat(a.daily / a.pop * HunThou, "New cases per day, per 100,000 population"),
+                        a.pop && drawCountStat("Pop", a.pop, "Population"),
+                    ];
+                    if (a.segments && a.segments.length > 1) {
+                        kids.push(el('div', {className: "segment-container"}, drawColumn(a.segments)));
+                    }
+                    return el('article', {className: "card"}, kids)
+                })
+                .join("\n")),
         ]);
-    }
-    const renderAreas = (element, areas) => {
-        element.innerHTML = areas
-            .map(a => {
-                const cols = [];
-                cols.push(el('div', {className: "spark"}, [
-                    el('header',[
-                        el('h3', {title:a.name}, a.name),
-                    ]),
-                    el('div', {className: "spark-container"}, drawSpark(a.values)),
-                    drawNum("Cases", a.total, "Total cases"),
-                    drawNum("Daily", a.daily, "New cases per day, on average, for the past seven days"),
-                    a.pop && drawNum("Rate", a.total / a.pop * HunThou, "Cases per 100,000 population"),
-                    ]));
-                if (a.segments) {
-                    cols.push(el('div', {className: "segment-container"}, drawColumn(a.segments)));
-                }
-                return el('div', {className: "card"}, cols
-                        .map(c => el('div', {className: "col"}, c)))
-            })
-            .join("\n")
-    };
-    renderAreas($("#areas"), data.areas)
+    $("#areas").innerHTML = data.sections
+        .map(drawSection)
+        .join("\n");
 }
 fetch("data/dashboard.json")
     .then(r => r.json())

@@ -96,6 +96,10 @@ public class IndexedWorld {
                 .filter(c -> statesOfCountry.get(c).size() > 1);
     }
 
+    public boolean hasStates(String country) {
+        return statesOfCountry.containsKey(country);
+    }
+
     public Stream<CombinedTimeSeries> getStatesOfCountry(String country) {
         return statesOfCountry.get(country).stream();
     }

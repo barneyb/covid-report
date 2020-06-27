@@ -29,8 +29,16 @@ public class CombinedTimeSeries implements WithDemographics<CombinedTimeSeries> 
         return this.cases.getCurrent();
     }
 
+    public double getTotalCaseRate() {
+        return this.cases.getCurrentRate();
+    }
+
     public double getTotalDeaths() {
         return this.deaths.getCurrent();
+    }
+
+    public double getTotalDeathRate() {
+        return this.deaths.getCurrentRate();
     }
 
     public TimeSeries getCasesSeries() {
