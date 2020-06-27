@@ -258,7 +258,7 @@ function init(rawData, datasetName, hotRows = [], extraTotals = {}) {
                                 // noinspection JSPrimitiveTypeWrapperUsage
                                 val = new Number(val);
                                 val._change = prev === 0
-                                    ? 10 // Any increase from zero means tenfold! By fiat!
+                                    ? val === 0 ? 0 : 10 // Any increase from zero means tenfold! By fiat!
                                     : (val - prev) / prev;
                                 ss[s.name] = val;
                                 ss[Delta + s.name] = val._change;

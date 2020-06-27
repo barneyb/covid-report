@@ -95,9 +95,10 @@ public class TimeSeries implements WithDemographics<TimeSeries> {
 
     public double getWeekOverWeek() {
         final double prev = getDaysAgo(7) - getDaysAgo(14);
+        double val = getNewThisWeek();
         return prev == 0
-                ? 10 // Any increase from zero means tenfold! By fiat!
-                : (getNewThisWeek() - prev) / prev;
+                ? val == 0 ? 0 : 10 // Any increase from zero means tenfold! By fiat!
+                : (val - prev) / prev;
     }
 
     public double getNewThisWeek() {
