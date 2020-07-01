@@ -13,12 +13,25 @@ public class USTimeSeries implements CsvTimeSeries {
 
     @CsvBindByName(column = "UID")
     private int uid;
+    @CsvBindByName(column = "iso2")
+    private String iso2;
+    @CsvBindByName(column = "iso3")
+    private String iso3;
+    @CsvBindByName(column = "code3")
+    private String code3;
+    @CsvBindByName(column = "FIPS")
+    private String fips;
 
     @CsvBindByName(column = "Province_State")
     private String state;
 
     @CsvBindByName(column = "Admin2")
     private String locality;
+
+    @CsvBindByName(column = "Lat")
+    private Double latitude;
+    @CsvBindByName(column = "Long_")
+    private Double longitude;
 
     // MVM is a bit silly, since the column names are all different, but both
     // this use case and aggregating multiple same-named columns are provided by

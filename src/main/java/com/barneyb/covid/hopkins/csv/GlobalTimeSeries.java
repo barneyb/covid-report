@@ -17,6 +17,11 @@ public class GlobalTimeSeries implements CsvTimeSeries {
     @CsvBindByName(column = "Province/State")
     private String state;
 
+    @CsvBindByName(column = "Lat")
+    private Double latitude;
+    @CsvBindByName(column = "Long")
+    private Double longitude;
+
     public void setState(String state) {
         // todo: use the web branch's overrides?
         if ("Hong Kong".equals(state) || "Macau".equals(state)) {

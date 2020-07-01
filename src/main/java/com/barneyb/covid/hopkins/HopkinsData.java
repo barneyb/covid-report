@@ -3,6 +3,7 @@ package com.barneyb.covid.hopkins;
 import com.barneyb.covid.hopkins.csv.Demographics;
 import com.barneyb.covid.hopkins.csv.GlobalTimeSeries;
 import com.barneyb.covid.hopkins.csv.USTimeSeries;
+import com.barneyb.covid.hopkins.csv.UidLookup;
 import com.opencsv.bean.CsvToBeanBuilder;
 import com.opencsv.enums.CSVReaderNullFieldIndicator;
 import lombok.SneakyThrows;
@@ -33,7 +34,14 @@ public class HopkinsData {
         usDeathsFile = tsDir.resolve("time_series_covid19_deaths_US.csv");
     }
 
-    public List<Demographics> loadUidLookup() {
+    public List<UidLookup> loadUidLookup() {
+        return load(uidLookupFile, UidLookup.class);
+    }
+
+    /**
+     * I exist as compatibility alias for {@link #loadUidLookup()}. Use that?
+     */
+    public List<Demographics> loadDemographics() {
         return load(uidLookupFile, Demographics.class);
     }
 

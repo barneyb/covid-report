@@ -68,7 +68,7 @@ public class HopkinsTransform {
         } else if (!Files.isDirectory(outputDir)) {
             throw new RuntimeException("Non-directory '" + outputDir + "' found.");
         }
-        val demographics = new IndexedDemographics(hopkinsData.loadUidLookup());
+        val demographics = new IndexedDemographics(hopkinsData.loadDemographics());
         logStep("Demographics loaded and indexed");
 
         val rawGlobal = hopkinsData.loadGlobalCases();

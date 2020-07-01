@@ -37,7 +37,7 @@ public class IndexedUS {
                 ))
                 .collect(Collectors.toUnmodifiableList());
         localsByState = new Index<>(cover.stream()
-                .filter(it -> !it.getDemographics().isCompleteness())
+                .filter(it -> it.getDemographics().isConcrete())
                 .filter(it -> {
                     // CSSE has grouped NYC's other four boroughs into the "New York" (Manhattan) locality
                     val d = it.getDemographics();
@@ -51,7 +51,7 @@ public class IndexedUS {
                 }),
                 it -> it.getDemographics().getState());
         byStateAndLocality = new UniqueIndex<>(cover.stream()
-                .filter(it -> !it.getDemographics().isCompleteness())
+                .filter(it -> it.getDemographics().isConcrete())
                 .filter(it -> it.getDemographics().isLocality()),
                 it -> new Pair<>(it.getDemographics().getState(), it.getDemographics().getLocality()));
         byStateAndLocality.add(buildPortlandMetro());
