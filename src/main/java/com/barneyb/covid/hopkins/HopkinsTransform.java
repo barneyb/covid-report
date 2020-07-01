@@ -1,44 +1,37 @@
 package com.barneyb.covid.hopkins;
 
 import com.barneyb.covid.Store;
-import com.barneyb.covid.hopkins.csv.*;
+import com.barneyb.covid.hopkins.csv.CsvTimeSeries;
+import com.barneyb.covid.hopkins.csv.Demographics;
+import com.barneyb.covid.hopkins.csv.MortRates;
 import com.opencsv.bean.CsvToBeanBuilder;
-import com.opencsv.enums.CSVReaderNullFieldIndicator;
 import lombok.SneakyThrows;
 import lombok.val;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.io.FileReader;
-import java.io.IOException;
 import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
 
 @Component
-public class HopkinsTransform implements InitializingBean {
+public class HopkinsTransform {
 
     private static final Logger logger = LoggerFactory.getLogger(HopkinsTransform.class);
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("M/d/yy");
 
-    @Value("${covid-report.hopkins.dir}")
-    Path dataDir;
-    private Path uidLookupFile;
-    private Path globalCasesFile;
-    private Path globalDeathsFile;
-    private Path usCasesFile;
-    private Path usDeathsFile;
-
     @Value("${covid-report.output.dir}")
     Path outputDir;
+
+    @Autowired
+    HopkinsData hopkinsData;
 
     @Autowired
     @Qualifier("worldwide")
@@ -54,16 +47,6 @@ public class HopkinsTransform implements InitializingBean {
 
     @Autowired
     DashboardBuilder dashboardBuilder;
-
-    @Override
-    public void afterPropertiesSet() {
-        uidLookupFile = dataDir.resolve("UID_ISO_FIPS_LookUp_Table.csv");
-        val tsDir = dataDir.resolve("csse_covid_19_time_series");
-        globalCasesFile = tsDir.resolve("time_series_covid19_confirmed_global.csv");
-        globalDeathsFile = tsDir.resolve("time_series_covid19_deaths_global.csv");
-        usCasesFile = tsDir.resolve("time_series_covid19_confirmed_US.csv");
-        usDeathsFile = tsDir.resolve("time_series_covid19_deaths_US.csv");
-    }
 
     private long _prev;
 
@@ -85,17 +68,17 @@ public class HopkinsTransform implements InitializingBean {
         } else if (!Files.isDirectory(outputDir)) {
             throw new RuntimeException("Non-directory '" + outputDir + "' found.");
         }
-        val demographics = loadDemographics();
+        val demographics = new IndexedDemographics(hopkinsData.loadUidLookup());
         logStep("Demographics loaded and indexed");
 
-        val rawGlobal = loadGlobalData(globalCasesFile);
+        val rawGlobal = hopkinsData.loadGlobalCases();
         val dates = extractDates(rawGlobal.get(0));
         try (Writer w = Files.newBufferedWriter(outputDir.resolve("last-update.txt"))) {
             // add a day for the UTC/LocalDate dance
             w.write(dates[dates.length - 1].plusDays(1).toString());
         }
         val dateHeaders = buildDateHeaders(dates);
-        val idxGlobal = new IndexedWorld(demographics, rawGlobal, loadGlobalData(globalDeathsFile), dateHeaders);
+        val idxGlobal = new IndexedWorld(demographics, rawGlobal, hopkinsData.loadGlobalDeaths(), dateHeaders);
         demographics.createWorldwide(idxGlobal
                 .countries()
                 .map(CombinedTimeSeries::getDemographics)
@@ -104,7 +87,7 @@ public class HopkinsTransform implements InitializingBean {
         idxGlobal.createWorldwide(demographics.getWorldwide());
         logStep("Global series loaded and indexed");
 
-        val idxUs = new IndexedUS(demographics, loadUSData(usCasesFile), loadUSData(usDeathsFile), dateHeaders);
+        val idxUs = new IndexedUS(demographics, hopkinsData.loadUSCases(), hopkinsData.loadUSDeaths(), dateHeaders);
         demographics.createUsExceptNy(idxUs
                 .statesAndDC()
                 .map(CombinedTimeSeries::getDemographics)
@@ -176,30 +159,6 @@ public class HopkinsTransform implements InitializingBean {
                 .map(s -> DATE_FORMAT.parse(s, LocalDate::from))
                 .sorted()
                 .toArray(LocalDate[]::new);
-    }
-
-    private List<USTimeSeries> loadUSData(Path src) throws IOException {
-        return new CsvToBeanBuilder<USTimeSeries>(Files.newBufferedReader(src))
-                .withType(USTimeSeries.class)
-                .withFieldAsNull(CSVReaderNullFieldIndicator.EMPTY_SEPARATORS)
-                .build()
-                .parse();
-    }
-
-    private List<GlobalTimeSeries> loadGlobalData(Path src) throws IOException {
-        return new CsvToBeanBuilder<GlobalTimeSeries>(Files.newBufferedReader(src))
-                .withType(GlobalTimeSeries.class)
-                .withFieldAsNull(CSVReaderNullFieldIndicator.EMPTY_SEPARATORS)
-                .build()
-                .parse();
-    }
-
-    private IndexedDemographics loadDemographics() throws IOException {
-        return new IndexedDemographics(new CsvToBeanBuilder<Demographics>(Files.newBufferedReader(uidLookupFile))
-                .withType(Demographics.class)
-                .withFieldAsNull(CSVReaderNullFieldIndicator.EMPTY_SEPARATORS)
-                .build()
-                .parse());
     }
 
 }
