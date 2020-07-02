@@ -58,7 +58,44 @@ public class HopkinsData {
 
     private List<USTimeSeries> loadUS(Path src) {
         return stream(src, USTimeSeries.class)
-                // todo: Exception type 1, such as recovered and Kansas City, ranging from 8407001 to 8407999.
+                // Exception type 1, such as recovered and Kansas City, ranging from 8407001 to 8407999.
+                // todo: Dukes and Nantucket, Mass.
+                // todo: Kansas City
+                // todo: Michigan's state/federal corrections?
+                // Utah's districts
+                .filter(d -> {
+                    if (!"Utah".equals(d.getState())) return true;
+                    val l = d.getLocality();
+                    // Bear River
+                    if ("Box Elder".equals(l)) return false;
+                    if ("Cache".equals(l)) return false;
+                    if ("Rich".equals(l)) return false;
+                    // Central Utah
+                    if ("Juab".equals(l)) return false;
+                    if ("Millard".equals(l)) return false;
+                    if ("Piute".equals(l)) return false;
+                    if ("Sanpete".equals(l)) return false;
+                    if ("Sevier".equals(l)) return false;
+                    if ("Wayne".equals(l)) return false;
+                    // Southeast Utah
+                    if ("Carbon".equals(l)) return false;
+                    if ("Emery".equals(l)) return false;
+                    if ("Grand".equals(l)) return false;
+                    // Southwest Utah
+                    if ("Beaver".equals(l)) return false;
+                    if ("Garfield".equals(l)) return false;
+                    if ("Iron".equals(l)) return false;
+                    if ("Kane".equals(l)) return false;
+                    if ("Washington".equals(l)) return false;
+                    // Tricounty
+                    if ("Daggett".equals(l)) return false;
+                    if ("Duchesne".equals(l)) return false;
+                    if ("Uintah".equals(l)) return false;
+                    // Weber-Morgan
+                    if ("Morgan".equals(l)) return false;
+                    if ("Weber".equals(l)) return false;
+                    return true;
+                })
                 // Exception type 2, only the New York City, which is replacing New York County and its FIPS code.
                 .filter(d -> {
                     if (!"New York".equals(d.getState())) return true;
