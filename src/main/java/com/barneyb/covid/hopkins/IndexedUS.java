@@ -37,18 +37,7 @@ public class IndexedUS {
                 ))
                 .collect(Collectors.toUnmodifiableList());
         localsByState = new Index<>(cover.stream()
-                .filter(it -> it.getDemographics().isConcrete())
-                .filter(it -> {
-                    // CSSE has grouped NYC's other four boroughs into the "New York" (Manhattan) locality
-                    val d = it.getDemographics();
-                    if (!"New York".equals(d.getState())) return true;
-                    val l = d.getLocality();
-                    if ("Bronx".equals(l)) return false;
-                    if ("Kings".equals(l)) return false;
-                    if ("Queens".equals(l)) return false;
-                    if ("Richmond".equals(l)) return false;
-                    return true;
-                }),
+                .filter(it -> it.getDemographics().isConcrete()),
                 it -> it.getDemographics().getState());
         byStateAndLocality = new UniqueIndex<>(cover.stream()
                 .filter(it -> it.getDemographics().isConcrete())

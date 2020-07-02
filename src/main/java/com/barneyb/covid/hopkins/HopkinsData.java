@@ -4,6 +4,7 @@ import com.barneyb.covid.hopkins.csv.Demographics;
 import com.barneyb.covid.hopkins.csv.GlobalTimeSeries;
 import com.barneyb.covid.hopkins.csv.USTimeSeries;
 import com.barneyb.covid.hopkins.csv.UidLookup;
+import com.opencsv.bean.CsvToBean;
 import com.opencsv.bean.CsvToBeanBuilder;
 import com.opencsv.enums.CSVReaderNullFieldIndicator;
 import lombok.SneakyThrows;
@@ -14,6 +15,8 @@ import org.springframework.stereotype.Repository;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Repository
 public class HopkinsData {
@@ -46,11 +49,28 @@ public class HopkinsData {
     }
 
     public List<USTimeSeries> loadUSCases() {
-        return load(usCasesFile, USTimeSeries.class);
+        return loadUS(usCasesFile);
     }
 
     public List<USTimeSeries> loadUSDeaths() {
-        return load(usDeathsFile, USTimeSeries.class);
+        return loadUS(usDeathsFile);
+    }
+
+    private List<USTimeSeries> loadUS(Path src) {
+        return stream(src, USTimeSeries.class)
+                // todo: Exception type 1, such as recovered and Kansas City, ranging from 8407001 to 8407999.
+                // Exception type 2, only the New York City, which is replacing New York County and its FIPS code.
+                .filter(d -> {
+                    if (!"New York".equals(d.getState())) return true;
+                    val l = d.getLocality();
+                    if ("Bronx".equals(l)) return false;
+                    if ("Kings".equals(l)) return false;
+                    if ("Queens".equals(l)) return false;
+                    if ("Richmond".equals(l)) return false;
+                    return true;
+                })
+                // todo: Exception type 3, Diamond Princess, US: 84088888; Grand Princess, US: 84099999.
+                .collect(Collectors.toList());
     }
 
     public List<GlobalTimeSeries> loadGlobalCases() {
@@ -61,14 +81,20 @@ public class HopkinsData {
         return load(globalDeathsFile, GlobalTimeSeries.class);
     }
 
-    @SneakyThrows
     private <T> List<T> load(Path src, Class<T> clazz) {
+        return build(src, clazz).parse();
+    }
+
+    private <T> Stream<T> stream(Path src, Class<T> clazz) {
+        return build(src, clazz).stream();
+    }
+
+    @SneakyThrows
+    private <T> CsvToBean<T> build(Path src, Class<T> clazz) {
         return new CsvToBeanBuilder<T>(Files.newBufferedReader(src))
                 .withType(clazz)
                 .withFieldAsNull(CSVReaderNullFieldIndicator.EMPTY_SEPARATORS)
-                .build()
-                .parse();
-
+                .build();
     }
 
 }
