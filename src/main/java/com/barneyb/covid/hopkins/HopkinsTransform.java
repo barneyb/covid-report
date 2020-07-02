@@ -1,8 +1,8 @@
 package com.barneyb.covid.hopkins;
 
 import com.barneyb.covid.Store;
-import com.barneyb.covid.hopkins.csv.CsvTimeSeries;
 import com.barneyb.covid.hopkins.csv.Demographics;
+import com.barneyb.covid.hopkins.csv.GlobalTimeSeries;
 import com.barneyb.covid.hopkins.csv.MortRates;
 import com.opencsv.bean.CsvToBeanBuilder;
 import lombok.SneakyThrows;
@@ -18,14 +18,11 @@ import java.io.FileReader;
 import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 
 @Component
 public class HopkinsTransform {
 
     private static final Logger logger = LoggerFactory.getLogger(HopkinsTransform.class);
-    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("M/d/yy");
 
     @Value("${covid-report.output.dir}")
     Path outputDir;
@@ -72,12 +69,13 @@ public class HopkinsTransform {
         logStep("Demographics loaded and indexed");
 
         val rawGlobal = hopkinsData.loadGlobalCases();
-        val dates = extractDates(rawGlobal.get(0));
+        GlobalTimeSeries firstSeries = rawGlobal.iterator().next();
+        val dates = firstSeries.getDateSequence();
         try (Writer w = Files.newBufferedWriter(outputDir.resolve("last-update.txt"))) {
             // add a day for the UTC/LocalDate dance
             w.write(dates[dates.length - 1].plusDays(1).toString());
         }
-        val dateHeaders = buildDateHeaders(dates);
+        val dateHeaders = firstSeries.getDateHeaderSequence();
         val idxGlobal = new IndexedWorld(demographics, rawGlobal, hopkinsData.loadGlobalDeaths(), dateHeaders);
         demographics.createWorldwide(idxGlobal
                 .countries()
@@ -141,24 +139,6 @@ public class HopkinsTransform {
         new RatesBuilder(dates, CombinedTimeSeries::getDeathsSeries, idxGlobal, idxUs)
                 .emit(outputDir.resolve("rates-deaths.txt"));
         logStep("Death rates rebuilt");
-    }
-
-    private String[] buildDateHeaders(LocalDate[] dates) {
-        val dateHeaders = new String[dates.length];
-        for (int i = 0, l = dates.length; i < l; i++) {
-            dateHeaders[i] = dates[i].format(DATE_FORMAT);
-        }
-        return dateHeaders;
-    }
-
-    private LocalDate[] extractDates(CsvTimeSeries series) {
-        return series
-                .getDates()
-                .keySet()
-                .stream()
-                .map(s -> DATE_FORMAT.parse(s, LocalDate::from))
-                .sorted()
-                .toArray(LocalDate[]::new);
     }
 
 }

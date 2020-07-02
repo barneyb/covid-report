@@ -29,9 +29,10 @@ public class TimeSeries implements WithDemographics<TimeSeries> {
             throw new RuntimeException("Null demographics for " + raw);
         }
         this.demographics = demographics;
-        this.data = new double[dateHeaders.length];
+        int[] rd = raw.getData();
+        this.data = new double[rd.length];
         for (int i = 0, l = this.data.length; i < l; i++) {
-            this.data[i] = raw.getDataPoint(dateHeaders[i]);
+            this.data[i] = rd[i];
         }
     }
 
