@@ -1,6 +1,7 @@
 package com.barneyb.covid.hopkins;
 
 import com.barneyb.covid.hopkins.csv.Demographics;
+import com.barneyb.covid.util.UniqueIndex;
 import lombok.Getter;
 
 import java.util.Collection;

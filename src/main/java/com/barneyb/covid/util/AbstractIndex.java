@@ -1,5 +1,7 @@
-package com.barneyb.covid.hopkins;
+package com.barneyb.covid.util;
 
+import com.barneyb.covid.hopkins.Pair;
+import com.barneyb.covid.hopkins.UnknownKeyException;
 import lombok.val;
 import org.apache.commons.collections4.MultiValuedMap;
 import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
@@ -10,12 +12,12 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
-public abstract class AbstractIndex<K, V, M> {
+abstract class AbstractIndex<K, V, M> {
 
     protected final MultiValuedMap<K, V> index;
     private final Consumer<V> adder;
 
-    protected AbstractIndex(Stream<V> stream, Function<V, K> extractor, boolean unique) {
+    AbstractIndex(Stream<V> stream, Function<V, K> extractor, boolean unique) {
         index = new ArrayListValuedHashMap<>();
         adder = it -> {
             val k = extractor.apply(it);

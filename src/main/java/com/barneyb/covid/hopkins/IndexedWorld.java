@@ -2,6 +2,8 @@ package com.barneyb.covid.hopkins;
 
 import com.barneyb.covid.hopkins.csv.Demographics;
 import com.barneyb.covid.hopkins.csv.GlobalTimeSeries;
+import com.barneyb.covid.util.Index;
+import com.barneyb.covid.util.UniqueIndex;
 import lombok.Getter;
 import lombok.val;
 

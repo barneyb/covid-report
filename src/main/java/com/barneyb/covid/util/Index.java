@@ -1,4 +1,4 @@
-package com.barneyb.covid.hopkins;
+package com.barneyb.covid.util;
 
 import java.util.Collection;
 import java.util.function.Function;
@@ -7,11 +7,11 @@ import java.util.stream.StreamSupport;
 
 public class Index<K, V> extends AbstractIndex<K, V, Collection<V>> {
 
-    Index(Stream<V> stream, Function<V, K> extractor) {
+    public Index(Stream<V> stream, Function<V, K> extractor) {
         super(stream, extractor, false);
     }
 
-    Index(Iterable<V> items, Function<V, K> extractor) {
+    public Index(Iterable<V> items, Function<V, K> extractor) {
         this(StreamSupport.stream(items.spliterator(), false), extractor);
     }
 

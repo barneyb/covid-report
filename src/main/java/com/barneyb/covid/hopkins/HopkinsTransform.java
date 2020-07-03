@@ -4,6 +4,7 @@ import com.barneyb.covid.Store;
 import com.barneyb.covid.hopkins.csv.Demographics;
 import com.barneyb.covid.hopkins.csv.GlobalTimeSeries;
 import com.barneyb.covid.hopkins.csv.MortRates;
+import com.barneyb.covid.util.UniqueIndex;
 import com.opencsv.bean.CsvToBeanBuilder;
 import lombok.SneakyThrows;
 import lombok.val;
