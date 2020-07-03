@@ -59,9 +59,16 @@ public class HopkinsData {
     private List<USTimeSeries> loadUS(Path src) {
         return stream(src, USTimeSeries.class)
                 // Exception type 1, such as recovered and Kansas City, ranging from 8407001 to 8407999.
-                // todo: Dukes and Nantucket, Mass.
-                // todo: Kansas City
-                // todo: Michigan's state/federal corrections?
+                // Dukes and Nantucket, Mass.
+                .filter(d -> {
+                    if (!"Massachusetts".equals(d.getState())) return true;
+                    val l = d.getLocality();
+                    if ("Dukes".equals(l)) return false;
+                    if ("Nantucket".equals(l)) return false;
+                    return true;
+                })
+                // todo: Kansas City - KC has it's own counts, but its population is attributed to the counties it covers. :|
+                // todo: Michigan's state/federal corrections? Gonna trust they got rolled into the county the prisons are in. :|
                 // Utah's districts
                 .filter(d -> {
                     if (!"Utah".equals(d.getState())) return true;
