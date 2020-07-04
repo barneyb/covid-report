@@ -15,6 +15,7 @@ import org.springframework.stereotype.Repository;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -41,6 +42,10 @@ public class HopkinsData {
         return loadUids(UidLookup.class);
     }
 
+    public Stream<UidLookup> streamUidLookup() {
+        return streamUids(UidLookup.class);
+    }
+
     /**
      * I exist as compatibility alias for {@link #loadUidLookup()}. Use that?
      */
@@ -49,6 +54,11 @@ public class HopkinsData {
     }
 
     private <T extends UidLookup> Collection<T> loadUids(Class<T> clazz) {
+        return streamUids(clazz)
+                .collect(Collectors.toList());
+    }
+
+    private <T extends UidLookup> Stream<T> streamUids(Class<T> clazz) {
         /*
          * Munge Kansas City's counties' populations to avoid double-counting
          * the city's residents, as the city is a only a reporting area for
@@ -66,40 +76,72 @@ public class HopkinsData {
         final long adjustClay = (long) ((1.0 * popClay / popTotal) * popKansasCity);
         final long adjustJackson = (long) ((1.0 * popJackson / popTotal) * popKansasCity);
         final long adjustPlatte = (long) ((1.0 * popPlatte / popTotal) * popKansasCity);
+        Function<T, T> kansasCity = d -> {
+            if (!d.isLocality()) return d;
+            if (!"Missouri".equals(d.getState())) return d;
+            long adjust = 0;
+            switch (d.getLocality()) {
+                case "Cass":
+                    adjust = adjustCass;
+                    break;
+                case "Clay":
+                    adjust = adjustClay;
+                    break;
+                case "Jackson":
+                    adjust = adjustJackson;
+                    break;
+                case "Platte":
+                    adjust = adjustPlatte;
+                    break;
+            }
+            if (adjust != 0) d.setPopulation(d.getPopulation() - adjust);
+            return d;
+        };
+        /*
+         * The Channel Islands are grouped together for reporting, and given the
+         * ISO codes of the UK. Instead, use Guernsey's code, so they cam be
+         * separated from the UK, even though Jersey and Guernsey are still
+         * mashed together. Guernsey was selected arbitrarily; just needed
+         * something reserved (avoid conflict with new codes) and w/in the
+         * Channel Islands (avoid conflict if they start reporting separately).
+         */
+        Function<T, T> channelIslands = d -> {
+            if (!d.isState()) return d;
+            if (!"United Kingdom".equals(d.getCountry())) return d;
+            if (!"Channel Islands".equals(d.getState())) return d;
+            d.setUid(831);
+            d.setIso2("GG");
+            d.setIso3("GGY");
+            d.setCode3("831");
+            return d;
+        };
         return stream(uidLookupFile, clazz)
-                .map(d -> {
-                    if (!d.isLocality()) return d;
-                    if (!"Missouri".equals(d.getState())) return d;
-                    long adjust = 0;
-                    switch (d.getLocality()) {
-                        case "Cass":
-                            adjust = adjustCass;
-                            break;
-                        case "Clay":
-                            adjust = adjustClay;
-                            break;
-                        case "Jackson":
-                            adjust = adjustJackson;
-                            break;
-                        case "Platte":
-                            adjust = adjustPlatte;
-                            break;
-                    }
-                    if (adjust != 0) d.setPopulation(d.getPopulation() - adjust);
-                    return d;
-                })
-                .collect(Collectors.toList());
+                .map(kansasCity)
+                .map(channelIslands);
     }
 
     public Collection<USTimeSeries> loadUSCases() {
         return loadUS(usCasesFile);
     }
 
+    public Stream<USTimeSeries> streamUSCases() {
+        return streamUS(usCasesFile);
+    }
+
     public Collection<USTimeSeries> loadUSDeaths() {
         return loadUS(usDeathsFile);
     }
 
+    public Stream<USTimeSeries> streamUSDeaths() {
+        return streamUS(usDeathsFile);
+    }
+
     private Collection<USTimeSeries> loadUS(Path src) {
+        return streamUS(src)
+                .collect(Collectors.toList());
+    }
+
+    private Stream<USTimeSeries> streamUS(Path src) {
         return stream(src, USTimeSeries.class)
                 // Exception type 1, such as recovered and Kansas City, ranging from 8407001 to 8407999.
                 // Dukes and Nantucket, Mass.
@@ -164,17 +206,24 @@ public class HopkinsData {
                         default:
                             return true;
                     }
-                })
+                });
                 // todo: Exception type 3, Diamond Princess, US: 84088888; Grand Princess, US: 84099999.
-                .collect(Collectors.toList());
     }
 
     public Collection<GlobalTimeSeries> loadGlobalCases() {
         return load(globalCasesFile, GlobalTimeSeries.class);
     }
 
+    public Stream<GlobalTimeSeries> streamGlobalCases() {
+        return stream(globalCasesFile, GlobalTimeSeries.class);
+    }
+
     public Collection<GlobalTimeSeries> loadGlobalDeaths() {
         return load(globalDeathsFile, GlobalTimeSeries.class);
+    }
+
+    public Stream<GlobalTimeSeries> streamGlobalDeaths() {
+        return stream(globalDeathsFile, GlobalTimeSeries.class);
     }
 
     private <T> Collection<T> load(Path src, Class<T> clazz) {
