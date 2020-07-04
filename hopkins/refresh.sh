@@ -5,7 +5,7 @@ cd `dirname $0`
 
 cd ../../
 cd COVID-19
-git fetch
+git fetch --prune
 git checkout master
 echo "- Errata -------------------------------------------------------------"
 git diff --ignore-space-change --ignore-space-at-eol \
