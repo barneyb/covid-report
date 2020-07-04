@@ -1,10 +1,15 @@
 package com.barneyb.covid.util;
 
+import java.util.Collections;
 import java.util.function.Function;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 public class UniqueIndex<K, V> extends AbstractIndex<K, V, V> {
+
+    public UniqueIndex(Function<V, K> extractor) {
+        this(Collections.emptySet(), extractor);
+    }
 
     public UniqueIndex(Stream<V> stream, Function<V, K> extractor) {
         super(stream, extractor, true);
