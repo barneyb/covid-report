@@ -99,3 +99,11 @@ button.trigger:hover {
     font-size: 90%;
     color: #666;
 }
+.alert {
+    margin: 10px 0;
+    padding: 10px;
+    background-color: #ffd;
+    border: 1px solid #990;
+    border-radius: 0.3em;
+    color: #330;
+}

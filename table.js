@@ -72,62 +72,62 @@ function init(rawData, datasetName, hotRows = [], extraTotals = {}) {
         {
             scope: "jurisdiction",
             name: "DR",
-            desc: "An estimate of expected deaths per week per 100,000 population, regardless of cause.",
+            desc: "An estimate of expected deaths per day per 100,000 population, regardless of cause.",
             expr: j => j.rates.total,
-            format: formatDeathRate,
+            format: formatDeathRateSegment,
         },
         {
             scope: "jurisdiction",
             name: "Cardiac DR",
-            desc: "An estimate of expected cardiac disease deaths (I00-I99: Diseases of the circulatory system) per week per 100,000 population.",
+            desc: "An estimate of expected cardiac disease deaths (I00-I99: Diseases of the circulatory system) per day per 100,000 population.",
             expr: j => j.rates.circ,
             format: formatDeathRateSegment,
         },
         {
             scope: "jurisdiction",
             name: "Cancer DR",
-            desc: "An estimate of expected cancer-related deaths (C00-D48: Neoplasms) per week per 100,000 population.",
+            desc: "An estimate of expected cancer-related deaths (C00-D48: Neoplasms) per day per 100,000 population.",
             expr: j => j.rates.cancer,
             format: formatDeathRateSegment,
         },
         {
             scope: "jurisdiction",
             name: "Respiratory DR",
-            desc: "An estimate of expected respiratory disease deaths (J00-J98: Diseases of the respiratory system) per week per 100,000 population.",
+            desc: "An estimate of expected respiratory disease deaths (J00-J98: Diseases of the respiratory system) per day per 100,000 population.",
             expr: j => j.rates.resp,
             format: formatDeathRateSegment,
         },
         {
             scope: "jurisdiction",
             name: "Mental DR",
-            desc: "An estimate of expected mental disorder deaths (F01-F99: Mental and behavioural disorders) per week per 100,000 population.",
+            desc: "An estimate of expected mental disorder deaths (F01-F99: Mental and behavioural disorders) per day per 100,000 population.",
             expr: j => j.rates.mental,
             format: formatDeathRateSegment,
         },
         {
             scope: "jurisdiction",
             name: "Non-Trans Accident DR",
-            desc: "An estimate of expected non-transportation accidental deaths (W00-X59: Other external causes of accidental injury) per week per 100,000 population.",
+            desc: "An estimate of expected non-transportation accidental deaths (W00-X59: Other external causes of accidental injury) per day per 100,000 population.",
             expr: j => j.rates.non_trans,
             format: formatDeathRateSegment,
         },
         {
             scope: "jurisdiction",
             name: "Self-Harm DR",
-            desc: "An estimate of expected self-harm deaths (X60-X84: Intentional self-harm) per week per 100,000 population.",
+            desc: "An estimate of expected self-harm deaths (X60-X84: Intentional self-harm) per day per 100,000 population.",
             expr: j => j.rates.self,
             format: formatDeathRateSegment,
         },
         {
             scope: "jurisdiction",
             name: "Transport DR",
-            desc: "An estimate of expected transportation-related deaths (V01-V99: Transport accidents) per week per 100,000 population.",
+            desc: "An estimate of expected transportation-related deaths (V01-V99: Transport accidents) per day per 100,000 population.",
             expr: j => j.rates.trans,
             format: formatDeathRateSegment,
         },
         {
             name: "Cases",
-            desc: "Cases reported this week.",
+            desc: "Cases reported per day this week.",
             test: p => p.case_delta,
             expr: d => d.cases,
             cold: true,
@@ -135,7 +135,7 @@ function init(rawData, datasetName, hotRows = [], extraTotals = {}) {
         },
         {
             name: "Case Rate",
-            desc: "Cases reported this week per 100,000 population.",
+            desc: "Cases reported per day per 100,000 population this week.",
             test: p => p.case_delta,
             expr: (d, p, j) => d.cases / j.pop * HunThou,
             format: v => formatNumber(v, 1),
@@ -149,7 +149,7 @@ function init(rawData, datasetName, hotRows = [], extraTotals = {}) {
         },
         {
             name: "Deaths",
-            desc: "Deaths reported this week.",
+            desc: "Deaths reported per day this week.",
             test: p => p.death_delta,
             expr: d => d.deaths,
             cold: true,
@@ -157,10 +157,10 @@ function init(rawData, datasetName, hotRows = [], extraTotals = {}) {
         },
         {
             name: "Death Rate",
-            desc: "Deaths reported this week per 100,000 population.",
+            desc: "Deaths reported per day per 100,000 population this week.",
             test: p => p.death_delta,
             expr: (d, p, j) => d.deaths / j.pop * HunThou,
-            format: formatDeathRate,
+            format: formatDeathRateSegment,
             cold: true,
             time: true,
         },
@@ -194,9 +194,9 @@ function init(rawData, datasetName, hotRows = [], extraTotals = {}) {
                 if (p.deaths) fs.total_deaths = d.deaths;
                 if (p.case_delta) {
                     if (p.days !== Week) throw new Error("Non-week period!");
-                    fs.cases = d.since.cases;
+                    fs.cases = d.since.cases / Week;
                     if (p.death_delta) {
-                        fs.deaths = d.since.deaths;
+                        fs.deaths = d.since.deaths / Week;
                     }
                 }
                 return fs;
@@ -204,7 +204,7 @@ function init(rawData, datasetName, hotRows = [], extraTotals = {}) {
             rates: Object.keys(j.mortality_rates || {})
                 .reduce((rs, k) => ({
                     ...rs,
-                    [k]: j.mortality_rates[k] / 365.24 * Week,
+                    [k]: j.mortality_rates[k] / 365.24,
                 }), {}),
         }));
     const buildTotal = (name, records) => {
