@@ -13,14 +13,6 @@ git diff --ignore-space-change --ignore-space-at-eol \
   csse_covid_19_data/csse_covid_19_time_series/Errata.csv
 echo "----------------------------------------------------------------------"
 git merge origin/master > /dev/null
-git checkout web-data
-echo "- Overrides ----------------------------------------------------------"
-git diff --ignore-space-change --ignore-space-at-eol \
-  web-data origin/web-data -- \
-  override/override.csv
-echo "----------------------------------------------------------------------"
-git merge origin/web-data > /dev/null
-git checkout master
 cd $OLDPWD
 docker run --rm -v `pwd`:/data -u `id -u` covid
 
