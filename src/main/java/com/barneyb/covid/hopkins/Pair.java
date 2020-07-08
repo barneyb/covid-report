@@ -1,11 +1,9 @@
 package com.barneyb.covid.hopkins;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Value;
 
-@Data
-@AllArgsConstructor
+@Value
 public class Pair<T> {
-    private final T first;
-    private final T second;
+    T first;
+    T second;
 }
