@@ -1,22 +1,16 @@
 package com.barneyb.covid.hopkins;
 
 import com.barneyb.covid.hopkins.csv.*;
-import com.opencsv.CSVReader;
 import com.opencsv.bean.CsvToBean;
 import com.opencsv.bean.CsvToBeanBuilder;
-import com.opencsv.bean.HeaderColumnNameMappingStrategy;
 import com.opencsv.enums.CSVReaderNullFieldIndicator;
-import com.opencsv.exceptions.*;
 import lombok.SneakyThrows;
 import lombok.val;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
 import java.util.Collection;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -243,51 +237,8 @@ public class HopkinsData {
 
     @SneakyThrows
     private <T extends CsvTimeSeries> CsvToBean<T> buildTimeSeries(Path src, Class<T> clazz) {
-        HeaderColumnNameMappingStrategy<T> strat = new HeaderColumnNameMappingStrategy<>() {
-
-            private int columnCount;
-            private LocalDate[] dateSequence;
-            private int firstDataColumn;
-
-            @Override
-            public void captureHeader(CSVReader reader) throws IOException, CsvRequiredFieldEmptyException {
-                super.captureHeader(reader);
-                columnCount = headerIndex.findMaxIndex();
-                for (int i = 0; i < columnCount; i++) {
-                    // this feels gross.
-                    try {
-                        headerToDate(i);
-                        firstDataColumn = i;
-                        break;
-                    } catch (DateTimeParseException ignored) {
-                        // next!
-                    }
-                }
-                dateSequence = new LocalDate[columnCount - firstDataColumn + 1];
-                for (int i = firstDataColumn; i <= columnCount; i++) {
-                    dateSequence[i - firstDataColumn] = headerToDate(i);
-                }
-            }
-
-            private LocalDate headerToDate(int i) {
-                return CsvTimeSeries.DATE_FORMAT.parse(headerIndex.getByPosition(i), LocalDate::from);
-            }
-
-            @Override
-            public T populateNewBean(String[] line) throws CsvBeanIntrospectionException, CsvRequiredFieldEmptyException, CsvDataTypeMismatchException, CsvConstraintViolationException, CsvValidationException {
-                val series = super.populateNewBean(line);
-                series.setDateSequence(dateSequence);
-                val data = new int[columnCount - firstDataColumn + 1];
-                for (int i = firstDataColumn; i <= columnCount; i++) {
-                    data[i - firstDataColumn] = Integer.parseInt(line[i]);
-                }
-                series.setData(data);
-                return series;
-            }
-        };
-        strat.setType(clazz);
         return builder(src, clazz)
-                .withMappingStrategy(strat)
+                .withMappingStrategy(new CsvTimeSeriesMappingStrategy<>(clazz))
                 .build();
     }
 
