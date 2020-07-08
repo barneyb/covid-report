@@ -76,8 +76,7 @@ public class HopkinsTransform {
             // add a day for the UTC/LocalDate dance
             w.write(dates[dates.length - 1].plusDays(1).toString());
         }
-        val dateHeaders = firstSeries.getDateHeaderSequence();
-        val idxGlobal = new IndexedWorld(demographics, rawGlobal, hopkinsData.loadGlobalDeaths(), dateHeaders);
+        val idxGlobal = new IndexedWorld(demographics, rawGlobal, hopkinsData.loadGlobalDeaths());
         demographics.createWorldwide(idxGlobal
                 .countries()
                 .map(CombinedTimeSeries::getDemographics)
@@ -86,7 +85,7 @@ public class HopkinsTransform {
         idxGlobal.createWorldwide(demographics.getWorldwide());
         logStep("Global series loaded and indexed");
 
-        val idxUs = new IndexedUS(demographics, hopkinsData.loadUSCases(), hopkinsData.loadUSDeaths(), dateHeaders);
+        val idxUs = new IndexedUS(demographics, hopkinsData.loadUSCases(), hopkinsData.loadUSDeaths());
         demographics.createUsExceptNy(idxUs
                 .statesAndDC()
                 .map(CombinedTimeSeries::getDemographics)

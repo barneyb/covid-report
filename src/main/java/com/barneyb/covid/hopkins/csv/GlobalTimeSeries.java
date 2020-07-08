@@ -1,10 +1,9 @@
 package com.barneyb.covid.hopkins.csv;
 
-import com.opencsv.bean.CsvBindAndJoinByName;
 import com.opencsv.bean.CsvBindByName;
 import lombok.Data;
-import org.apache.commons.collections4.MultiValuedMap;
-import org.apache.commons.collections4.multimap.HashSetValuedHashMap;
+
+import java.time.LocalDate;
 
 @Data
 public class GlobalTimeSeries implements CsvTimeSeries {
@@ -30,11 +29,9 @@ public class GlobalTimeSeries implements CsvTimeSeries {
         this.state = state;
     }
 
-    // MVM is a bit silly, since the column names are all different, but both
-    // this use case and aggregating multiple same-named columns are provided by
-    // the same annotation. C'est la vie.
-    @CsvBindAndJoinByName(column = "[0-9]+/[0-9]+/[0-9]+", elementType = Integer.class, mapType = HashSetValuedHashMap.class)
-    private MultiValuedMap<String, Integer> dateStringMultimap;
+    private LocalDate[] dateSequence;
+
+    private int[] data;
 
     public boolean isCountry() {
         return state == null;

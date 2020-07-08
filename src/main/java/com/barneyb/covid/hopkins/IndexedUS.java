@@ -22,16 +22,13 @@ public class IndexedUS {
 
     public IndexedUS(IndexedDemographics demographics,
                      Collection<USTimeSeries> rawCases,
-                     Collection<USTimeSeries> rawDeaths,
-                     String[] dateHeaders) {
+                     Collection<USTimeSeries> rawDeaths) {
         val casesLookup = rawCases.stream()
                 .map(it -> new TimeSeries(demographics.getByUid(it.getUid()),
-                        dateHeaders,
                         it))
                 .collect(Collectors.toMap(TimeSeries::getDemographics, it -> it));
         val cover = rawDeaths.stream()
                 .map(it -> new TimeSeries(demographics.getByUid(it.getUid()),
-                        dateHeaders,
                         it))
                 .map(ds -> new CombinedTimeSeries(
                         casesLookup.get(ds.getDemographics()),

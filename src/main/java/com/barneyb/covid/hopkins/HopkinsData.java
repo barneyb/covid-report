@@ -1,19 +1,22 @@
 package com.barneyb.covid.hopkins;
 
-import com.barneyb.covid.hopkins.csv.Demographics;
-import com.barneyb.covid.hopkins.csv.GlobalTimeSeries;
-import com.barneyb.covid.hopkins.csv.USTimeSeries;
-import com.barneyb.covid.hopkins.csv.UidLookup;
+import com.barneyb.covid.hopkins.csv.*;
+import com.opencsv.CSVReader;
 import com.opencsv.bean.CsvToBean;
 import com.opencsv.bean.CsvToBeanBuilder;
+import com.opencsv.bean.HeaderColumnNameMappingStrategy;
 import com.opencsv.enums.CSVReaderNullFieldIndicator;
+import com.opencsv.exceptions.*;
 import lombok.SneakyThrows;
 import lombok.val;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.Collection;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -115,7 +118,8 @@ public class HopkinsData {
             d.setCode3("831");
             return d;
         };
-        return stream(uidLookupFile, clazz)
+        return build(uidLookupFile, clazz)
+                .stream()
                 .map(kansasCity)
                 .map(channelIslands);
     }
@@ -142,7 +146,8 @@ public class HopkinsData {
     }
 
     private Stream<USTimeSeries> streamUS(Path src) {
-        return stream(src, USTimeSeries.class)
+        return buildTimeSeries(src, USTimeSeries.class)
+                .stream()
                 // Exception type 1, such as recovered and Kansas City, ranging from 8407001 to 8407999.
                 // Dukes and Nantucket, Mass.
                 .filter(d -> {
@@ -211,35 +216,91 @@ public class HopkinsData {
     }
 
     public Collection<GlobalTimeSeries> loadGlobalCases() {
-        return load(globalCasesFile, GlobalTimeSeries.class);
+        return loadGlobal(globalCasesFile);
     }
 
     public Stream<GlobalTimeSeries> streamGlobalCases() {
-        return stream(globalCasesFile, GlobalTimeSeries.class);
+        return streamGlobal(globalCasesFile);
     }
 
     public Collection<GlobalTimeSeries> loadGlobalDeaths() {
-        return load(globalDeathsFile, GlobalTimeSeries.class);
+        return loadGlobal(globalDeathsFile);
     }
 
     public Stream<GlobalTimeSeries> streamGlobalDeaths() {
-        return stream(globalDeathsFile, GlobalTimeSeries.class);
+        return streamGlobal(globalDeathsFile);
     }
 
-    private <T> Collection<T> load(Path src, Class<T> clazz) {
-        return build(src, clazz).parse();
+    private Collection<GlobalTimeSeries> loadGlobal(Path src) {
+        return streamGlobal(src)
+                .collect(Collectors.toList());
     }
 
-    private <T> Stream<T> stream(Path src, Class<T> clazz) {
-        return build(src, clazz).stream();
+    private Stream<GlobalTimeSeries> streamGlobal(Path src) {
+        return buildTimeSeries(src, GlobalTimeSeries.class)
+                .stream();
+    }
+
+    @SneakyThrows
+    private <T extends CsvTimeSeries> CsvToBean<T> buildTimeSeries(Path src, Class<T> clazz) {
+        HeaderColumnNameMappingStrategy<T> strat = new HeaderColumnNameMappingStrategy<>() {
+
+            private int columnCount;
+            private LocalDate[] dateSequence;
+            private int firstDataColumn;
+
+            @Override
+            public void captureHeader(CSVReader reader) throws IOException, CsvRequiredFieldEmptyException {
+                super.captureHeader(reader);
+                columnCount = headerIndex.findMaxIndex();
+                for (int i = 0; i < columnCount; i++) {
+                    // this feels gross.
+                    try {
+                        headerToDate(i);
+                        firstDataColumn = i;
+                        break;
+                    } catch (DateTimeParseException ignored) {
+                        // next!
+                    }
+                }
+                dateSequence = new LocalDate[columnCount - firstDataColumn + 1];
+                for (int i = firstDataColumn; i <= columnCount; i++) {
+                    dateSequence[i - firstDataColumn] = headerToDate(i);
+                }
+            }
+
+            private LocalDate headerToDate(int i) {
+                return CsvTimeSeries.DATE_FORMAT.parse(headerIndex.getByPosition(i), LocalDate::from);
+            }
+
+            @Override
+            public T populateNewBean(String[] line) throws CsvBeanIntrospectionException, CsvRequiredFieldEmptyException, CsvDataTypeMismatchException, CsvConstraintViolationException, CsvValidationException {
+                val series = super.populateNewBean(line);
+                series.setDateSequence(dateSequence);
+                val data = new int[columnCount - firstDataColumn + 1];
+                for (int i = firstDataColumn; i <= columnCount; i++) {
+                    data[i - firstDataColumn] = Integer.parseInt(line[i]);
+                }
+                series.setData(data);
+                return series;
+            }
+        };
+        strat.setType(clazz);
+        return builder(src, clazz)
+                .withMappingStrategy(strat)
+                .build();
     }
 
     @SneakyThrows
     private <T> CsvToBean<T> build(Path src, Class<T> clazz) {
+        return builder(src, clazz).build();
+    }
+
+    @SneakyThrows
+    private <T> CsvToBeanBuilder<T> builder(Path src, Class<T> clazz) {
         return new CsvToBeanBuilder<T>(Files.newBufferedReader(src))
                 .withType(clazz)
-                .withFieldAsNull(CSVReaderNullFieldIndicator.EMPTY_SEPARATORS)
-                .build();
+                .withFieldAsNull(CSVReaderNullFieldIndicator.EMPTY_SEPARATORS);
     }
 
 }

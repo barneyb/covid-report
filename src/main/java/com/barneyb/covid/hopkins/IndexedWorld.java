@@ -22,14 +22,12 @@ public class IndexedWorld {
 
     public IndexedWorld(IndexedDemographics demographics,
                         Collection<GlobalTimeSeries> rawCases,
-                        Collection<GlobalTimeSeries> rawDeaths,
-                        String[] dateHeaders) {
+                        Collection<GlobalTimeSeries> rawDeaths) {
         val casesLookup = rawCases.stream()
                 .map(it -> new TimeSeries(
                         it.isCountry()
                                 ? demographics.getByCountry(it.getCountry())
                                 : demographics.getByCountryAndState(it.getCountry(), it.getState()),
-                        dateHeaders,
                         it))
                 .collect(Collectors.toMap(TimeSeries::getDemographics, it -> it));
         val cover = rawDeaths.stream()
@@ -37,7 +35,6 @@ public class IndexedWorld {
                         it.isCountry()
                                 ? demographics.getByCountry(it.getCountry())
                                 : demographics.getByCountryAndState(it.getCountry(), it.getState()),
-                        dateHeaders,
                         it))
                 .map(ds -> new CombinedTimeSeries(
                         casesLookup.get(ds.getDemographics()),

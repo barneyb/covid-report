@@ -24,7 +24,7 @@ public class TimeSeries implements WithDemographics<TimeSeries> {
         this.data = data;
     }
 
-    public TimeSeries(Demographics demographics, String[] dateHeaders, CsvTimeSeries raw) {
+    public TimeSeries(Demographics demographics, CsvTimeSeries raw) {
         if (demographics == null) {
             throw new RuntimeException("Null demographics for " + raw);
         }
