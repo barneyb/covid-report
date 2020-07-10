@@ -21,11 +21,16 @@ public class RawSeries implements Series {
     @ToString.Exclude
     int[] deaths;
 
-    public RawSeries(UidLookup area, CsvTimeSeries caseSeries, CsvTimeSeries deathSeries) {
+    public RawSeries(UidLookup area, int[] cases, int[] deaths) {
+        assert cases.length == deaths.length;
         this.area = area;
-        this.cases = caseSeries.getData();
-        this.deaths = deathSeries.getData();
-        assert this.cases.length == this.deaths.length;
+        this.cases = cases;
+        this.deaths = deaths;
+
+    }
+
+    public RawSeries(UidLookup area, CsvTimeSeries caseSeries, CsvTimeSeries deathSeries) {
+        this(area, caseSeries.getData(), deathSeries.getData());
     }
 
     @Override

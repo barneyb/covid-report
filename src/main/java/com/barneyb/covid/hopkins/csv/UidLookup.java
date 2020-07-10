@@ -2,16 +2,13 @@ package com.barneyb.covid.hopkins.csv;
 
 import com.barneyb.covid.model.Area;
 import com.opencsv.bean.CsvBindByName;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 
 @Getter
 @Setter
 @ToString
 @EqualsAndHashCode(of = { "uid" })
-public class UidLookup implements Area {
+public class UidLookup implements Area, Cloneable {
 
     @CsvBindByName(column = "UID")
     private int uid;
@@ -81,6 +78,13 @@ public class UidLookup implements Area {
     @Override
     public String getName() {
         return combinedKey;
+    }
+
+    @SneakyThrows
+    public UidLookup updatePopulation(long population) {
+        val r = (UidLookup) clone();
+        r.population = population;
+        return r;
     }
 
 }
