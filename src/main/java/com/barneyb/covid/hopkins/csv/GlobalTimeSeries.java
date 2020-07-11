@@ -21,14 +21,6 @@ public class GlobalTimeSeries implements CsvTimeSeries {
     @CsvBindByName(column = "Long")
     private Double longitude;
 
-    public void setState(String state) {
-        // todo: use the web branch's overrides?
-        if ("Hong Kong".equals(state) || "Macau".equals(state)) {
-            state += " SAR";
-        }
-        this.state = state;
-    }
-
     private LocalDate[] dateSequence;
 
     private int[] data;

@@ -238,7 +238,14 @@ public class HopkinsData {
     private Stream<GlobalTimeSeries> streamGlobal(Path src) {
         return buildTimeSeries(src, GlobalTimeSeries.class)
                 .stream()
-                .filter(d -> isNotCruiseShip(d.getCountry()));
+                .filter(d -> isNotCruiseShip(d.getCountry()))
+                .peek(s -> {
+                    // todo: use the web branch's overrides?
+                    if (!"China".equals(s.getCountry())) return;
+                    if ("Hong Kong".equals(s.getState()) || "Macau".equals(s.getState())) {
+                        s.setState(s.getState() + " SAR");
+                    }
+                });
     }
 
     @SneakyThrows
