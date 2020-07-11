@@ -4,13 +4,23 @@ body {
     margin-top: 3rem;
     --body-bgc: #fffcf7;
     background-color: var(--body-bgc);
+    --body-warning-hue: 51;
+}
+body.stale-data {
+    background: repeating-linear-gradient(
+            20deg,
+            transparent,
+            transparent 85px,
+            hsl(var(--body-warning-hue), 100%, 90%) 85px,
+            hsl(var(--body-warning-hue), 100%, 90%) 90px
+    );
 }
 #navbar {
     position: fixed;
     width: 100%;
     box-sizing: border-box;
     margin: -3rem -1rem;
-    padding: 0 1em;
+    padding: 0 0.5em 0 1em;
     background-color: #ddeef7;
     z-index: 99999;
     box-shadow: 0 0.5rem 0.5rem 0.25rem var(--body-bgc);
@@ -31,9 +41,12 @@ body {
 #navbar .updated-at {
     float: right;
     margin-top: 0.5rem;
+    padding: 0.1em 0.25em;
     font-weight: normal;
     font-style: italic;
-    background-color: inherit;
+}
+.stale-data #navbar .updated-at {
+    background-color: hsl(var(--body-warning-hue), 100%, 68%);
 }
 button.trigger {
     float: right;

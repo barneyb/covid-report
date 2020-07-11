@@ -69,10 +69,10 @@ function init(dataUrl) {
     const render = state => {
         if (state.sidebar) {
             sidebar.innerHTML = drawPicker(state);
-            document.body.className = "sidebar";
+            document.body.classList.add("sidebar");
         } else {
             sidebar.innerText = "";
-            document.body.className = "";
+            document.body.classList.remove("sidebar");
         }
     }
     Promise.all([

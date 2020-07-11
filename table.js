@@ -463,7 +463,7 @@ function init(rawData, datasetName, hotRows = [], extraTotals = {}) {
                     desc && tag('div', desc, {className: "desc"}),
                 ]);
             };
-            document.body.className = "sidebar";
+            document.body.classList.add("sidebar");
             const sections = [
                 tag('section', [
                     tag('h3', 'Week Ending On'),
@@ -500,7 +500,7 @@ function init(rawData, datasetName, hotRows = [], extraTotals = {}) {
             sidebar.innerHTML = tag('form', sections);
         } else {
             sidebar.innerText = "";
-            document.body.className = "";
+            document.body.classList.remove("sidebar");
         }
     };
     setState(() => {

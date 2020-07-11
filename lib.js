@@ -6,16 +6,18 @@ const isNum = v =>
     typeof v === "number" || v instanceof Number;
 const isActualNumber = v =>
     !isNaN(v) && isFinite(v)
-const formatDate = ld => {
+const parseDate = ld => {
     const ps = ld.trim()
         .split("-")
         .map(p => parseInt(p, 10));
-    return new Date(ps[0], ps[1] - 1, ps[2])
+    return new Date(ps[0], ps[1] - 1, ps[2]);
+};
+const formatDate = ld =>
+    (typeof ld === "string" ? parseDate(ld) : ld)
         .toLocaleDateString("en-US", {
             month: "short",
             day: "numeric",
         });
-};
 const nfpMap = new Map();
 const formatNumber = (v, places = 0) => {
     if (!isActualNumber(v)) return '';
@@ -68,4 +70,15 @@ if (sidebar) {
 }
 fetch("data/last-update.txt")
     .then(r => r.text())
-    .then(d => $("#navbar").innerHTML += tag("span", "Updated: " + formatDate(d), {className: "updated-at"}))
+    .then(ld => {
+        const d = parseDate(ld);
+        $("#navbar").innerHTML += tag(
+            "span",
+            "Updated: " + formatDate(d),
+            {className: "updated-at"},
+        );
+        if (d < Date.now() - 3 * 86400 * 1000) {
+            document.body.classList.add("stale-data");
+            document.body.style.setProperty("--body-warning-hue", Date.now() % 360)
+        }
+    });
