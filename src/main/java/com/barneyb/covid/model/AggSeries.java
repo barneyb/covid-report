@@ -1,15 +1,13 @@
 package com.barneyb.covid.model;
 
+import com.barneyb.covid.util.UniqueIndex;
 import lombok.*;
-import lombok.experimental.FieldDefaults;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 
-@Getter
-@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 @EqualsAndHashCode(of = { "area" })
 @ToString
 public class AggSeries implements Series {
@@ -30,17 +28,20 @@ public class AggSeries implements Series {
         }
     }
 
-    Area area;
+    @Getter
+    private final Area area;
 
-    @NonNull
+    @Getter
     @ToString.Exclude
-    int[] cases;
+    private final int[] cases;
 
+    @Getter
     @ToString.Exclude
-    int[] deaths;
+    private final int[] deaths;
 
+    @Getter
     @ToString.Exclude
-    Collection<Series> segments;
+    private final Collection<Series> segments;
 
     public AggSeries(Area area, Collection<? extends Series> segments) {
         this(area.getId(), area.getName(), segments);
@@ -99,11 +100,16 @@ public class AggSeries implements Series {
         return new AggSeries(getArea(), segs);
     }
 
+    @ToString.Exclude
+    private UniqueIndex<String, Series> segmentIndex;
+
     public Series getSegment(String name) {
-        return segments.stream()
-                .filter(s -> name.equals(s.getArea().getName()))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("No '" + name + "' segment was found."));
+        if (segmentIndex == null) {
+            segmentIndex = new UniqueIndex<>(
+                    segments,
+                    s -> s.getArea().getName());
+        }
+        return segmentIndex.get(name);
     }
 
 }
