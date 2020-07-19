@@ -10,6 +10,9 @@ import org.apache.commons.lang3.builder.CompareToBuilder;
  */
 public interface Area extends Comparable<Area> {
 
+    int ID_US = 840;
+    int ID_WORLDWIDE = 252_000_001;
+
     int getId();
 
     long getPopulation();
