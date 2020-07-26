@@ -77,6 +77,10 @@ public class UidLookup implements Area, Cloneable {
 
     @Override
     public String getName() {
+        if (isLocality()) return locality;
+        if (isState()) return state;
+        if (isCountry()) return country;
+        // what?
         return combinedKey;
     }
 

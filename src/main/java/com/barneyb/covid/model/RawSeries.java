@@ -39,12 +39,12 @@ public class RawSeries implements Series {
     }
 
     @ToString.Include(name = "currentCases")
-    int getCurrentCases() {
+    public int getCurrentCases() {
         return getCasesDaysAgo(0);
     }
 
     @ToString.Include(name = "currentDeaths")
-    int getCurrentDeaths() {
+    public int getCurrentDeaths() {
         return getDeathsDaysAgo(0);
     }
 

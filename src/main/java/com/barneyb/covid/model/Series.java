@@ -46,4 +46,12 @@ public interface Series {
     default int getDeathsDaysAgo(int daysAgo) {
         return getDaysAgo(getDeaths(), daysAgo);
     }
+
+    default int getCurrentCases() {
+        return getCasesDaysAgo(0);
+    }
+
+    default int getCurrentDeaths() {
+        return getDeathsDaysAgo(0);
+    }
 }
