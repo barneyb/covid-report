@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Objects;
 
 @Component
 public class Main implements ApplicationRunner {
@@ -43,6 +44,14 @@ public class Main implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
+        if (args.containsOption("clean")) {
+            // This feels like the wrong way to do it. It does work.
+            for (var f : Objects.requireNonNull(outputDir.toFile().listFiles())) {
+                //noinspection ResultOfMethodCallIgnored
+                f.delete();
+            }
+        }
+
         if (args.containsOption("mortality")) {
             mortality.emit(Files.newBufferedWriter(Path.of("mortality.csv")));
         }
