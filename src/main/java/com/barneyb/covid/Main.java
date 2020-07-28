@@ -8,6 +8,7 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 
+import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
@@ -42,6 +43,12 @@ public class Main implements ApplicationRunner {
     @Autowired
     TsvEmitter tableTsv;
 
+    @Autowired
+    Loader loader;
+
+    @Autowired
+    BlockBuilder blockBuilder;
+
     @Override
     public void run(ApplicationArguments args) throws Exception {
         if (args.containsOption("clean")) {
@@ -55,6 +62,13 @@ public class Main implements ApplicationRunner {
         if (args.containsOption("mortality")) {
             mortality.emit(Files.newBufferedWriter(Path.of("mortality.csv")));
         }
+
+        var theWorld = loader.loadWorld();
+        try (Writer w = Files.newBufferedWriter(outputDir.resolve("last-update.txt"))) {
+            // add a day for the UTC/LocalDate dance
+            w.write(theWorld.getTodaysDate().plusDays(1).toString());
+        }
+        blockBuilder.emit(outputDir, theWorld);
 
         if (args.containsOption("hopkins")) {
             hopkinsTransform.transform();

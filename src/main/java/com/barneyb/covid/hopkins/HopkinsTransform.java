@@ -16,7 +16,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.io.FileReader;
-import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -72,10 +71,6 @@ public class HopkinsTransform {
         val rawGlobal = hopkinsData.loadGlobalCases();
         GlobalTimeSeries firstSeries = rawGlobal.iterator().next();
         val dates = firstSeries.getDateSequence();
-        try (Writer w = Files.newBufferedWriter(outputDir.resolve("last-update.txt"))) {
-            // add a day for the UTC/LocalDate dance
-            w.write(dates[dates.length - 1].plusDays(1).toString());
-        }
         val idxGlobal = new IndexedWorld(demographics, rawGlobal, hopkinsData.loadGlobalDeaths());
         demographics.createWorldwide(idxGlobal
                 .countries()
