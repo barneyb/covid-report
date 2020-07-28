@@ -23,6 +23,8 @@ import java.util.stream.Stream;
 @Service
 public class Loader {
 
+    public static final String COUNTRY_US = "US";
+
     @Autowired
     HopkinsData hopkinsData;
 
@@ -107,7 +109,7 @@ public class Loader {
         // move all the US Insular Areas to the global
         var rawUsByIso2 = rawUs.stream()
                 .collect(Collectors.groupingBy(s -> s.getArea().getIso2()));
-        rawUs = rawUsByIso2.remove("US");
+        rawUs = rawUsByIso2.remove(COUNTRY_US);
         rawUsByIso2.values()
                 .forEach(rawGlobal::addAll);
     }
@@ -126,8 +128,13 @@ public class Loader {
                     val one = cs.iterator().next();
                     val a = one.getArea();
                     if (cs.size() > 1) {
-                        // per-state breakdown of a country
-                        return new AggSeries(uidByCountry.get(a.getCountry()), cs);
+                        if (COUNTRY_US.equals(a.getCountry())) {
+                            // breakdown of a US Insular Area
+                            return new AggSeries(uidByCountryState.get(COUNTRY_US, a.getState()), cs);
+                        } else {
+                            // per-state breakdown of a country
+                            return new AggSeries(uidByCountry.get(a.getCountry()), cs);
+                        }
                     }
                     if (a.isState()) {
                         // a single-state country is a protectorate-ish thing,
@@ -142,7 +149,7 @@ public class Loader {
                 })
                 .collect(Collectors.toList());
         // put the  US back in, aggregated
-        countries.add(new AggSeries(Area.ID_US, "US", usSegments()));
+        countries.add(new AggSeries(Area.ID_US, COUNTRY_US, usSegments()));
         return countries;
     }
 
@@ -160,7 +167,7 @@ public class Loader {
                         val a = one.getArea();
                         return new AggSeries(a.getUid(), a.getState() + " (" + a.getCountry() + ")", cs);
                     } else {
-                        val a = uidByCountryState.get("US", one.getArea().getState());
+                        val a = uidByCountryState.get(COUNTRY_US, one.getArea().getState());
                         return new AggSeries(a.getUid(), a.getState(), cs);
                     }
                 })
