@@ -1,6 +1,8 @@
 package com.barneyb.covid;
 
 import com.barneyb.covid.hopkins.HopkinsTransform;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,6 +17,8 @@ import java.util.Objects;
 
 @Component
 public class Main implements ApplicationRunner {
+
+    private static final Logger logger = LoggerFactory.getLogger(Main.class);
 
     @Value("${covid-report.output.dir}")
     Path outputDir;
@@ -49,39 +53,58 @@ public class Main implements ApplicationRunner {
     @Autowired
     BlockBuilder blockBuilder;
 
+    private long _prev;
+    private void logStep(String message) {
+        long now = System.currentTimeMillis();
+        if (_prev == 0) {
+            logger.info(message);
+        } else {
+            logger.info(message + " (" + (now - _prev) + " ms)");
+        }
+        _prev = now;
+    }
+
     @Override
     public void run(ApplicationArguments args) throws Exception {
+        logStep("enter main");
         if (args.containsOption("clean")) {
             // This feels like the wrong way to do it. It does work.
             for (var f : Objects.requireNonNull(outputDir.toFile().listFiles())) {
                 //noinspection ResultOfMethodCallIgnored
                 f.delete();
             }
+            logStep("clean complete");
         }
 
         if (args.containsOption("mortality")) {
             mortality.emit(Files.newBufferedWriter(Path.of("mortality.csv")));
+            logStep("mortality data written");
         }
 
         var theWorld = loader.loadWorld();
+        logStep("World loaded");
         try (Writer w = Files.newBufferedWriter(outputDir.resolve("last-update.txt"))) {
             // add a day for the UTC/LocalDate dance
             w.write(theWorld.getTodaysDate().plusDays(1).toString());
         }
         blockBuilder.emit(outputDir, theWorld);
+        logStep("Blocks emitted");
 
         if (args.containsOption("hopkins")) {
-            hopkinsTransform.transform();
+            hopkinsTransform.transform(this::logStep);
         }
 
         tableJson.emit(Files.newOutputStream(outputDir.resolve("table-ww.json")), wwStore);
         tableTsv.emit(Files.newOutputStream(outputDir.resolve("table-ww.tsv")), wwStore);
+        logStep("Global table emitted");
 
         tableJson.emit(Files.newOutputStream(outputDir.resolve("table-us.json")), usStore);
         tableTsv.emit(Files.newOutputStream(outputDir.resolve("table-us.tsv")), usStore);
+        logStep("US table emitted");
 
         tableJson.emit(Files.newOutputStream(outputDir.resolve("table-or.json")), orStore);
         tableTsv.emit(Files.newOutputStream(outputDir.resolve("table-or.tsv")), orStore);
+        logStep("Oregon table emitted");
     }
 
 }
