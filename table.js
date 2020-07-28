@@ -127,7 +127,7 @@ function init(rawData, datasetName, hotRows = [], extraTotals = {}) {
         },
         {
             name: "Cases",
-            desc: "Cases reported per day this week.",
+            desc: "Average cases reported per day this week.",
             test: p => p.case_delta,
             expr: d => d.cases,
             cold: true,
@@ -135,7 +135,7 @@ function init(rawData, datasetName, hotRows = [], extraTotals = {}) {
         },
         {
             name: "Case Rate",
-            desc: "Cases reported per day per 100,000 population this week.",
+            desc: "Average cases reported per day per 100,000 population this week.",
             test: p => p.case_delta,
             expr: (d, p, j) => d.cases / j.pop * HunThou,
             format: v => formatNumber(v, 1),
@@ -149,7 +149,7 @@ function init(rawData, datasetName, hotRows = [], extraTotals = {}) {
         },
         {
             name: "Deaths",
-            desc: "Deaths reported per day this week.",
+            desc: "Average deaths reported per day this week.",
             test: p => p.death_delta,
             expr: d => d.deaths,
             cold: true,
@@ -157,7 +157,7 @@ function init(rawData, datasetName, hotRows = [], extraTotals = {}) {
         },
         {
             name: "Death Rate",
-            desc: "Deaths reported per day per 100,000 population this week.",
+            desc: "Average deaths reported per day per 100,000 population this week.",
             test: p => p.death_delta,
             expr: (d, p, j) => d.deaths / j.pop * HunThou,
             format: formatDeathRateSegment,
