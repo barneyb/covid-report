@@ -2,8 +2,8 @@ package com.barneyb.covid;
 
 import java.io.OutputStream;
 
-public interface Emitter {
+public interface Emitter<M> {
 
-    void emit(OutputStream out, Store store);
+    void emit(OutputStream out, M model);
 
 }

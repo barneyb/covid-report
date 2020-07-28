@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 
 @Service
-public class TsvEmitter implements Emitter {
+public class TsvEmitter implements Emitter<Store> {
 
     @Override
     public void emit(OutputStream outStr, Store store) {

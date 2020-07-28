@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 
 @Service
 @SuppressWarnings("unused")
-public class ReportJsonEmitter implements Emitter {
+public class ReportJsonEmitter implements Emitter<Store> {
 
     public static final int DAYS_PER_WEEK = 7;
     public static final int RATE_POPULATION = 100_000;
