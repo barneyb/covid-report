@@ -2,6 +2,7 @@ package com.barneyb.covid.model;
 
 import lombok.val;
 
+import java.time.LocalDate;
 import java.util.Collection;
 
 /**
@@ -12,6 +13,8 @@ import java.util.Collection;
 public interface Series {
 
     Area getArea();
+
+    LocalDate getTodaysDate();
 
     int[] getCases();
 

@@ -77,6 +77,7 @@ public class Loader {
                     val area = areaExtractor.apply(it);
                     return new RawSeries(
                             area,
+                            it.getTodaysDate(),
                             caseMap.get(area),
                             it
                     );

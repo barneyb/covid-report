@@ -3,10 +3,8 @@ package com.barneyb.covid.model;
 import com.barneyb.covid.util.UniqueIndex;
 import lombok.*;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
+import java.time.LocalDate;
+import java.util.*;
 
 @EqualsAndHashCode(of = { "area" })
 @ToString
@@ -32,6 +30,9 @@ public class AggSeries implements Series {
     private final Area area;
 
     @Getter
+    private final LocalDate todaysDate;
+
+    @Getter
     @ToString.Exclude
     private final int[] cases;
 
@@ -48,13 +49,17 @@ public class AggSeries implements Series {
     }
 
     public AggSeries(int id, String name, Collection<? extends Series> segments) {
-        long pop = 0;
-        int[] cs = null;
-        int[] ds = null;
-        for (val s : segments) {
+        final var itr = segments.iterator();
+        var first = itr.next();
+        this.todaysDate = first.getTodaysDate();
+        long pop = first.getArea().getPopulation();
+        final int[] cs = Arrays.copyOf(first.getCases(), first.getPointCount());
+        final int[] ds = Arrays.copyOf(first.getDeaths(), first.getPointCount());
+        while (itr.hasNext()) {
+            Series s = itr.next();
             pop += s.getArea().getPopulation();
-            cs = addElementPairs(cs, s.getCases());
-            ds = addElementPairs(ds, s.getDeaths());
+            pairwisePlus(cs, s.getCases());
+            pairwisePlus(ds, s.getDeaths());
         }
         this.area = new AggArea(id, name, pop);
         this.cases = cs;
@@ -62,15 +67,13 @@ public class AggSeries implements Series {
         this.segments = new HashSet<>(segments);
     }
 
-    private static int[] addElementPairs(int[] a, int[] b) {
-        if (a == null) return b;
-        if (b == null) return a;
+    private static void pairwisePlus(int[] a, int[] b) {
+        if (a == null) throw new IllegalArgumentException("Can't add pairs of a null array");
+        if (b == null) return;
         assert a.length == b.length;
-        val r = new int[a.length];
         for (int i = 0, l = a.length; i < l; i++) {
-            r[i] = a[i] + b[i];
+            a[i] += b[i];
         }
-        return r;
     }
 
     @ToString.Include(name = "currentCases")
