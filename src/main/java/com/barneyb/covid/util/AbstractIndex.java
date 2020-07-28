@@ -1,7 +1,6 @@
 package com.barneyb.covid.util;
 
 import com.barneyb.covid.hopkins.Pair;
-import com.barneyb.covid.hopkins.UnknownKeyException;
 import lombok.val;
 import org.apache.commons.collections4.MultiValuedMap;
 import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;

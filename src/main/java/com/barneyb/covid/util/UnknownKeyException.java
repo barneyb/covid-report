@@ -1,4 +1,4 @@
-package com.barneyb.covid.hopkins;
+package com.barneyb.covid.util;
 
 import org.springframework.dao.NonTransientDataAccessException;
 
