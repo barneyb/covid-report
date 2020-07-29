@@ -79,6 +79,6 @@ fetch("data/last-update.txt")
         );
         if (d < Date.now() - 3 * 86400 * 1000) {
             document.body.classList.add("stale-data");
-            document.body.style.setProperty("--body-warning-hue", Date.now() % 360)
+            document.body.style.setProperty("--body-warning-hue", Date.now() / 1000 % 86400 / 86400 * 360);
         }
     });
