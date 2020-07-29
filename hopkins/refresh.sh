@@ -14,6 +14,10 @@ git diff --ignore-space-change --ignore-space-at-eol \
 echo "----------------------------------------------------------------------"
 git merge origin/master > /dev/null
 cd $OLDPWD
-docker run --rm -v `pwd`:/data -u `id -u` covid
+docker run --rm -v `pwd`:/data -u `id -u` -w /data/covid openjdk:11 \
+  java -Dcovid-report.output.dir=stage -jar covid.jar --clean --hopkins
+
+cd covid
+rsync -a --delete-after stage/ data/
 
 echo "https://ssl.barneyb.com/s/covid/"
