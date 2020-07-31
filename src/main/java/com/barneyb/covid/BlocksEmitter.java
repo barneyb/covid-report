@@ -1,7 +1,7 @@
 package com.barneyb.covid;
 
 import com.barneyb.covid.model.Series;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.Value;
@@ -16,16 +16,14 @@ import java.util.stream.Collectors;
 public class BlocksEmitter implements Emitter<Collection<? extends Series>> {
 
     @Autowired
-    ObjectMapper objectMapper;
+    ObjectWriter objectWriter;
 
     @SneakyThrows
     @Override
     public void emit(OutputStream out, Collection<? extends Series> model) {
-        objectMapper
-//                .writerWithDefaultPrettyPrinter() // todo: comment out?
-                .writeValue(out, model.stream()
-                        .map(Block::new)
-                        .collect(Collectors.toList()));
+        objectWriter.writeValue(out, model.stream()
+                .map(Block::new)
+                .collect(Collectors.toList()));
         out.close();
     }
 

@@ -24,6 +24,9 @@ import java.time.LocalDate;
         @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = Store.class))
 public class CovidReportApplication {
 
+    @Value("${covid-report.output.pretty-print}")
+    boolean outputPrettyPrint;
+
     @Value("${covid-report.output.dir}")
     Path outputDir;
 
@@ -90,6 +93,13 @@ public class CovidReportApplication {
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         mapper.setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE);
         return mapper;
+    }
+
+    @Bean
+    public ObjectWriter objectWriter() {
+        return outputPrettyPrint
+            ? objectMapper().writerWithDefaultPrettyPrinter()
+            : objectMapper().writer();
     }
 
     @Bean

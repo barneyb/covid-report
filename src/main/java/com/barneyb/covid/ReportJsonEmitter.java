@@ -2,7 +2,7 @@ package com.barneyb.covid;
 
 import com.barneyb.covid.model.DataPoint;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.SneakyThrows;
@@ -25,14 +25,12 @@ public class ReportJsonEmitter implements Emitter<Store> {
     public static final int RATE_POPULATION = 100_000;
 
     @Autowired
-    ObjectMapper mapper;
+    ObjectWriter writer;
 
     @Override
     @SneakyThrows
     public void emit(OutputStream out, Store store) {
-        mapper
-//                .writerWithDefaultPrettyPrinter() // todo: comment out?
-                .writeValue(out, buildReport(store));
+        writer.writeValue(out, buildReport(store));
         out.close();
     }
 

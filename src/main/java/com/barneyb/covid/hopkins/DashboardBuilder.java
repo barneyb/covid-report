@@ -1,7 +1,7 @@
 package com.barneyb.covid.hopkins;
 
 import com.barneyb.covid.hopkins.csv.Demographics;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import lombok.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -21,7 +21,7 @@ import static com.barneyb.covid.hopkins.RatesBuilder.ROLLING_AVERAGE;
 public class DashboardBuilder {
 
     @Autowired
-    ObjectMapper mapper;
+    ObjectWriter writer;
 
     private Collection<Area> areaAndItsHotSegments(
             CombinedTimeSeries main,
@@ -87,9 +87,7 @@ public class DashboardBuilder {
         });
 
         try (val out = Files.newOutputStream(destination)) {
-            mapper
-//                    .writerWithDefaultPrettyPrinter() // todo: comment out?
-                    .writeValue(out, dash);
+            writer.writeValue(out, dash);
         }
     }
 
