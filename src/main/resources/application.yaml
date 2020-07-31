@@ -1,0 +1,18 @@
+covid-report:
+  hopkins:
+    dir: ../COVID-19/csse_covid_19_data
+  output:
+    dir: data
+    pretty-print: false
+logging:
+  level:
+    com:
+      barneyb:
+        covid: INFO
+    root: WARN
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost/mortality
+  main:
+    banner-mode: 'off'
+    lazy-initialization: true

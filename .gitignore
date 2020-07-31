@@ -27,7 +27,7 @@ build/
 
 ### VS Code ###
 .vscode/
-/src/main/resources/application-default.properties
+/src/main/resources/application-default.yaml
 
 /cdc-data-*.json
 /data
