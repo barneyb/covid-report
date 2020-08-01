@@ -95,8 +95,16 @@ function init(data) {
         ])
     const drawCountStat = (label, count, title) =>
         _statHelper(label, formatNumber(count), title);
-    const drawRateStat = (rate, title) =>
-        _statHelper("per 100k", formatNumber(rate, 1), title)
+    const drawRateStat = (count, pop, title) =>
+        _statHelper("per 100k", formatNumber(count / pop * HunThou, 1), title);
+    const oneInFormat = new Intl.NumberFormat("en-US", {
+        maximumSignificantDigits: 2,
+    });
+    const drawOneInStat = (count, pop, title) =>
+        _statHelper(
+            "1 per",
+            count === 0 ? "-" : oneInFormat.format(pop / count),
+            title);
     const drawSection = section =>
         el("section", [
             el('h1', section.label),
@@ -109,9 +117,11 @@ function init(data) {
                         ]),
                         el('div', {className: "spark-container"}, drawSpark(a.values)),
                         drawCountStat("Total Cases", a.total, "Total cases"),
-                        a.pop && drawRateStat(a.total / a.pop * HunThou, "Total cases, per 100,000 population"),
+                        a.pop && drawRateStat(a.total, a.pop, "Total cases, per 100,000 population"),
+                        a.pop && drawOneInStat(a.total, a.pop, "One case, on average, per this many people"),
                         drawCountStat("Daily Cases", a.daily, "New cases per day"),
-                        a.pop && drawRateStat(a.daily / a.pop * HunThou, "New cases per day, per 100,000 population"),
+                        a.pop && drawRateStat(a.daily, a.pop, "New cases per day, per 100,000 population"),
+                        a.pop && drawOneInStat(a.daily, a.pop, "One new case each day, on average, per this many people"),
                         a.pop && drawCountStat("Pop", a.pop, "Population"),
                     ];
                     if (a.segments && a.segments.length > 1) {
