@@ -17,9 +17,11 @@ weeklySeries = [{
     label: Delta + "Case Rate",
     desc: "Change in case rate from last week",
     calc: (p, j, pidx) => {
-        if (pidx === 0) return null;
+        if (pidx+1 >= j.points.length) return null;
         const curr = p.weekly_cases / j.population * HunThou;
-        const prev = j.points[pidx-1].weekly_cases / j.population * HunThou;
+        const lastWeek = j.points[pidx+1].weekly_cases
+        if (lastWeek === 0) return null;
+        const prev = lastWeek / j.population * HunThou;
         return (curr - prev) / prev;
     },
     format: formatPercent,
@@ -271,6 +273,7 @@ function fetchTableData(id) {
                     delete s.deaths_by_day;
                     return s;
                 });
+            delete block.segments;
             const total = {
                 ...block,
                 is_total: true,
@@ -302,7 +305,7 @@ function fetchTableData(id) {
                         r.weekly_deaths = r.total_deaths - s.deaths_by_week[i - 1];
                     }
                     return r;
-                }).slice(1);
+                }).slice(1).reverse();
                 delete s.cases_by_week;
                 delete s.deaths_by_week;
             }
@@ -316,7 +319,7 @@ function fetchTableData(id) {
                     ds.unshift(new Date(ds[0].valueOf() - 7 * 86400 * 1000));
                     return ds;
                 }
-            }, null);
+            }, null).slice(1).reverse();
             // now we can build the table...
             const bodyRows = [];
             const totalRows = []
