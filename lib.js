@@ -47,6 +47,19 @@ const el = function(name, attrs, children) {
         children = attrs;
         attrs = undefined;
     }
+    if (attrs && attrs.hasOwnProperty("className")) {
+        const cns = attrs.className;
+        if (cns instanceof Array) {
+            attrs.className = cns
+                .filter(IDENTITY)
+                .join(" ");
+        } else if (typeof cns !== "string") {
+            // an object w/ flag values
+            attrs.className = Object.keys(cns)
+                .filter(k => cns[k])
+                .join(" ");
+        }
+    }
     return tag(name, children, attrs)
 };
 const numComp = (a, b) => {
