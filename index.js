@@ -1,4 +1,15 @@
 function init(data) {
+    let _state = {
+        expanded: {},
+    };
+    const setState = s => {
+        if (typeof s === "function") s = s(_state);
+        _state = {
+            ..._state,
+            ...s,
+        };
+        render(_state);
+    };
     const colorForDelta = val => {
         const zero = [50, 40, 90]
         if (val > -0.001 && val < 0.001) {
@@ -54,7 +65,7 @@ function init(data) {
     }
     const drawSpark = values => {
         const width = 200;
-        const height = 50;
+        const height = 75;
         const stroke = 3;
         const min = values.reduce((a, b) => Math.min(a, b), 999999999)
         const max = values.reduce((a, b) => Math.max(a, b), 0)
@@ -95,8 +106,8 @@ function init(data) {
         ])
     const drawCountStat = (label, count, title) =>
         _statHelper(label, formatNumber(count), title);
-    const drawRateStat = (count, pop, title) =>
-        _statHelper("per 100k", formatNumber(count / pop * HunThou, 1), title);
+    const drawRateStat = (label, count, pop, title) =>
+        _statHelper(label, formatNumber(count / pop * HunThou, 1), title);
     const oneInFormat = new Intl.NumberFormat("en-US", {
         maximumSignificantDigits: 2,
     });
@@ -105,35 +116,62 @@ function init(data) {
             "1 per",
             count === 0 ? "-" : oneInFormat.format(pop / count),
             title);
-    const drawSection = section =>
+    const isExpanded = (state, section, area) =>
+        state.expanded[section] && state.expanded[section].indexOf(area) >= 0;
+    window.toggleCard = (section, area) => {
+        setState(s => {
+            const next = (s.expanded[section] || []).slice();
+            const idx = next.indexOf(area);
+            if (idx < 0) {
+                next.push(area);
+            } else {
+                next.splice(idx, 1);
+            }
+            return {
+                expanded: {
+                    ...s.expanded,
+                    [section]: next,
+                },
+            };
+        });
+    }
+    const drawSection = (state, section) =>
         el("section", [
             el('h1', section.label),
             el('div', {className: "cards"}, section.areas
-                .map(n => data.lookup[n])
+                .map(n => state.lookup[n])
                 .map(a => {
+                    const expanded = isExpanded(state, section.label, a.name);
                     const kids = [
                         el('header',[
+                            el('button', {
+                                className: "expander" + (expanded ? " expanded" : ""),
+                                onclick: `toggleCard(&quot;${section.label}&quot;, &quot;${a.name}&quot;)`,
+                            }),
                             el('h3', {title:a.name}, a.name),
                         ]),
                         el('div', {className: "spark-container"}, drawSpark(a.values)),
-                        drawCountStat("Total Cases", a.total, "Total cases"),
-                        a.pop && drawRateStat(a.total, a.pop, "Total cases, per 100,000 population"),
-                        a.pop && drawOneInStat(a.total, a.pop, "One case, on average, per this many people"),
-                        drawCountStat("Daily Cases", a.daily, "New cases per day"),
-                        a.pop && drawRateStat(a.daily, a.pop, "New cases per day, per 100,000 population"),
-                        a.pop && drawOneInStat(a.daily, a.pop, "One new case each day, on average, per this many people"),
-                        a.pop && drawCountStat("Pop", a.pop, "Population"),
+                        expanded && drawCountStat("Total Cases", a.total, "Total cases"),
+                        a.pop && drawRateStat(expanded ? "per 100k" : "Case Rate", a.total, a.pop, "Total cases, per 100,000 population"),
+                        expanded && a.pop && drawOneInStat(a.total, a.pop, "One case, on average, per this many people"),
+                        expanded && drawCountStat("Daily Cases", a.daily, "New cases per day"),
+                        a.pop && drawRateStat(expanded ? "per 100k" : "Daily Rate", a.daily, a.pop, "New cases per day, per 100,000 population"),
+                        expanded && a.pop && drawOneInStat(a.daily, a.pop, "One new case each day, on average, per this many people"),
+                        expanded && a.pop && drawCountStat("Pop", a.pop, "Population"),
                     ];
                     if (a.segments && a.segments.length > 1) {
                         kids.push(el('div', {className: "segment-container"}, drawColumn(a.segments)));
                     }
-                    return el('article', {className: "card"}, kids)
+                    return el('div',
+                        el('article', {className: "card"}, kids));
                 })
                 .join("\n")),
         ]);
-    $("#areas").innerHTML = data.sections
-        .map(drawSection)
-        .join("\n");
+    const render = state =>
+        $("#areas").innerHTML = state.sections
+            .map(s => drawSection(state, s))
+            .join("\n");
+    setState(data);
 }
 fetch("data/dashboard.json")
     .then(r => r.json())

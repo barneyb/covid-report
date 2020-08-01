@@ -19,6 +19,19 @@ section h1 {
     white-space: nowrap;
     text-overflow: ellipsis;
 }
+.card button.expander {
+    float: right;
+    width: 24px;
+    height: 24px;
+    border-width: 0;
+    font-family: Consolas, monospace;
+    background-color: white;
+    margin-right: 1.2em;
+    background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAAAb0lEQVRIie2PsQ2AMAwELyyWcVIyCqSCaQmNI1kIRwEF0fjq998bHMf5lQDEjlyU7OPyDBzA3MglyeyWZGocFzlaDEkCNqu4hwCsIrp+UpcXGuvfSoaVa0lWklqeR5RrSf1k2HJL8km5lnxW7jj3nAwCHOMFhaBLAAAAAElFTkSuQmCC");
+}
+.card button.expander.expanded {
+    transform: rotate(180deg);
+}
 .card .spark-container {
     padding: 0.5em;
     padding-right: 1em;
