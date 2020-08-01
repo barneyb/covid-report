@@ -84,10 +84,6 @@ tbody tr.hot-1 {
 tbody tr.hot-2 {
     background-color: #fce5cd;
 }
-.number,
-.percent {
+.number {
     text-align: right;
-}
-.percent:after {
-    content: "%";
 }
