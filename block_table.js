@@ -300,8 +300,24 @@ function fetchTableData(id) {
 fetch("data/blocks.json")
     .then(resp => resp.json())
     .then(blocks => {
+        blocks.forEach(b => {
+            b.is_beb = b.id >= ID_BEB;
+            b.is_us = Math.floor(b.id / 100000) === ID_US;
+        });
+        blocks.sort((a, b) => {
+            // beb's first
+            if (a.is_beb !== b.is_beb) {
+                return a.is_beb ? -1 : 1;
+            }
+            // non-US next
+            if (a.is_us !== b.is_us) {
+                return a.is_us ? 1 : -1;
+            }
+            // they're in the same bucket, so alphabetical
+            return a.name.localeCompare(b.name);
+        });
         setState({
             blocks,
         })
     });
-fetchTableData(840/* US */);
+fetchTableData(ID_US);

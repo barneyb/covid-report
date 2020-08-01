@@ -1,6 +1,8 @@
 const $ = document.querySelector.bind(document);
 const HunThou = 100000;
 const Week = 7;
+const ID_BEB = 252000000;
+const ID_US = 840
 const fTrue = () => true;
 const IDENTITY = v => v;
 const isNum = v =>
