@@ -4,6 +4,7 @@ weeklySeries = [{
     label: "Cases",
     desc: "Cases reported this week.",
     calc: p => p.weekly_cases,
+    hot: true,
 }, {
     key: "case_rate",
     label: "Case Rate",
@@ -12,6 +13,7 @@ weeklySeries = [{
         ? p.weekly_cases / Week / j.population * HunThou
         : null,
     format: v => formatNumber(v, 1),
+    hot: true,
 }, {
     key: "case_wow",
     label: Delta + "Case Rate",
@@ -25,6 +27,7 @@ weeklySeries = [{
         return (curr - prev) / prev;
     },
     format: formatPercent,
+    hot: true,
 }, {
     key: "deaths",
     label: "Deaths",
@@ -53,11 +56,13 @@ jurisdictionSeries = [{
     calc: j => j.name,
     format: IDENTITY,
     is_number: false,
+    hot: true,
 }, {
     key: "population",
     label: "Population",
     desc: "An estimate of total population.",
     calc: j => j.population,
+    hot: true,
 }, {
     key: "total_cases",
     label: "C19 Cases",
@@ -100,6 +105,9 @@ weeklySeries.concat(jurisdictionSeries).forEach(s => {
 state = {
     loading: 0,
     sidebar: true,
+    hotSeries: weeklySeries.concat(jurisdictionSeries)
+        .filter(s => s.hot)
+        .map(s => s.key),
 };
 
 function setState(s) {
@@ -201,7 +209,7 @@ function render(state) {
         if (state.dates) {
             sections.push(el('section', [
                 el('h3', 'Weeks Ending'),
-                el('div', {}, state.dates
+                el('div', state.dates
                     .map((d, i) =>
                         chkbx(formatDate(d), state.hotDateIdxs.indexOf(i) >= 0, {
                             onclick: `toggleDate(${i})`,
@@ -209,6 +217,22 @@ function render(state) {
                 ),
             ]));
         }
+        sections.push(el('section', [
+            el('h3', 'Weekly Series'),
+            el('div', weeklySeries.map(s =>
+                chkbx(s.label, state.hotSeries.indexOf(s.key) >= 0, {
+                    onclick: `toggleSeries('${s.key}')`
+                }, s.desc))),
+        ]));
+        sections.push(el('section', [
+            el('h3', 'Jurisdiction Series'),
+            el('div', jurisdictionSeries
+                .filter(s => s.key !== "name") // don't allow disabling this one
+                .map(s =>
+                    chkbx(s.label, state.hotSeries.indexOf(s.key) >= 0, {
+                        onclick: `toggleSeries('${s.key}')`
+                    }, s.desc))),
+        ]));
         sidebar.innerHTML = el('form', sections);
     } else {
         sidebar.innerHTML = "";
@@ -220,20 +244,25 @@ function selectBlock(sel) {
     fetchTableData(parseInt(sel.value))
 }
 
-function toggleDate(idx) {
-    setState(s => {
-        const next = s.hotDateIdxs.slice();
-        const i = next.indexOf(idx);
-        if (i < 0) {
-            next.push(idx);
-        } else {
-            next.splice(i, 1);
-        }
-        return {
-            hotDateIdxs: next,
-        };
-    });
+function _togglerBuilder(key) {
+    return idx => {
+        setState(s => {
+            const next = s[key].slice();
+            const i = next.indexOf(idx);
+            if (i < 0) {
+                next.push(idx);
+            } else {
+                next.splice(i, 1);
+            }
+            return {
+                [key]: next,
+            };
+        });
+    };
 }
+
+toggleDate = _togglerBuilder("hotDateIdxs");
+toggleSeries = _togglerBuilder("hotSeries");
 
 function byDayToByWeek(byDay) {
     const byWeek = [];
