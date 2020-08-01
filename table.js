@@ -2,7 +2,6 @@
  * Oh hai! Fancy meeting you here. You look fabulous, by the way. Very healthy.
  */
 function init(rawData, datasetName, hotRows = [], extraTotals = {}) {
-    const Week = 7;
     const series = [
         {
             scope: "jurisdiction",

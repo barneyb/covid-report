@@ -1,5 +1,6 @@
 const $ = document.querySelector.bind(document);
 const HunThou = 100000;
+const Week = 7;
 const fTrue = () => true;
 const IDENTITY = v => v;
 const isNum = v =>
