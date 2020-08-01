@@ -6,7 +6,7 @@ const IDENTITY = v => v;
 const isNum = v =>
     typeof v === "number" || v instanceof Number;
 const isActualNumber = v =>
-    !isNaN(v) && isFinite(v)
+    v != null && !isNaN(v) && isFinite(v)
 const parseDate = ld => {
     const ps = ld.trim()
         .split("-")
