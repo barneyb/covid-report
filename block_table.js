@@ -1,3 +1,4 @@
+LS_KEY = "covid-table-block";
 weeklySeries = [{
     key: "cases",
     label: "Cases",
@@ -96,6 +97,7 @@ weeklySeries.concat(jurisdictionSeries).forEach(s => {
 
 state = {
     loading: 0,
+    sidebar: true,
 };
 
 function setState(s) {
@@ -110,29 +112,17 @@ function setState(s) {
 }
 
 function render(state) {
-    $("#picker").innerHTML = state.blocks
-        ? el('select', {
-            onchange: "selectBlock(this)",
-        }, [
-            el('option'),
-        ].concat(state.blocks.map(b => {
-            const attrs = {value: b.id}
-            if (b.id === state.activeBlock) attrs.selected = "selected";
-            return el('option', attrs, b.name)
-        })))
-        : '';
-
     if (state.block) {
+        $("#block-name").innerText = state.block.name;
+
         // this should all be in state, filtered based on the checkboxes
         const cols = [];
-        state.dates.forEach(d => {
-            const group = formatDate(d);
+        state.dates.forEach(d =>
             weeklySeries.forEach(spec =>
                 cols.push({
                     ...spec,
-                    group,
-                }));
-        });
+                    group: formatDate(d),
+                })));
         jurisdictionSeries.forEach(spec => {
             if (spec.key === "name") cols.unshift(spec);
             else cols.push(spec);
@@ -177,10 +167,70 @@ function render(state) {
         $("#main-table tbody").innerHTML = el('tr', el('td', "Loading..."));
         $("#main-table tfoot").innerHTML = "";
     }
+
+    if (state.sidebar) {
+        const chkbx = (label, checked, attrs, desc) => {
+            if (checked) {
+                attrs.checked = "checked";
+            }
+            return el('label', [
+                el('input', {
+                    ...attrs,
+                    type: "checkbox",
+                }),
+                label,
+                desc && el('div', {className: "desc"}, desc),
+            ]);
+        };
+        document.body.classList.add("sidebar");
+        const sections = []
+        if (state.blocks) {
+            sections.push(el('section', [
+                el('h3', 'Block'),
+                el('select', {
+                    onchange: "selectBlock(this)",
+                }, state.blocks.map(b => {
+                    const attrs = {value: b.id}
+                    if (b.id === state.activeBlock) attrs.selected = "selected";
+                    return el('option', attrs, b.is_us ? ("&nbsp; " + b.name + ", US") : b.name)
+                })),
+            ]));
+        }
+        if (state.dates) {
+            sections.push(el('section', [
+                el('h3', 'Weeks Ending'),
+                el('div', {}, state.dates
+                    .map((d, i) =>
+                        chkbx(formatDate(d), state.hotDateIdxs.indexOf(i) >= 0, {
+                            onclick: `toggleDate(${i})`,
+                        })),
+                ),
+            ]));
+        }
+        sidebar.innerHTML = el('form', sections);
+    } else {
+        sidebar.innerHTML = "";
+        document.body.classList.remove("sidebar");
+    }
 }
 
 function selectBlock(sel) {
     fetchTableData(parseInt(sel.value))
+}
+
+function toggleDate(idx) {
+    setState(s => {
+        const next = s.hotDateIdxs.slice();
+        const i = next.indexOf(idx);
+        if (i < 0) {
+            next.push(idx);
+        } else {
+            next.splice(i, 1);
+        }
+        return {
+            hotDateIdxs: next,
+        };
+    });
 }
 
 function byDayToByWeek(byDay) {
@@ -287,12 +337,15 @@ function fetchTableData(id) {
                     bodyRows.push(r);
                 }
             });
-            setState({
-                dates,
-                bodyRows,
-                totalRows,
-                block,
-                loading: false,
+            setState(s => {
+                return {
+                    dates,
+                    bodyRows,
+                    totalRows,
+                    block,
+                    hotDateIdxs: s.hotDateIdxs ? s.hotDateIdxs : [0, 1, 2, 3],
+                    loading: false,
+                }
             });
         })
 }
