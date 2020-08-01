@@ -73,6 +73,7 @@ fetch("data/last-update.txt")
     .then(r => r.text())
     .then(ld => {
         const d = parseDate(ld);
+        window.lastUpdate = d;
         $("#navbar").innerHTML += tag(
             "span",
             "Updated: " + formatDate(d),
