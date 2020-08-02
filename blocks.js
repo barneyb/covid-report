@@ -1,4 +1,4 @@
-function getSegmentsAndDates(block, keys, segmentTransform = IDENTITY) {
+function getSegmentsWithTotal(block, keys, segmentTransform = IDENTITY) {
     const segments = block.segments.map(segmentTransform);
     const total = {
         ...block,
@@ -10,8 +10,7 @@ function getSegmentsAndDates(block, keys, segmentTransform = IDENTITY) {
     }
     segments.push(total);
     removeLeadingZeros(segments, total, keys);
-    const dates = buildDates(total, keys[0]);
-    return [segments, dates];
+    return [segments, total];
 }
 
 function aggArrayKey(items, key) {
@@ -36,14 +35,14 @@ function removeLeadingZeros(segments, total, keys) {
     }
 }
 
-function buildDates(total, key) {
+function buildDates(total, key, step=1) {
     return total[key].reduce(ds => {
         if (ds == null) {
             const d = window.lastUpdate
             d.setHours(12); // avoid having to deal with DST :)
             return [new Date(d.valueOf() - 86400 * 1000)];
         } else {
-            ds.unshift(new Date(ds[0].valueOf() - 7 * 86400 * 1000));
+            ds.unshift(new Date(ds[0].valueOf() - step * 86400 * 1000));
             return ds;
         }
     }, null);
