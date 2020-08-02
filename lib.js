@@ -160,27 +160,95 @@ const drawLineChart = (series, options) => {
         height: 75,
         stroke: 3,
         title: null,
+        dates: null,
+        gridlines: true,
         ...options,
     };
-    const [min, max] = series.reduce(([min, max], s) => [
+    const margins = {top: opts.stroke / 2, left: opts.stroke / 2, right: opts.stroke / 2, bottom: opts.stroke / 2};
+    let [ymin, ymax] = series.reduce(([min, max], s) => [
         s.values.reduce((a, b) => Math.min(a, b), min),
         s.values.reduce((a, b) => Math.max(a, b), max),
     ], [999999999, -999999999])
-    const range = max - min;
+    let gridpoints;
+    if (opts.gridlines) {
+        margins.top += 10;
+        margins.left += 10;
+        margins.bottom += 10;
+        // char width...
+        margins.right += 10 * Math.ceil(Math.log10(ymax));
+        gridpoints = [];
+        let v, d;
+        for (v = ymin, d = Math.max(1, Math.round((ymax - ymin) / (opts.height / 50))); v < ymax; v += d) {
+            gridpoints.push(v);
+        }
+        gridpoints.push(v);
+        ymax = v;
+    }
+    if (opts.dates) {
+        margins.bottom += 20;
+    }
+    const chartHeight = opts.height - margins.top - margins.bottom;
+    const dy = chartHeight / (ymax - ymin);
+    const v2y = v => margins.top + chartHeight - (v - ymin) * dy;
+    const chartWidth = opts.width - margins.left - margins.right;
     const len = series[0].values.length
-    const dx = opts.width / (len - 1)
+    const dx = chartWidth / (len - 1)
+    const i2x = i => margins.left + i * dx;
     return el(
         'svg',
         {
-            viewBox: `${-opts.stroke} ${-opts.stroke} ${opts.width + 2 * opts.stroke} ${opts.height + 2 * opts.stroke}`,
+            viewBox: `0 0 ${opts.width} ${opts.height}`,
         },
+        opts.gridlines && el('g', {},
+            gridpoints.map((v, i) => el('line', {
+                x1: margins.left,
+                y1: v2y(v),
+                x2: margins.left + chartWidth,
+                y2: v2y(v),
+                stroke: i % 2 === 0 ? "#ccc" : "#ddd",
+                'stroke-width': "0.5px",
+                'vector-effect': "non-scaling-stroke",
+            })),
+            gridpoints
+                .filter((v, i) => i % 2 === 0)
+                .map(v => el('text', {
+                    fill: "#666",
+                    'font-size': "14px",
+                    x: margins.left + chartWidth + 2,
+                    y: v2y(v) + 5,
+                }, v)),
+        ),
+        opts.dates && el('g', {},
+            opts.dates
+                .map((d, i) => [d, i])
+                .filter(([d]) => d.getDate() === 1 || d.getDay() === 0)
+                .flatMap(([d, i]) => [
+                    el('line', {
+                        x1: i2x(i),
+                        y1: margins.top,
+                        x2: i2x(i),
+                        y2: margins.top + chartHeight + 15,
+                        stroke: d.getDate() === 1 ? "#ccc" : "#ddd",
+                        'stroke-width': d.getDate() === 1 ? "1px" : "0.5px",
+                        'vector-effect': "non-scaling-stroke",
+                    }),
+                    d.getDate() === 1 && el('text', {
+                        fill: "#666",
+                        'font-size': "12px",
+                        x: i2x(i) + 2,
+                        y: margins.top + chartHeight + 13,
+                    }, formatDate(d)),
+                    d.getDay() === 0 && d.getDate() > 5 && d.getDate() < 27 && el('text', {
+                        fill: "#888",
+                        'font-size': "12px",
+                        x: i2x(i) + 2,
+                        y: margins.top + chartHeight + 13,
+                    }, d.getDate()),
+                ])
+        ),
         series.map(s => el('polyline', {
                 points: s.values
-                    .map((d, i) => [
-                        i * dx,
-                        formatNumber(opts.height - (d - min) / range * opts.height, 2)
-                    ])
-                    .map(p => p.join(","))
+                    .map((v, i) => i2x(i) + "," + v2y(v))
                     .join(" "),
                 fill: "none",
                 stroke: s.color || formatHsl(Math.random() * 360, 50, 50),

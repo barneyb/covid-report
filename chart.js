@@ -70,26 +70,25 @@ selectSeries = key =>
             s.key === key),
     });
 
+$pageHeader = $("#page-header")
 $chart = $("#chart")
 function render(state) {
+    const series = state.activeSeries
     if (state.segments) {
+        document.title = $pageHeader.innerText = state.block.name + " " + series.label;
         const opts = {
             width: $chart.clientWidth,
             height: $chart.clientHeight,
             stroke: 3,
+            dates: state.dates,
         };
         $chart.innerHTML = drawLineChart(state.segments.map(s => ({
-            values: s[state.activeSeries.key],
+            values: s[series.key],
             title: s.name,
-            color: formatHsl(s.hue, 10, 80),
+            color: formatHsl(s.hue, s.is_total ? 20 : 10, s.is_total ? 70 : 80),
         })), opts);
     } else {
-        $chart.innerHTML = el('div', {
-            style: {
-                textAlign: "center",
-                paddingTop: "30vh",
-            },
-        }, "Loading...");
+        $chart.innerHTML = el('div', { className: "loading" }, "Loading...");
     }
     if (state.sidebar) {
         const radio = (label, checked, attrs, desc) => {
@@ -121,7 +120,7 @@ function render(state) {
         sections.push(el('section', [
             el('h3', 'Series'),
             el('div', pointSeries.map(s =>
-                radio(s.label, state.activeSeries === s, {
+                radio(s.label, series === s, {
                     name: 'series',
                     value: s.key,
                     onclick: `selectSeries('${s.key}')`

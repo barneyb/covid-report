@@ -70,6 +70,7 @@ function init(data) {
             values,
             color: formatHsl(h, s + 10, l - 10),
         }], {
+            gridlines: false,
             title: `Average new cases per day (past ${len} days)`,
         })
     };
