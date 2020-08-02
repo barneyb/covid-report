@@ -213,8 +213,9 @@ function fetchTableData(id) {
             // assign them hues here, so they're stable
             segments.forEach((s, i) => {
                 // noinspection JSPrimitiveTypeWrapperUsage
-                s.hue = (i / segments.length) * 360
+                s.hue = 40 + (i / rawSegments.length) * 280;
             });
+            segments[segments.length - 1].hue = 0; // always red!
             setState({
                 segments,
                 dates: rawDates.slice(1),
