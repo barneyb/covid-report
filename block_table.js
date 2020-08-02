@@ -104,70 +104,114 @@ weeklySeries.concat(jurisdictionSeries).forEach(s => {
 
 state = {
     loading: 0,
-    sidebar: true,
+    hotDateIdxs: [0, 1, 2, 3],
     hotSeries: weeklySeries.concat(jurisdictionSeries)
         .filter(s => s.hot)
         .map(s => s.key),
 };
+tableState = {};
 
 function setState(s) {
+    const prev = state;
     if (typeof s === "function") {
-        s = s(state);
+        s = s(prev);
     }
     state = {
-        ...state,
+        ...prev,
         ...s,
     };
-    render(state);
+    if (["dates", "rows", "hotDateIdxs", "hotSeries"].some(k => state[k] !== prev[k])) {
+        tableState = buildTable(state);
+    }
+    render(state, tableState);
 }
 
-function render(state) {
-    if (state.block) {
+// This guy will take the raw dates/series and apply filters to build the table
+// to render. Sorting will happen during render.
+function buildTable(state) {
+    if (!state.dates) return {};
+    if (!state.rows) return {};
+    const allCols = [];
+    state.dates
+        .forEach((d, i) => {
+            const group = formatDate(d)
+            const hot = state.hotDateIdxs.indexOf(i) >= 0;
+            return weeklySeries.forEach(spec =>
+                allCols.push({
+                    ...spec,
+                    group,
+                    hot: hot && state.hotSeries.indexOf(spec.key) >= 0,
+                }))
+        });
+    jurisdictionSeries.forEach(spec => {
+        if (spec.key === "name") allCols.unshift({
+            ...spec,
+            hot: true, // this one's always hot
+        });
+        else allCols.push({
+            ...spec,
+            hot: state.hotSeries.indexOf(spec.key) >= 0,
+        });
+    });
+    const [hotCols, indexes] = allCols.map((c, i) => [c, i])
+        .filter(([c, ignored]) => c.hot)
+        .reduce((pair, [c, i]) => [
+            pair[0].concat(c),
+            pair[1].concat(i),
+        ], [[], []]);
+    const groups = hotCols.reduce((gs, c) => {
+        if (gs.length === 0 || gs[gs.length - 1].label !== c.group) {
+            c.newGroup = true;
+            gs.push({
+                label: c.group,
+                size: 1,
+            })
+        } else {
+            gs[gs.length - 1].size += 1;
+        }
+        return gs;
+    }, []);
+    const body = [];
+    const total = []
+    state.rows.forEach(s => {
+        const d = [];
+        for (let i = 0; i < indexes.length; i++) {
+            d.push(s.data[indexes[i]]);
+        }
+        if (s.is_total) {
+            total.push(d);
+        } else {
+            body.push(d);
+        }
+    });
+    return {
+        columns: hotCols,
+        columnGroups: groups,
+        bodyRows: body,
+        totalRows: total,
+    };
+}
+
+function render(state, {columns, columnGroups, bodyRows, totalRows}) {
+    if (bodyRows) {
         $("#block-name").innerText = state.block.name;
 
-        // this should all be in state, filtered based on the checkboxes
-        const cols = [];
-        state.dates.forEach(d =>
-            weeklySeries.forEach(spec =>
-                cols.push({
-                    ...spec,
-                    group: formatDate(d),
-                })));
-        jurisdictionSeries.forEach(spec => {
-            if (spec.key === "name") cols.unshift(spec);
-            else cols.push(spec);
-        });
-        const groups = cols.reduce((gs, c) => {
-            if (gs.length === 0 || gs[gs.length - 1].label !== c.group) {
-                c.newGroup = true;
-                gs.push({
-                    label: c.group,
-                    cols: [c],
-                })
-            } else {
-                gs[gs.length - 1].cols.push(c);
-            }
-            return gs;
-        }, []);
-        groups.forEach(g =>
-            g.size = g.cols.length);
-
         $("#main-table thead").innerHTML = [
-            el('tr', [el('th')].concat(groups.map(g => el('th', {colspan: g.size, className: "new-point"}, g.label)))),
-            el('tr', [el('th')].concat(cols.map(c => el('th', {className: {"new-point": c.newGroup}}, c.label)))),
+            el('tr', [el('th')].concat(columnGroups.map(g => el('th', {colspan: g.size, className: "new-point"}, g.label)))),
+            el('tr', [el('th')].concat(columns.map(c => el('th', {className: {"new-point": c.newGroup}}, c.label)))),
         ].join("\n");
-        $("#main-table tbody").innerHTML = state.bodyRows
+        $("#main-table tbody").innerHTML = bodyRows
             .map((r, rowNum) => el(
                 'tr',
-                [el('td', null, rowNum + 1)].concat(cols.map((c, i) => el('td', {className: {
+                [el('td', null, rowNum + 1)].concat(columns.map((c, i) => el('td', {className: {
                         "new-point": c.newGroup,
                         "number": c.is_number,
                     }}, c.format(r[i])))),
             )).join("\n");
-        $("#main-table tfoot").innerHTML = state.totalRows
+        $("#main-table tfoot").innerHTML = totalRows
             .map(r => el(
                 'tr',
-                [el('th')].concat(cols.map((c, i) => el('th', {className: {
+                [el('th')].concat(columns.map((c, i) => el('th', {className: {
                         "new-point": c.newGroup,
                         "number": c.is_number,
                     }}, c.format(r[i])))),
@@ -240,7 +284,7 @@ function render(state) {
     }
 }
 
-function selectBlock(sel) {
+selectBlock = sel => {
     fetchTableData(parseInt(sel.value))
 }
 
@@ -285,6 +329,9 @@ function aggArrayKey(items, key) {
 function fetchTableData(id) {
     setState({
         activeBlock: id,
+        block: null,
+        dates: null,
+        series: null,
         loading: true,
     });
     fetch("data/block_" + id + ".json")
@@ -309,7 +356,6 @@ function fetchTableData(id) {
                 cases_by_week: aggArrayKey(series, 'cases_by_week'),
                 deaths_by_week: aggArrayKey(series, 'deaths_by_week'),
             }
-            delete total.segments;
             series.push(total);
             // now cull all but one of the leading zeros (if there are any)
             const lastZero = Math.min(
@@ -322,8 +368,19 @@ function fetchTableData(id) {
                     s.deaths_by_week = s.deaths_by_week.slice(lastZero);
                 }
             }
+            // get the list of dates; any array will do
+            const dates = total.cases_by_week.reduce(ds => {
+                if (ds == null) {
+                    const d = window.lastUpdate
+                    d.setHours(12); // avoid having to deal with DST :)
+                    return [new Date(d.valueOf() - 86400 * 1000)];
+                } else {
+                    ds.unshift(new Date(ds[0].valueOf() - 7 * 86400 * 1000));
+                    return ds;
+                }
+            }, null).slice(1).reverse();
             // everything's all lined up. Time to do the things!
-            for (const s of series) {
+            const rows = series.map(s => {
                 s.points = s.cases_by_week.map((c, i) => {
                     const r = {
                         total_cases: c,
@@ -335,49 +392,31 @@ function fetchTableData(id) {
                     }
                     return r;
                 }).slice(1).reverse();
-                delete s.cases_by_week;
-                delete s.deaths_by_week;
-            }
-            // get the list of dates; any array will do
-            const dates = total.points.reduce(ds => {
-                if (ds == null) {
-                    const d = window.lastUpdate
-                    d.setHours(12); // avoid having to deal with DST :)
-                    return [new Date(d.valueOf() - 86400 * 1000)];
-                } else {
-                    ds.unshift(new Date(ds[0].valueOf() - 7 * 86400 * 1000));
-                    return ds;
-                }
-            }, null).slice(1).reverse();
-            // now we can build the table...
-            const bodyRows = [];
-            const totalRows = []
-            series.forEach(s => {
-                const r = [];
+                const data = [];
                 dates.forEach((d, i) => {
                     weeklySeries.forEach(spec =>
-                        r.push(spec.calc(s.points[i], s, i)));
+                        data.push(spec.calc(s.points[i], s, i)));
                 });
                 jurisdictionSeries.forEach(spec => {
                     const v = spec.calc(s);
-                    if (spec.key === "name") r.unshift(v);
-                    else r.push(v);
+                    if (spec.key === "name") data.unshift(v);
+                    else data.push(v);
                 });
-                if (s.is_total) {
-                    totalRows.push(r);
-                } else {
-                    bodyRows.push(r);
+                return {
+                    id: s.id,
+                    name: s.name,
+                    is_total: s.is_total,
+                    data,
                 }
             });
-            setState(s => {
-                return {
-                    dates,
-                    bodyRows,
-                    totalRows,
-                    block,
-                    hotDateIdxs: s.hotDateIdxs ? s.hotDateIdxs : [0, 1, 2, 3],
-                    loading: false,
-                }
+            setState({
+                rows,
+                dates,
+                block: {
+                    id: block.id,
+                    name: block.name,
+                },
+                loading: false,
             });
         })
 }
