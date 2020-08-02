@@ -477,6 +477,17 @@ fetch("data/blocks.json")
         });
         setState({
             blocks,
-        })
+        });
+        if (!isNaN(idFromQS)) {
+            if (blocks.find(b => b.id === idFromQS)) {
+                fetchTableData(idFromQS);
+            } else {
+                fetchTableData(ID_US);
+            }
+        }
     });
-fetchTableData(ID_US);
+qs = parseQS();
+idFromQS = parseInt(qs.id)
+if (isNaN(idFromQS)) {
+    fetchTableData(ID_US);
+}
