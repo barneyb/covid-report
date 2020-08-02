@@ -1,5 +1,6 @@
 table {
     border-collapse: collapse;
+    position: relative;
 }
 td, th.total {
     border-top: 1px solid #eee;
@@ -47,6 +48,17 @@ td.new-point {
 thead th {
     text-align: left;
     vertical-align: bottom;
+    position: sticky;
+}
+thead th,
+tfoot th {
+    background-color: var(--body-bgc);
+}
+thead tr th {
+    top: 3.7em;
+}
+thead tr:first-child th {
+    top: 2.2em;
 }
 tfoot th {
     text-align: left;
