@@ -7,7 +7,7 @@ body {
     --body-warning-hue: 51;
 }
 body.stale-data {
-    background: repeating-linear-gradient(
+    background-image: repeating-linear-gradient(
             20deg,
             transparent,
             transparent 85px,
