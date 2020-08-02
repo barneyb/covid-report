@@ -206,10 +206,10 @@ function render(state, {columns, columnGroups, bodyRows, totalRows}) {
             el('tr', [el('th')].concat(columnGroups.map(g => el('th', {colspan: g.size, className: "new-point"}, g.label)))),
             el('tr', [el('th')].concat(columns.map((c, i) => el('th', {
                 className: {
-                    "new-point": c.newGroup,
+                    newPoint: c.newGroup,
                     sortable: true,
                     sorted: sortIdx === i,
-                    "sorted-asc": state.sortAsc,
+                    sortedAsc: state.sortAsc,
                 },
                 title: c.desc,
                 onclick: `handleSort(${i})`,
@@ -223,16 +223,16 @@ function render(state, {columns, columnGroups, bodyRows, totalRows}) {
             .map((r, rowNum) => el(
                 'tr',
                 [el('td', null, rowNum + 1)].concat(columns.map((c, i) => el('td', {className: {
-                        "new-point": c.newGroup,
-                        "number": c.is_number,
+                        newPoint: c.newGroup,
+                        number: c.is_number,
                     }}, c.format(r[i])))),
             )).join("\n");
         $("#main-table tfoot").innerHTML = totalRows
             .map(r => el(
                 'tr',
                 [el('th')].concat(columns.map((c, i) => el('th', {className: {
-                        "new-point": c.newGroup,
-                        "number": c.is_number,
+                        newPoint: c.newGroup,
+                        number: c.is_number,
                     }}, c.format(r[i])))),
             )).join("\n");
     } else {
@@ -241,7 +241,7 @@ function render(state, {columns, columnGroups, bodyRows, totalRows}) {
             style: {
                 height: "40vh",
                 width: "60vw",
-                'text-align': "center",
+                textAlign: "center",
 
             }
         }, "Loading..."));

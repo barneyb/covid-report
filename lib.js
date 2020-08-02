@@ -63,6 +63,15 @@ const tag = (el, c, attrs) =>
         .map(k => ` ${k === "className" ? "class" : k}="${attrs[k]}"`)
         .join('')}>${c && c.join ? c.filter(IDENTITY)
         .join("") : c || ''}</${el}>`;
+const camel2kebab = p => {
+    for (let i = p.length - 1; i > 0; i--) {
+        const c = p.charAt(i)
+        if (c >= "A" && c <= "Z") {
+            p = p.substr(0, i) + "-" + c.toLowerCase() + p.substr(i + 1);
+        }
+    }
+    return p;
+}
 const el = function(name, attrs, children) {
     if (children == null && (attrs instanceof Array || typeof attrs === "string")) {
         children = attrs;
@@ -74,7 +83,7 @@ const el = function(name, attrs, children) {
             attrs.style = st.join(";");
         } else if (typeof st !== "string") {
             attrs.style = Object.keys(st)
-                .map(k => k + ":" + st[k])
+                .map(k => camel2kebab(k) + ":" + st[k])
                 .join(";");
         }
     }
@@ -88,6 +97,7 @@ const el = function(name, attrs, children) {
             // an object w/ flag values
             attrs.className = Object.keys(cns)
                 .filter(k => cns[k])
+                .map(k => camel2kebab(k))
                 .join(" ");
         }
     }
