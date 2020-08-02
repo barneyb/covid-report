@@ -94,10 +94,10 @@ const camel2kebab = p => {
     }
     return p;
 }
-const el = (name, attrs, children) => {
+const el = (name, attrs, children, ...moreKids) => {
     if (children == null && (attrs instanceof Array || typeof attrs === "string")) {
         children = attrs;
-        attrs = undefined;
+        attrs = null;
     }
     if (attrs == null) attrs = {};
     if (attrs.hasOwnProperty("style")) {
@@ -127,10 +127,23 @@ const el = (name, attrs, children) => {
     for (const k in attrs) {
         if (attrs[k] == null) delete attrs[k];
     }
-    return `<${name}${Object.keys(attrs)
+    if (moreKids.length) {
+        if (children == null) {
+            children = moreKids;
+        } else {
+            if (!(children instanceof Array)) {
+                children = [children];
+            }
+            children = children.concat(moreKids)
+        }
+    }
+    const attrString = Object.keys(attrs)
         .map(k => ` ${k === "className" ? "class" : k}="${attrs[k]}"`)
-        .join('')}>${children && children.join ? children.filter(IDENTITY)
-        .join("") : children || ''}</${name}>`;
+        .join('');
+    const kidString = children && children.join
+        ? children.filter(IDENTITY) .join("")
+        : children || '';
+    return `<${name}${attrString}>${kidString}</${name}>`;
 };
 const numComp = (a, b) => {
     if (isActualNumber(a)) return isActualNumber(b) ? a - b : 1;
@@ -139,6 +152,45 @@ const numComp = (a, b) => {
 };
 const strComp = (a, b) => a < b ? -1 : a > b ? 1 : 0;
 const revComp = comp => (a, b) => comp(b, a);
+const formatHsl = (h, s, l) =>
+    `hsl(${formatNumber(h, 2)},${formatNumber(s, 2)}%,${formatNumber(l, 2)}%)`;
+const drawLineChart = (series, options) => {
+    const opts = {
+        width: 200,
+        height: 75,
+        stroke: 3,
+        title: null,
+        ...options,
+    };
+    const [min, max] = series.reduce(([min, max], s) => [
+        s.values.reduce((a, b) => Math.min(a, b), min),
+        s.values.reduce((a, b) => Math.max(a, b), max),
+    ], [999999999, -999999999])
+    const range = max - min;
+    const len = series[0].values.length
+    const dx = opts.width / (len - 1)
+    return el(
+        'svg',
+        {
+            viewBox: `${-opts.stroke} ${-opts.stroke} ${opts.width + 2 * opts.stroke} ${opts.height + 2 * opts.stroke}`,
+        },
+        series.map(s => el('polyline', {
+                points: s.values
+                    .map((d, i) => [
+                        i * dx,
+                        formatNumber(opts.height - (d - min) / range * opts.height, 2)
+                    ])
+                    .map(p => p.join(","))
+                    .join(" "),
+                fill: "none",
+                stroke: s.color || formatHsl(Math.random() * 360, 50, 50),
+                'stroke-width': (s.stroke || opts.stroke) + "px",
+                'stroke-linejoin': "round",
+                'stroke-linecap': "round",
+            }, s.title && el('title', s.title)),
+        ),
+        opts.title && el('title', opts.title));
+};
 const $sidebar = $("#sidebar .content");
 if ($sidebar) {
     $("#show-sidebar")

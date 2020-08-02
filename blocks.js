@@ -1,17 +1,17 @@
-function getSeriesAndDates(block, keys, segmentTransform = IDENTITY) {
-    const series = block.segments.map(segmentTransform);
+function getSegmentsAndDates(block, keys, segmentTransform = IDENTITY) {
+    const segments = block.segments.map(segmentTransform);
     const total = {
         ...block,
         is_total: true,
     }
     delete total.segments;
     for (const k of keys) {
-        total[k] = aggArrayKey(series, k);
+        total[k] = aggArrayKey(segments, k);
     }
-    series.push(total);
-    removeLeadingZeros(series, total, keys);
+    segments.push(total);
+    removeLeadingZeros(segments, total, keys);
     const dates = buildDates(total, keys[0]);
-    return [series, dates];
+    return [segments, dates];
 }
 
 function aggArrayKey(items, key) {
@@ -24,11 +24,11 @@ function aggArrayKey(items, key) {
     return agg;
 }
 
-function removeLeadingZeros(series, total, keys) {
+function removeLeadingZeros(segments, total, keys) {
     const lastZero = keys.reduce((lz, k) =>
         Math.min(lz, total[k].lastIndexOf(0)), 99999);
     if (lastZero > 0) {
-        for (const s of series) {
+        for (const s of segments) {
             for (const k of keys) {
                 s[k] = s[k].slice(lastZero);
             }

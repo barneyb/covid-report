@@ -265,7 +265,7 @@ function render(state, {columns, columnGroups, bodyRows, totalRows}) {
                 desc && el('div', {className: "desc"}, desc),
             ]);
         };
-        const sections = []
+        const sections = [];
         if (state.blocks) {
             sections.push(el('section', [
                 el('h3', 'Block'),
@@ -363,7 +363,7 @@ function fetchTableData(id) {
         activeBlock: id,
         block: null,
         dates: null,
-        series: null,
+        segments: null,
         loading: true,
     });
     document.querySelectorAll("#navbar .block-table").forEach(it =>
@@ -374,7 +374,7 @@ function fetchTableData(id) {
     fetch("data/block_" + id + ".json")
         .then(resp => resp.json())
         .then(block => {
-            const [rawSeries, rawDates] = getSeriesAndDates(
+            const [rawSegments, rawDates] = getSegmentsAndDates(
                 block,
                 ["cases_by_week", "deaths_by_week"],
                 s => {
@@ -388,7 +388,7 @@ function fetchTableData(id) {
                     return s;
                 },
             );
-            const rows = rawSeries
+            const rows = rawSegments
                 .filter(s => s.population > 0) // no people, bah!
                 .map(s => {
                     // noinspection JSPrimitiveTypeWrapperUsage

@@ -46,9 +46,7 @@ pointSeries.forEach(s => {
     if (!s.hasOwnProperty("format")) s.format = formatNumber;
 })
 
-state = {
-    sidebar: true, // todo: remove
-};
+state = {};
 
 function setState(s) {
     const prev = state;
@@ -74,13 +72,17 @@ selectSeries = key =>
 
 $chart = $("#chart")
 function render(state) {
-    if (state.series) {
-        $chart.style.overflow = "scroll"; // todo: remove
-        $chart.innerHTML = state.series.map(s =>
-            el('p', s.name + ": " + s[state.activeSeries.key]
-                .map(v => state.activeSeries.format(v))
-                .join(', ')))
-            .join("\n");
+    if (state.segments) {
+        const opts = {
+            width: $chart.clientWidth,
+            height: $chart.clientHeight,
+            stroke: 3,
+        };
+        $chart.innerHTML = drawLineChart(state.segments.map(s => ({
+            values: s[state.activeSeries.key],
+            title: s.name,
+            color: formatHsl(s.hue, 10, 80),
+        })), opts);
     } else {
         $chart.innerHTML = el('div', {
             style: {
@@ -152,18 +154,18 @@ function fetchTableData(id) {
         activeBlock: id,
         block: null,
         dates: null,
-        series: null,
+        segments: null,
         loading: true,
     });
     pushQS({id});
     fetch("data/block_" + id + ".json")
         .then(resp => resp.json())
         .then(block => {
-            const [rawSeries, rawDates] = getSeriesAndDates(
+            const [rawSegments, rawDates] = getSegmentsAndDates(
                 block,
                 ["cases_by_day", "deaths_by_day"],
             );
-            const series = rawSeries
+            const segments = rawSegments
                 .filter(s => s.population > 0) // no people, bah!
                 .map(s => {
                     const points = s.cases_by_day.reduce((agg, c, i) => {
@@ -189,8 +191,13 @@ function fetchTableData(id) {
                     });
                     return r;
                 });
+            // assign them hues here, so they're stable
+            segments.forEach((s, i) => {
+                // noinspection JSPrimitiveTypeWrapperUsage
+                s.hue = (i / segments.length) * 360
+            });
             setState({
-                series,
+                segments,
                 dates: rawDates.slice(1),
                 block: {
                     id: block.id,
@@ -204,4 +211,6 @@ function fetchTableData(id) {
 window.addEventListener("popstate", e => {
     if (e.state.id) fetchTableData(e.state.id);
 });
+window.addEventListener("resize", () => setState({})); // tee hee
+
 selectSeries("case_rate")

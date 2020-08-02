@@ -28,8 +28,6 @@ function init(data) {
             zero[2] - (zero[2] - end[2]) * dist,
         ].map(d => Math.round(d * 100) / 100);
     }
-    const formatHsl = (h, s, l) =>
-        `hsl(${formatNumber(h, 2)},${formatNumber(s, 2)}%,${formatNumber(l, 2)}%)`;
     const drawColumn = segments => {
         const width = 30;
         const height = 150;
@@ -64,40 +62,16 @@ function init(data) {
             }, {pop: 0, rects: []}).rects)
     }
     const drawSpark = values => {
-        const width = 200;
-        const height = 75;
-        const stroke = 3;
-        const min = values.reduce((a, b) => Math.min(a, b), 999999999)
-        const max = values.reduce((a, b) => Math.max(a, b), 0)
-        const range = max - min;
         const len = values.length
-        const dx = width / (len - 1)
-        const points = values
-            .map((d, i) => [
-                i * dx,
-                formatNumber(height - (d - min) / range * height, 2)
-            ])
-            .map(p => p.join(","))
-            .join(" ");
         const first = values[0]
         const last = values[len - 1]
         const [h,s,l] = colorForDelta((last - first) / first);
-        return el(
-            'svg',
-            {
-                viewBox: `${-stroke} ${-stroke} ${width + 2 * stroke} ${height + 2 * stroke}`,
-            },
-            [
-                el('title', `Average new cases per day (past ${len} days)`),
-                el('polyline', {
-                    points,
-                    fill: "none",
-                    stroke: formatHsl(h, s + 10, l - 10),
-                    'stroke-width': stroke + "px",
-                    'stroke-linejoin': "round",
-                    'stroke-linecap': "round",
-                }),
-            ]);
+        return drawLineChart([{
+            values,
+            color: formatHsl(h, s + 10, l - 10),
+        }], {
+            title: `Average new cases per day (past ${len} days)`,
+        })
     };
     const _statHelper = (label, val, title) =>
         el('div', {className: "stat", title}, [
