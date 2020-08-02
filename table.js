@@ -410,3 +410,20 @@ window.addEventListener("popstate", e => {
     if (e.state.id) fetchTableData(e.state.id);
 });
 
+const qs = parseQS();
+qs.id = parseInt(qs.id);
+fetch("data/blocks.json")
+    .then(resp => resp.json())
+    .then(blocks => {
+        addFlags(blocks)
+        blocks.sort(blockComp);
+        setState({
+            blocks,
+        });
+        if (blocks.find(b => b.id === qs.id)) {
+            fetchTableData(qs.id);
+        } else {
+            fetchTableData(ID_US);
+        }
+    });
+

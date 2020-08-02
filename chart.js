@@ -61,16 +61,25 @@ function setState(s) {
         ...s,
     };
     render(state);
+    if (state.activeSeries && state.activeBlock) {
+        pushQS({
+            id: state.activeBlock,
+            s: state.activeSeries.key,
+        });
+    }
 }
 
 selectBlock = sel =>
     fetchTableData(parseInt(sel.value));
 
-selectSeries = key =>
+selectSeries = key => {
+    const s = pointSeries.find(s =>
+        s.key === key)
+    if (s == null) return selectSeries("case_rate");
     setState({
-        activeSeries: pointSeries.find(s =>
-            s.key === key),
-    });
+        activeSeries: s,
+    })
+};
 
 toggleSegment = _togglerBuilder("hotSegments");
 
@@ -177,7 +186,6 @@ function fetchTableData(id) {
         segments: null,
         loading: true,
     });
-    pushQS({id});
     fetch("data/block_" + id + ".json")
         .then(resp => resp.json())
         .then(block => {
@@ -235,4 +243,20 @@ window.addEventListener("popstate", e => {
 });
 window.addEventListener("resize", () => setState({})); // tee hee
 
-selectSeries("case_rate")
+const qs = parseQS();
+qs.id = parseInt(qs.id);
+selectSeries(qs.s)
+fetch("data/blocks.json")
+    .then(resp => resp.json())
+    .then(blocks => {
+        addFlags(blocks)
+        blocks.sort(blockComp);
+        setState({
+            blocks,
+        });
+        if (blocks.find(b => b.id === qs.id)) {
+            fetchTableData(qs.id);
+        } else {
+            fetchTableData(ID_US);
+        }
+    });

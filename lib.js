@@ -40,19 +40,19 @@ const formatDeathRate = v => formatNumber(v, 1)
 const formatDeathRateSegment = v => formatNumber(v, 2)
 const Delta = "&#x1D6AB;"
 const parseQS = (qs = location.search) => {
-    if (!qs) return {};
+    if (!qs || qs === "?") return {};
     return qs.substr(1)
         .split("&")
         .map(p => p.split("="))
-        .reduce((r, p) => {
-            const n = p[0];
-            if (r.hasOwnProperty(n)) {
-                if (!(r[n] instanceof Array)) {
-                    r[n] = [r[n]];
+        .map(p => [p.shift(), p.join("=")])
+        .reduce((r, [k, v]) => {
+            if (r.hasOwnProperty(k)) {
+                if (!(r[k] instanceof Array)) {
+                    r[k] = [r[k]];
                 }
-                r[n].push(p[1]);
+                r[k].push(v);
             } else {
-                r[n] = p[1];
+                r[k] = v;
             }
             return r;
         }, {});

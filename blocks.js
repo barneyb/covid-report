@@ -102,20 +102,3 @@ function blockComp(a, b) {
     // they're in the same bucket, so alphabetical
     return a.name.localeCompare(b.name);
 }
-
-fetch("data/blocks.json")
-    .then(resp => resp.json())
-    .then(blocks => {
-        addFlags(blocks)
-        blocks.sort(blockComp);
-        setState({
-            blocks,
-        });
-        const qs = parseQS();
-        const idFromQS = parseInt(qs.id)
-        if (!isNaN(idFromQS) && blocks.find(b => b.id === idFromQS)) {
-            fetchTableData(idFromQS);
-        } else {
-            fetchTableData(ID_US);
-        }
-    });
