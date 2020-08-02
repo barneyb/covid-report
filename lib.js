@@ -68,6 +68,16 @@ const el = function(name, attrs, children) {
         children = attrs;
         attrs = undefined;
     }
+    if (attrs && attrs.hasOwnProperty("style")) {
+        const st = attrs.style;
+        if (st instanceof Array) {
+            attrs.style = st.join(";");
+        } else if (typeof st !== "string") {
+            attrs.style = Object.keys(st)
+                .map(k => k + ":" + st[k])
+                .join(";");
+        }
+    }
     if (attrs && attrs.hasOwnProperty("className")) {
         const cns = attrs.className;
         if (cns instanceof Array) {
