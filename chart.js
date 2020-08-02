@@ -46,7 +46,9 @@ pointSeries.forEach(s => {
     if (!s.hasOwnProperty("format")) s.format = formatNumber;
 })
 
-state = {};
+state = {
+    hotSegments: [],
+};
 
 function setState(s) {
     const prev = state;
@@ -70,6 +72,8 @@ selectSeries = key =>
             s.key === key),
     });
 
+toggleSegment = _togglerBuilder("hotSegments");
+
 $pageHeader = $("#page-header")
 $chart = $("#chart")
 function render(state) {
@@ -82,11 +86,23 @@ function render(state) {
             stroke: 3,
             dates: state.dates,
         };
-        $chart.innerHTML = drawLineChart(state.segments.map(s => ({
-            values: s[series.key],
-            title: s.name,
-            color: formatHsl(s.hue, s.is_total ? 20 : 10, s.is_total ? 70 : 80),
-        })), opts);
+        const cold = [];
+        const hot = [];
+        for (const s of state.segments) {
+            const r = {
+                values: s[series.key],
+                title: s.name,
+                onclick: `toggleSegment(${s.id})`
+            };
+            if (state.hotSegments.indexOf(s.id) >= 0) {
+                r.color = formatHsl(s.hue, 50, 50)
+                hot.push(r);
+            } else {
+                r.color = formatHsl(s.hue, ...(s.is_total ? [20, 70] : [10, 80]))
+                cold.push(r);
+            }
+        }
+        $chart.innerHTML = drawLineChart(cold.concat(hot), opts);
     } else {
         $chart.innerHTML = el('div', { className: "loading" }, "Loading...");
     }

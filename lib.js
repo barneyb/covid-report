@@ -252,6 +252,8 @@ const drawLineChart = (series, options) => {
                     .join(" "),
                 fill: "none",
                 stroke: s.color || formatHsl(Math.random() * 360, 50, 50),
+                onclick: s.onclick,
+                cursor: s.onclick ? "pointer" : null,
                 'stroke-width': (s.stroke || opts.stroke) + "px",
                 'stroke-linejoin': "round",
                 'stroke-linecap': "round",

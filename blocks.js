@@ -1,3 +1,20 @@
+function _togglerBuilder(key) {
+    return idx => {
+        setState(s => {
+            const next = s[key].slice();
+            const i = next.indexOf(idx);
+            if (i < 0) {
+                next.push(idx);
+            } else {
+                next.splice(i, 1);
+            }
+            return {
+                [key]: next,
+            };
+        });
+    };
+}
+
 function getSegmentsWithTotal(block, keys, segmentTransform = IDENTITY) {
     const segments = block.segments.map(segmentTransform);
     const total = {

@@ -2,6 +2,7 @@
     width: 100%;
     height: 80vh;
     background-color: white;
+    user-select: none;
 }
 #chart .loading {
     text-align: center;
