@@ -81,6 +81,9 @@ const el = function(name, attrs, children) {
                 .join(" ");
         }
     }
+    for (const k in attrs) {
+        if (attrs[k] == null) delete attrs[k];
+    }
     return tag(name, children, attrs)
 };
 const numComp = (a, b) => {

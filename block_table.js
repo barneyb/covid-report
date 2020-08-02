@@ -213,6 +213,7 @@ function render(state, {columns, columnGroups, bodyRows, totalRows}) {
                     sorted: sortIdx === i,
                     "sorted-asc": state.sortAsc,
                 },
+                title: c.desc,
                 onclick: `handleSort(${i})`,
             }, c.label)))),
         ].join("\n");
