@@ -237,7 +237,14 @@ function render(state, {columns, columnGroups, bodyRows, totalRows}) {
             )).join("\n");
     } else {
         $("#main-table thead").innerHTML = "";
-        $("#main-table tbody").innerHTML = el('tr', el('td', "Loading..."));
+        $("#main-table tbody").innerHTML = el('tr', el('td', {
+            style: {
+                height: "40vh",
+                width: "60vw",
+                'text-align': "center",
+
+            }
+        }, "Loading..."));
         $("#main-table tfoot").innerHTML = "";
     }
 
