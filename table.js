@@ -252,19 +252,7 @@ function render(state, {columns, columnGroups, bodyRows, totalRows}) {
     }
 
     if (state.sidebar) {
-        const chkbx = (label, checked, attrs, desc) => {
-            if (checked) {
-                attrs.checked = "checked";
-            }
-            return el('label', [
-                el('input', {
-                    ...attrs,
-                    type: "checkbox",
-                }),
-                label,
-                desc && el('div', {className: "desc"}, desc),
-            ]);
-        };
+        const chkbx = _pickCtrlBuilder("checkbox");
         const sections = [];
         if (state.blocks) {
             sections.push(el('section', [
@@ -281,11 +269,10 @@ function render(state, {columns, columnGroups, bodyRows, totalRows}) {
         if (state.dates) {
             sections.push(el('section', [
                 el('h3', 'Weeks Ending'),
-                el('div', state.dates
-                    .map((d, i) =>
-                        chkbx(formatDate(d), state.hotDateIdxs.indexOf(i) >= 0, {
-                            onclick: `toggleDate(${i})`,
-                        })),
+                el('div', state.dates.map((d, i) =>
+                    chkbx(formatDate(d), state.hotDateIdxs.indexOf(i) >= 0, {
+                        onclick: `toggleDate(${i})`,
+                    })),
                 ),
             ]));
         }
@@ -293,6 +280,8 @@ function render(state, {columns, columnGroups, bodyRows, totalRows}) {
             el('h3', 'Weekly Series'),
             el('div', weeklySeries.map(s =>
                 chkbx(s.label, state.hotSeries.indexOf(s.key) >= 0, {
+                    name: 'series',
+                    value: s.key,
                     onclick: `toggleSeries('${s.key}')`
                 }, s.desc))),
         ]));

@@ -8,3 +8,11 @@
     text-align: center;
     padding-top: 30vh;
 }
+#sidebar .swatch {
+    display: inline-block;
+    margin: 0.1em 0.3em 0;
+    border-radius: 2px;
+    border: 0.5px solid #999;
+    width: 0.6em;
+    height: 0.6em;
+}

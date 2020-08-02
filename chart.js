@@ -107,19 +107,8 @@ function render(state) {
         $chart.innerHTML = el('div', { className: "loading" }, "Loading...");
     }
     if (state.sidebar) {
-        const radio = (label, checked, attrs, desc) => {
-            if (checked) {
-                attrs.checked = "checked";
-            }
-            return el('label', [
-                el('input', {
-                    ...attrs,
-                    type: "radio",
-                }),
-                label,
-                desc && el('div', {className: "desc"}, desc),
-            ]);
-        };
+        const radio = _pickCtrlBuilder("radio");
+        const chkbx = _pickCtrlBuilder("checkbox");
         const sections = []
         if (state.blocks) {
             sections.push(el('section', [
@@ -142,6 +131,20 @@ function render(state) {
                     onclick: `selectSeries('${s.key}')`
                 }, s.desc))),
         ]));
+        if (state.segments) {
+            sections.push(el('section', [
+                el('h3', 'Segments'),
+                el('div', state.segments.map(s =>
+                    chkbx(el('span', [
+                        s.name,
+                        el('span', {className: "swatch", style: {backgroundColor: formatHsl(s.hue, 100, 50)}}),
+                    ]), state.hotSegments.indexOf(s.id) >= 0, {
+                        name: 'segment',
+                        value: s.id,
+                        onclick: `toggleSegment(${s.id})`
+                    })))
+            ]));
+        }
         $sidebar.innerHTML = el('form', sections);
         document.body.classList.add("sidebar");
     } else {
