@@ -197,7 +197,9 @@ function buildTable(state) {
 
 function render(state, {columns, columnGroups, bodyRows, totalRows}) {
     if (bodyRows) {
-        $("#block-name").innerText = state.block.name;
+        const block = $("#block-name")
+        block.innerText = state.block.name;
+        document.title = block.parentNode.innerText;
 
         const sortIdx = isActualNumber(state.sortCol) && state.sortCol >= 0 && state.sortCol < columns.length
             ? state.sortCol
