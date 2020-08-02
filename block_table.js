@@ -369,7 +369,6 @@ function fetchTableData(id) {
         .then(resp => resp.json())
         .then(block => {
             const series = block.segments
-                .filter(s => s.population > 0) // no people, bah!
                 .map(s => {
                     s = {
                         ...s,
@@ -411,35 +410,38 @@ function fetchTableData(id) {
                 }
             }, null).slice(1).reverse();
             // everything's all lined up. Time to do the things!
-            const rows = series.map(s => {
-                s.points = s.cases_by_week.map((c, i) => {
-                    const r = {
-                        total_cases: c,
-                        total_deaths: s.deaths_by_week[i],
+            const rows = series
+                .filter(s => s.population > 0) // no people, bah!
+                .map(s => {
+                    // noinspection JSPrimitiveTypeWrapperUsage
+                    s.points = s.cases_by_week.map((c, i) => {
+                        const r = {
+                            total_cases: c,
+                            total_deaths: s.deaths_by_week[i],
+                        }
+                        if (i > 0) {
+                            r.weekly_cases = r.total_cases - s.cases_by_week[i - 1];
+                            r.weekly_deaths = r.total_deaths - s.deaths_by_week[i - 1];
+                        }
+                        return r;
+                    }).slice(1).reverse();
+                    const data = [];
+                    dates.forEach((d, i) => {
+                        weeklySeries.forEach(spec =>
+                            data.push(spec.calc(s.points[i], s, i)));
+                    });
+                    jurisdictionSeries.forEach(spec => {
+                        const v = spec.calc(s);
+                        if (spec.key === "name") data.unshift(v);
+                        else data.push(v);
+                    });
+                    return {
+                        id: s.id,
+                        name: s.name,
+                        is_total: s.is_total,
+                        data,
                     }
-                    if (i > 0) {
-                        r.weekly_cases = r.total_cases - s.cases_by_week[i - 1];
-                        r.weekly_deaths = r.total_deaths - s.deaths_by_week[i - 1];
-                    }
-                    return r;
-                }).slice(1).reverse();
-                const data = [];
-                dates.forEach((d, i) => {
-                    weeklySeries.forEach(spec =>
-                        data.push(spec.calc(s.points[i], s, i)));
                 });
-                jurisdictionSeries.forEach(spec => {
-                    const v = spec.calc(s);
-                    if (spec.key === "name") data.unshift(v);
-                    else data.push(v);
-                });
-                return {
-                    id: s.id,
-                    name: s.name,
-                    is_total: s.is_total,
-                    data,
-                }
-            });
             setState({
                 rows,
                 dates,
