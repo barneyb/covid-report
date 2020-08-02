@@ -193,16 +193,19 @@ function buildTable(state) {
     };
 }
 
+$blockName = $("#block-name")
+$thead = $("#main-table thead")
+$tbody = $("#main-table tbody")
+$tfoot = $("#main-table tfoot")
 function render(state, {columns, columnGroups, bodyRows, totalRows}) {
     if (bodyRows) {
-        const block = $("#block-name")
-        block.innerText = state.block.name;
-        document.title = block.parentNode.innerText;
+        $blockName.innerText = state.block.name;
+        document.title = $blockName.parentNode.innerText;
 
         const sortIdx = isActualNumber(state.sortCol) && state.sortCol >= 0 && state.sortCol < columns.length
             ? state.sortCol
             : 0;
-        $("#main-table thead").innerHTML = [
+        $thead.innerHTML = [
             el('tr', [el('th')].concat(columnGroups.map(g => el('th', {colspan: g.size, className: "new-point"}, g.label)))),
             el('tr', [el('th')].concat(columns.map((c, i) => el('th', {
                 className: {
@@ -217,7 +220,7 @@ function render(state, {columns, columnGroups, bodyRows, totalRows}) {
         ].join("\n");
         let comp = columns[sortIdx].is_number ? numComp : strComp;
         if (!state.sortAsc) comp = revComp(comp);
-        $("#main-table tbody").innerHTML = bodyRows
+        $tbody.innerHTML = bodyRows
             .sort((a, b) =>
                 comp(a[state.sortCol], b[state.sortCol]))
             .map((r, rowNum) => el(
@@ -227,7 +230,7 @@ function render(state, {columns, columnGroups, bodyRows, totalRows}) {
                         number: c.is_number,
                     }}, c.format(r[i])))),
             )).join("\n");
-        $("#main-table tfoot").innerHTML = totalRows
+        $tfoot.innerHTML = totalRows
             .map(r => el(
                 'tr',
                 [el('th')].concat(columns.map((c, i) => el('th', {className: {
@@ -236,8 +239,8 @@ function render(state, {columns, columnGroups, bodyRows, totalRows}) {
                     }}, c.format(r[i])))),
             )).join("\n");
     } else {
-        $("#main-table thead").innerHTML = "";
-        $("#main-table tbody").innerHTML = el('tr', el('td', {
+        $thead.innerHTML = "";
+        $tbody.innerHTML = el('tr', el('td', {
             style: {
                 height: "40vh",
                 width: "60vw",
@@ -245,25 +248,12 @@ function render(state, {columns, columnGroups, bodyRows, totalRows}) {
 
             }
         }, "Loading..."));
-        $("#main-table tfoot").innerHTML = "";
+        $tfoot.innerHTML = "";
     }
 
     if (state.sidebar) {
-        const chkbx = (label, checked, attrs, desc) => {
-            if (checked) {
-                attrs.checked = "checked";
-            }
-            return el('label', [
-                el('input', {
-                    ...attrs,
-                    type: "checkbox",
-                }),
-                label,
-                desc && el('div', {className: "desc"}, desc),
-            ]);
-        };
-        document.body.classList.add("sidebar");
-        const sections = []
+        const chkbx = _pickCtrlBuilder("checkbox");
+        const sections = [];
         if (state.blocks) {
             sections.push(el('section', [
                 el('h3', 'Block'),
@@ -279,11 +269,10 @@ function render(state, {columns, columnGroups, bodyRows, totalRows}) {
         if (state.dates) {
             sections.push(el('section', [
                 el('h3', 'Weeks Ending'),
-                el('div', state.dates
-                    .map((d, i) =>
-                        chkbx(formatDate(d), state.hotDateIdxs.indexOf(i) >= 0, {
-                            onclick: `toggleDate(${i})`,
-                        })),
+                el('div', state.dates.map((d, i) =>
+                    chkbx(formatDate(d), state.hotDateIdxs.indexOf(i) >= 0, {
+                        onclick: `toggleDate(${i})`,
+                    })),
                 ),
             ]));
         }
@@ -291,6 +280,8 @@ function render(state, {columns, columnGroups, bodyRows, totalRows}) {
             el('h3', 'Weekly Series'),
             el('div', weeklySeries.map(s =>
                 chkbx(s.label, state.hotSeries.indexOf(s.key) >= 0, {
+                    name: 'series',
+                    value: s.key,
                     onclick: `toggleSeries('${s.key}')`
                 }, s.desc))),
         ]));
@@ -303,9 +294,10 @@ function render(state, {columns, columnGroups, bodyRows, totalRows}) {
                         onclick: `toggleSeries('${s.key}')`
                     }, s.desc))),
         ]));
-        sidebar.innerHTML = el('form', sections);
+        $sidebar.innerHTML = el('form', sections);
+        document.body.classList.add("sidebar");
     } else {
-        sidebar.innerHTML = "";
+        $sidebar.innerHTML = "";
         document.body.classList.remove("sidebar");
     }
 }
@@ -327,23 +319,6 @@ selectBlock = sel => {
     fetchTableData(parseInt(sel.value))
 }
 
-function _togglerBuilder(key) {
-    return idx => {
-        setState(s => {
-            const next = s[key].slice();
-            const i = next.indexOf(idx);
-            if (i < 0) {
-                next.push(idx);
-            } else {
-                next.splice(i, 1);
-            }
-            return {
-                [key]: next,
-            };
-        });
-    };
-}
-
 toggleDate = _togglerBuilder("hotDateIdxs");
 toggleSeries = _togglerBuilder("hotSeries");
 
@@ -355,37 +330,27 @@ function byDayToByWeek(byDay) {
     return byWeek;
 }
 
-function aggArrayKey(items, key) {
-    const agg = items[0][key].map(() => 0)
-    items.map(it => it[key]).forEach(v => {
-        for (let i = agg.length - 1; i >= 0; i--) {
-            agg[i] += v[i];
-        }
-    }, agg);
-    return agg;
-}
-
 function fetchTableData(id) {
     setState({
         activeBlock: id,
         block: null,
         dates: null,
-        series: null,
+        segments: null,
+        hotSegments: [],
         loading: true,
     });
     document.querySelectorAll("#navbar .block-table").forEach(it =>
         it.classList.remove("active"));
     document.querySelectorAll("#navbar .block-table[data-id='" + id + "']").forEach(it =>
         it.classList.add("active"));
-    const newQS = "?id=" + id
-    if (location.search !== newQS) {
-        history.pushState({}, '', newQS);
-    }
+    pushQS({id});
     fetch("data/block_" + id + ".json")
         .then(resp => resp.json())
         .then(block => {
-            const series = block.segments
-                .map(s => {
+            const [rawSegments, total] = getSegmentsWithTotal(
+                block,
+                ["cases_by_week", "deaths_by_week"],
+                s => {
                     s = {
                         ...s,
                         cases_by_week: byDayToByWeek(s.cases_by_day),
@@ -394,39 +359,10 @@ function fetchTableData(id) {
                     delete s.cases_by_day;
                     delete s.deaths_by_day;
                     return s;
-                });
-            delete block.segments;
-            const total = {
-                ...block,
-                is_total: true,
-                cases_by_week: aggArrayKey(series, 'cases_by_week'),
-                deaths_by_week: aggArrayKey(series, 'deaths_by_week'),
-            }
-            series.push(total);
-            // now cull all but one of the leading zeros (if there are any)
-            const lastZero = Math.min(
-                total.cases_by_week.lastIndexOf(0),
-                total.deaths_by_week.lastIndexOf(0),
+                },
             );
-            if (lastZero > 0) {
-                for (const s of series) {
-                    s.cases_by_week = s.cases_by_week.slice(lastZero);
-                    s.deaths_by_week = s.deaths_by_week.slice(lastZero);
-                }
-            }
-            // get the list of dates; any array will do
-            const dates = total.cases_by_week.reduce(ds => {
-                if (ds == null) {
-                    const d = window.lastUpdate
-                    d.setHours(12); // avoid having to deal with DST :)
-                    return [new Date(d.valueOf() - 86400 * 1000)];
-                } else {
-                    ds.unshift(new Date(ds[0].valueOf() - 7 * 86400 * 1000));
-                    return ds;
-                }
-            }, null).slice(1).reverse();
-            // everything's all lined up. Time to do the things!
-            const rows = series
+            const rawDates = buildDates(total, "cases_by_week", Week);
+            const rows = rawSegments
                 .filter(s => s.population > 0) // no people, bah!
                 .map(s => {
                     // noinspection JSPrimitiveTypeWrapperUsage
@@ -442,7 +378,7 @@ function fetchTableData(id) {
                         return r;
                     }).slice(1).reverse();
                     const data = [];
-                    dates.forEach((d, i) => {
+                    s.points.forEach((ignored, i) => {
                         weeklySeries.forEach(spec =>
                             data.push(spec.calc(s.points[i], s, i)));
                     });
@@ -454,13 +390,13 @@ function fetchTableData(id) {
                     return {
                         id: s.id,
                         name: s.name,
-                        is_total: s.is_total,
+                        is_total: !!s.is_total,
                         data,
                     }
                 });
             setState({
                 rows,
-                dates,
+                dates: rawDates.slice(1).reverse(),
                 block: {
                     id: block.id,
                     name: block.name,
@@ -470,38 +406,24 @@ function fetchTableData(id) {
         })
 }
 
+window.addEventListener("popstate", e => {
+    if (e.state.id) fetchTableData(e.state.id);
+});
+
+const qs = parseQS();
+qs.id = parseInt(qs.id);
 fetch("data/blocks.json")
     .then(resp => resp.json())
     .then(blocks => {
-        blocks.forEach(b => {
-            b.is_beb = b.id >= ID_BEB;
-            b.is_us = Math.floor(b.id / 100000) === ID_US;
-        });
-        blocks.sort((a, b) => {
-            // beb's first
-            if (a.is_beb !== b.is_beb) {
-                return a.is_beb ? -1 : 1;
-            }
-            // non-US next
-            if (a.is_us !== b.is_us) {
-                return a.is_us ? 1 : -1;
-            }
-            // they're in the same bucket, so alphabetical
-            return a.name.localeCompare(b.name);
-        });
+        addFlags(blocks)
+        blocks.sort(blockComp);
         setState({
             blocks,
         });
-        if (!isNaN(idFromQS)) {
-            if (blocks.find(b => b.id === idFromQS)) {
-                fetchTableData(idFromQS);
-            } else {
-                fetchTableData(ID_US);
-            }
+        if (blocks.find(b => b.id === qs.id)) {
+            fetchTableData(qs.id);
+        } else {
+            fetchTableData(ID_US);
         }
     });
-qs = parseQS();
-idFromQS = parseInt(qs.id)
-if (isNaN(idFromQS)) {
-    fetchTableData(ID_US);
-}
+

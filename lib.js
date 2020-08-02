@@ -39,24 +39,51 @@ const formatPercent = (v, places = 1, plus=false) => {
 const formatDeathRate = v => formatNumber(v, 1)
 const formatDeathRateSegment = v => formatNumber(v, 2)
 const Delta = "&#x1D6AB;"
-const parseQS = () => {
-    const qs = location.search;
-    if (!qs) return {};
+const parseQS = (qs = location.search) => {
+    if (!qs || qs === "?") return {};
     return qs.substr(1)
         .split("&")
         .map(p => p.split("="))
-        .reduce((r, p) => {
-            const n = p[0];
-            if (r.hasOwnProperty(n)) {
-                if (!(r[n] instanceof Array)) {
-                    r[n] = [r[n]];
+        .map(p => [p.shift(), p.join("=")])
+        .reduce((r, [k, v]) => {
+            if (r.hasOwnProperty(k)) {
+                if (!(r[k] instanceof Array)) {
+                    r[k] = [r[k]];
                 }
-                r[n].push(p[1]);
+                r[k].push(v);
             } else {
-                r[n] = p[1];
+                r[k] = v;
             }
             return r;
         }, {});
+};
+const formatQS = data => {
+    if (!data) return "";
+    const qs = "?" + Object.keys(data)
+        .flatMap(k => {
+            const prefix = encodeURIComponent(k) + "="
+            const v = data[k];
+            if (v instanceof Array) {
+                return v.map(e => prefix + encodeURIComponent(e));
+            } else {
+                return prefix + encodeURIComponent(v);
+            }
+        })
+        .join("&");
+    return qs === "?" ? "" : qs;
+};
+const pushQS = dataOrQS => {
+    let qs, data;
+    if (typeof dataOrQS === "string") {
+        qs = dataOrQS;
+        data = parseQS(qs);
+    } else {
+        data = dataOrQS;
+        qs = formatQS(data);
+    }
+    if (location.search !== qs) {
+        history.pushState(data, document.title, qs);
+    }
 }
 const camel2kebab = p => {
     for (let i = p.length - 1; i > 0; i--) {
@@ -67,10 +94,10 @@ const camel2kebab = p => {
     }
     return p;
 }
-const el = (name, attrs, children) => {
+const el = (name, attrs, children, ...moreKids) => {
     if (children == null && (attrs instanceof Array || typeof attrs === "string")) {
         children = attrs;
-        attrs = undefined;
+        attrs = null;
     }
     if (attrs == null) attrs = {};
     if (attrs.hasOwnProperty("style")) {
@@ -100,10 +127,23 @@ const el = (name, attrs, children) => {
     for (const k in attrs) {
         if (attrs[k] == null) delete attrs[k];
     }
-    return `<${name}${Object.keys(attrs)
+    if (moreKids.length) {
+        if (children == null) {
+            children = moreKids;
+        } else {
+            if (!(children instanceof Array)) {
+                children = [children];
+            }
+            children = children.concat(moreKids)
+        }
+    }
+    const attrString = Object.keys(attrs)
         .map(k => ` ${k === "className" ? "class" : k}="${attrs[k]}"`)
-        .join('')}>${children && children.join ? children.filter(IDENTITY)
-        .join("") : children || ''}</${name}>`;
+        .join('');
+    const kidString = children && children.join
+        ? children.filter(IDENTITY) .join("")
+        : children || '';
+    return `<${name}${attrString}>${kidString}</${name}>`;
 };
 const numComp = (a, b) => {
     if (isActualNumber(a)) return isActualNumber(b) ? a - b : 1;
@@ -112,8 +152,122 @@ const numComp = (a, b) => {
 };
 const strComp = (a, b) => a < b ? -1 : a > b ? 1 : 0;
 const revComp = comp => (a, b) => comp(b, a);
-const sidebar = $("#sidebar .content");
-if (sidebar) {
+const formatHsl = (h, s, l) =>
+    `hsl(${formatNumber(h, 2)},${formatNumber(s, 2)}%,${formatNumber(l, 2)}%)`;
+const drawLineChart = (series, options) => {
+    const opts = {
+        width: 200,
+        height: 75,
+        stroke: 3,
+        title: null,
+        dates: null,
+        gridlines: true,
+        ...options,
+    };
+    const margins = {top: opts.stroke / 2, left: opts.stroke / 2, right: opts.stroke / 2, bottom: opts.stroke / 2};
+    let [ymin, ymax] = series.reduce(([min, max], s) => [
+        s.values.reduce((a, b) => Math.min(a, b), min),
+        s.values.reduce((a, b) => Math.max(a, b), max),
+    ], [999999999, -999999999])
+    let gridpoints, gridLabelPlaces;
+    if (opts.gridlines) {
+        margins.top += 10;
+        margins.left += 10;
+        margins.bottom += 10;
+        let d = parseFloat(new Intl.NumberFormat('en-US', {
+            maximumSignificantDigits: 1
+        })
+            .format((ymax - ymin) / (opts.height / 50)));
+        if (d <= 0) throw new Error("what?!");
+        gridLabelPlaces = Math.max(0, -Math.floor(Math.log10(d)));
+        gridpoints = [];
+        let v; // so we can use it after the loop.
+        for (v = ymin; v < ymax; v += d) {
+            gridpoints.push(v);
+        }
+        margins.right += 11 * formatNumber(v, gridLabelPlaces).length;
+        gridpoints.push(v);
+        ymax = v;
+    }
+    if (opts.dates) {
+        margins.bottom += 20;
+    }
+    const chartHeight = opts.height - margins.top - margins.bottom;
+    const dy = chartHeight / (ymax - ymin);
+    const v2y = v => margins.top + chartHeight - (v - ymin) * dy;
+    const chartWidth = opts.width - margins.left - margins.right;
+    const len = series[0].values.length
+    const dx = chartWidth / (len - 1)
+    const i2x = i => margins.left + i * dx;
+    return el(
+        'svg',
+        {
+            viewBox: `0 0 ${opts.width} ${opts.height}`,
+        },
+        opts.gridlines && el('g', {},
+            gridpoints.map((v, i) => el('line', {
+                x1: margins.left,
+                y1: v2y(v),
+                x2: margins.left + chartWidth,
+                y2: v2y(v),
+                stroke: i % 2 === 0 ? "#ccc" : "#ddd",
+                'stroke-width': "0.5px",
+                'vector-effect': "non-scaling-stroke",
+            })),
+            gridpoints
+                .filter((v, i) => i % 2 === 0)
+                .map(v => el('text', {
+                    fill: "#666",
+                    'font-size': "14px",
+                    x: margins.left + chartWidth + 2,
+                    y: v2y(v) + 5,
+                }, formatNumber(v, gridLabelPlaces))),
+        ),
+        opts.dates && el('g', {},
+            opts.dates
+                .map((d, i) => [d, i])
+                .filter(([d]) => d.getDate() === 1 || d.getDay() === 0)
+                .flatMap(([d, i]) => [
+                    el('line', {
+                        x1: i2x(i),
+                        y1: margins.top,
+                        x2: i2x(i),
+                        y2: margins.top + chartHeight + 15,
+                        stroke: d.getDate() === 1 ? "#ccc" : "#ddd",
+                        'stroke-width': d.getDate() === 1 ? "1px" : "0.5px",
+                        'vector-effect': "non-scaling-stroke",
+                    }),
+                    d.getDate() === 1 && el('text', {
+                        fill: "#666",
+                        'font-size': "12px",
+                        x: i2x(i) + 2,
+                        y: margins.top + chartHeight + 13,
+                    }, formatDate(d)),
+                    d.getDay() === 0 && d.getDate() > 5 && d.getDate() < 27 && el('text', {
+                        fill: "#888",
+                        'font-size': "12px",
+                        x: i2x(i) + 2,
+                        y: margins.top + chartHeight + 13,
+                    }, d.getDate()),
+                ])
+        ),
+        series.map(s => el('polyline', {
+                points: s.values
+                    .map((v, i) => i2x(i) + "," + v2y(v))
+                    .join(" "),
+                fill: "none",
+                stroke: s.color || formatHsl(Math.random() * 360, 50, 50),
+                onclick: s.onclick,
+                cursor: s.onclick ? "pointer" : null,
+                'stroke-width': (s.stroke || opts.stroke) + "px",
+                'stroke-linejoin': "round",
+                'stroke-linecap': "round",
+            }, s.title && el('title', s.title)),
+        ),
+        opts.title && el('title', opts.title));
+};
+const $sidebar = $("#sidebar .content");
+if ($sidebar) {
     $("#show-sidebar")
         .addEventListener("click", () => setState({sidebar: true}))
     $("#hide-sidebar")

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>BLOCKS</title>
+    <link href="main.css" type="text/css" rel="stylesheet" />
+    <link href="chart.css" type="text/css" rel="stylesheet" />
+</head>
+<body class="rates">
+<div id="navbar">
+    <a href="./">Home</a>
+    <a href="table.html?id=840">Data Tables</a>
+    <a href="chart.html?id=840" class="active">Time Charts</a>
+</div>
+<button id="show-sidebar" class="trigger" title="Show customization bar">&lt;</button>
+<div id="sidebar">
+    <button id="reset-to-defaults" class="trigger" title="Reset all customizations">Reset</button>
+    <button id="hide-sidebar" class="trigger" title="Hide customization bar">&gt;</button>
+    <div class="content"></div>
+</div>
+<h1 id="page-header">Time Series Chart</h1>
+<div id="chart"></div>
+<p>All data are updated daily, about 5:15am UTC, including both the prior
+    day's data and any historical corrections.
+</p>
+<p>Series w/ "Rate" in their name are per day per 100K population.
+</p>
+<hr />
+<p>COVID-19 and population data from
+    <a href="https://github.com/CSSEGISandData/COVID-19">COVID-19 Data
+    Repository</a> by the Center for Systems Science and Engineering (CSSE) at
+    Johns Hopkins University.
+</p>
+<script type="text/javascript" src="lib.js"></script>
+<script src="blocks.js" type="application/javascript"></script>
+<script type="text/javascript" src="chart.js"></script>
+</body>
+</html>

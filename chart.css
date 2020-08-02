@@ -1,0 +1,29 @@
+#chart {
+    width: 100%;
+    height: 80vh;
+    background-color: white;
+    user-select: none;
+}
+.sidebar #chart {
+    width: calc(100% - 21em);
+}
+.sidebar #sidebar {
+    position: static;
+    float: right;
+    box-shadow: none;
+}
+#sidebar .content {
+    /*max-height: 85vh;*/
+}
+#chart .loading {
+    text-align: center;
+    padding-top: 30vh;
+}
+#sidebar .swatch {
+    display: inline-block;
+    margin: 0.1em 0.3em 0;
+    border-radius: 50%;
+    border: 0.5px solid #999;
+    width: 0.6em;
+    height: 0.6em;
+}
