@@ -80,12 +80,6 @@ function render(state) {
     const series = state.activeSeries
     if (state.segments) {
         document.title = $pageHeader.innerText = state.block.name + " " + series.label;
-        const opts = {
-            width: $chart.clientWidth,
-            height: $chart.clientHeight,
-            stroke: 3,
-            dates: state.dates,
-        };
         const cold = [];
         const hot = [];
         for (const s of state.segments) {
@@ -102,7 +96,15 @@ function render(state) {
                 cold.push(r);
             }
         }
-        $chart.innerHTML = drawLineChart(cold.concat(hot), opts);
+        setTimeout(() => {
+            const opts = {
+                width: $chart.clientWidth,
+                height: $chart.clientHeight,
+                stroke: 3,
+                dates: state.dates,
+            };
+            $chart.innerHTML = drawLineChart(cold.concat(hot), opts);
+        });
     } else {
         $chart.innerHTML = el('div', { className: "loading" }, "Loading...");
     }
