@@ -1,63 +1,12 @@
 <!doctype html>
 <html lang="en">
 <head>
-<title>US COVID-19 by Jurisdiction</title>
-<link href="main.css" type="text/css" rel="stylesheet" />
-<link href="table.css" type="text/css" rel="stylesheet" />
+    <title>Resource Moved</title>
+    <meta http-equiv="refresh" content="0; URL=table.html?id=840" />
+    <script>window.location = "table.html?id=840";</script>
 </head>
-<body class="table">
-<div id="navbar">
-    <a href="./">Home</a>
-    <a href="table-ww.html">Countries</a>
-    <a href="table-us.html" class="active">US States</a>
-    <a href="table-or.html">Oregon Counties</a>
-    <a href="rates-cases.html">New Cases Chart</a>
-    <a href="rates-deaths.html">Deaths Chart</a>
-</div>
-<button id="show-sidebar" class="trigger" title="Show customization bar">&lt;</button>
-<div id="sidebar">
-    <button id="reset-to-defaults" class="trigger" title="Reset all customizations">Reset</button>
-    <button id="hide-sidebar" class="trigger" title="Hide customization bar">&gt;</button>
-    <div class="content"></div>
-</div>
-<h1>US COVID-19 by State</h1>
-<p class="alert">Starting July 6, tables show average daily rates for the week, instead of a weekly rate, for easier comparison with the dashboard and charts.</p>
-<table id="main-table">
-    <thead></thead>
-    <tbody></tbody>
-    <tfoot></tfoot>
-</table>
-<p>All data are updated daily, about 5:15am UTC, including any historical
-    corrections. Weeks are labeled by their last day.
-</p>
-<p>Series w/ "Rate" or "DR" in their name are per day per 100K population.
-</p>
-<p>New York's and New Jersey's disproportionate case load makes the total row
-    difficult to interpret as a "national average". Additional total rows are
-    provided with these jurisdictions excluded.
-</p>
-<p>You can download the raw tables as <a href="data/table-us.tsv">table-us.tsv</a>
-    and <a href="mortality.csv">mortality.csv</a>.
-</p>
-<hr />
-<p>COVID-19 and population data from
-    <a href="https://github.com/CSSEGISandData/COVID-19">COVID-19 Data
-    Repository</a> by the Center for Systems Science and Engineering (CSSE) at
-    Johns Hopkins University.
-</p>
-<p>Mortality data from
-    <a href="https://wonder.cdc.gov/controller/datarequest/D140">https://wonder.cdc.gov/controller/datarequest/D140</a>
-    using year 2016.
-</p>
-<script src="lib.js" type="application/javascript"></script>
-<script src="table.js" type="application/javascript"></script>
-<script type="application/javascript">
-    fetch("data/table-us.json")
-        .then(resp => resp.json())
-        .then(d => init(d, 'table-us', ["Oregon", "Montana", "New York"], {
-            "Excluding NY": r => r.name !== "New York",
-            "Excluding NY & NJ": r => r.name !== "New York" && r.name !== "New Jersey",
-        }));
-</script>
+<body>
+<h1>Resource Moved</h1>
+<p>Try <a href="table.html?id=840">table.html?id=840</a></p>
 </body>
 </html>

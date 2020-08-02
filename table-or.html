@@ -1,61 +1,12 @@
 <!doctype html>
 <html lang="en">
 <head>
-<title>Oregon COVID-19 by Jurisdiction</title>
-<link href="main.css" type="text/css" rel="stylesheet" />
-<link href="table.css" type="text/css" rel="stylesheet" />
+    <title>Resource Moved</title>
+    <meta http-equiv="refresh" content="0; URL=table.html?id=84000041" />
+    <script>window.location = "table.html?id=84000041";</script>
 </head>
-<body class="table">
-<div id="navbar">
-    <a href="./">Home</a>
-    <a href="table-ww.html">Countries</a>
-    <a href="table-us.html">US States</a>
-    <a href="table-or.html" class="active">Oregon Counties</a>
-    <a href="rates-cases.html">New Cases Chart</a>
-    <a href="rates-deaths.html">Deaths Chart</a>
-</div>
-<button id="show-sidebar" class="trigger" title="Show customization bar">&lt;</button>
-<div id="sidebar">
-    <button id="reset-to-defaults" class="trigger" title="Reset all customizations">Reset</button>
-    <button id="hide-sidebar" class="trigger" title="Hide customization bar">&gt;</button>
-    <div class="content"></div>
-</div>
-<h1>Oregon COVID-19 by County</h1>
-<p class="alert">Starting July 6, tables show average daily rates for the week, instead of a weekly rate, for easier comparison with the dashboard and charts.</p>
-<table id="main-table">
-    <thead></thead>
-    <tbody></tbody>
-    <tfoot></tfoot>
-</table>
-<p>All data are updated daily, about 5:15am UTC, including any historical
-    corrections. Weeks are labeled by their last day.
-</p>
-<p>Series w/ "Rate" in their name are per day per 100K population.
-</p>
-<p>The Portland metro (tri-county) area is home to nearly half of Oregonians.
-    Additional total rows are provided along this partition.
-</p>
-<p>You can download the raw tables as <a href="data/table-or.tsv">table-or.tsv</a>.
-</p>
-<hr />
-<p>COVID-19 and population data from
-    <a href="https://github.com/CSSEGISandData/COVID-19">COVID-19 Data
-    Repository</a> by the Center for Systems Science and Engineering (CSSE) at
-    Johns Hopkins University.
-</p>
-<script src="lib.js" type="application/javascript"></script>
-<script src="table.js" type="application/javascript"></script>
-<script type="application/javascript">
-    fetch("data/table-or.json")
-        .then(resp => resp.json())
-        .then(d => init(d, 'table-or', ["Clackamas", "Multnomah", "Washington"], {
-            "Portland Metro": r => {
-                return r.name === "Clackamas" || r.name === "Multnomah" || r.name === "Washington"
-            },
-            "Outside Portland": r => {
-                return r.name !== "Clackamas" && r.name !== "Multnomah" && r.name !== "Washington"
-            },
-        }));
-</script>
+<body>
+<h1>Resource Moved</h1>
+<p>Try <a href="table.html?id=84000041">table.html?id=84000041</a></p>
 </body>
 </html>

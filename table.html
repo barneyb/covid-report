@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>COVID-19 By Week</title>
+    <link href="main.css" type="text/css" rel="stylesheet" />
+    <link href="table.css" type="text/css" rel="stylesheet" />
+</head>
+<body>
+<div id="navbar">
+    <a href="./">Home</a>
+    <a href="table.html?id=252000001" class="block-table" data-id="252000001">Countries</a>
+    <a href="table.html?id=840" class="block-table" data-id="840">US States</a>
+    <a href="table.html?id=84000041" class="block-table" data-id="84000041">Oregon Counties</a>
+    <a href="rates-cases.html">New Cases Chart</a>
+    <a href="rates-deaths.html">Deaths Chart</a>
+</div>
+<button id="show-sidebar" class="trigger" title="Show customization bar">&lt;</button>
+<div id="sidebar">
+    <button id="reset-to-defaults" class="trigger" title="Reset all customizations">Reset</button>
+    <button id="hide-sidebar" class="trigger" title="Hide customization bar">&gt;</button>
+    <div class="content"></div>
+</div>
+<h1><span id="block-name"></span> COVID-19 By Week</h1>
+<table id="main-table">
+    <thead></thead>
+    <tbody></tbody>
+    <tfoot></tfoot>
+</table>
+<p>All data are updated daily, about 5:15am UTC, including any historical
+    corrections. Weeks are labeled by their final, anchored to today.
+</p>
+<p>Series w/ "Rate" in their name are <em>per day</em> per 100K population.
+</p>
+<hr />
+<p>COVID-19 and population data from the
+    <a href="https://github.com/CSSEGISandData/COVID-19">COVID-19 Data
+        Repository</a> by the Center for Systems Science and Engineering (CSSE)
+    at Johns Hopkins University.
+</p>
+<script src="lib.js" type="application/javascript"></script>
+<script src="table.js" type="application/javascript"></script>
+</body>
+</html>

@@ -1,6 +1,8 @@
 const $ = document.querySelector.bind(document);
 const HunThou = 100000;
 const Week = 7;
+const ID_BEB = 252000000;
+const ID_US = 840
 const fTrue = () => true;
 const IDENTITY = v => v;
 const isNum = v =>
@@ -37,6 +39,25 @@ const formatPercent = (v, places = 1, plus=false) => {
 const formatDeathRate = v => formatNumber(v, 1)
 const formatDeathRateSegment = v => formatNumber(v, 2)
 const Delta = "&#x1D6AB;"
+const parseQS = () => {
+    const qs = location.search;
+    if (!qs) return {};
+    return qs.substr(1)
+        .split("&")
+        .map(p => p.split("="))
+        .reduce((r, p) => {
+            const n = p[0];
+            if (r.hasOwnProperty(n)) {
+                if (!(r[n] instanceof Array)) {
+                    r[n] = [r[n]];
+                }
+                r[n].push(p[1]);
+            } else {
+                r[n] = p[1];
+            }
+            return r;
+        }, {});
+}
 const tag = (el, c, attrs) =>
     `<${el}${Object.keys(attrs || {})
         .map(k => ` ${k === "className" ? "class" : k}="${attrs[k]}"`)
@@ -60,6 +81,9 @@ const el = function(name, attrs, children) {
                 .join(" ");
         }
     }
+    for (const k in attrs) {
+        if (attrs[k] == null) delete attrs[k];
+    }
     return tag(name, children, attrs)
 };
 const numComp = (a, b) => {
@@ -68,7 +92,7 @@ const numComp = (a, b) => {
     return 0;
 };
 const strComp = (a, b) => a < b ? -1 : a > b ? 1 : 0;
-const revComp = sort => (a, b) => sort(b, a);
+const revComp = comp => (a, b) => comp(b, a);
 const sidebar = $("#sidebar .content");
 if (sidebar) {
     $("#show-sidebar")
