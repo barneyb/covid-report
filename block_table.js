@@ -103,6 +103,8 @@ weeklySeries.concat(jurisdictionSeries).forEach(s => {
 })
 
 state = {
+    sortCol: 0,
+    sortAsc: true,
     loading: 0,
     hotDateIdxs: [0, 1, 2, 3],
     hotSeries: weeklySeries.concat(jurisdictionSeries)
@@ -116,6 +118,7 @@ function setState(s) {
     if (typeof s === "function") {
         s = s(prev);
     }
+    if (s == null) return;
     state = {
         ...prev,
         ...s,
@@ -196,11 +199,26 @@ function render(state, {columns, columnGroups, bodyRows, totalRows}) {
     if (bodyRows) {
         $("#block-name").innerText = state.block.name;
 
+        const sortIdx = isActualNumber(state.sortCol) && state.sortCol >= 0 && state.sortCol < columns.length
+            ? state.sortCol
+            : 0;
         $("#main-table thead").innerHTML = [
             el('tr', [el('th')].concat(columnGroups.map(g => el('th', {colspan: g.size, className: "new-point"}, g.label)))),
-            el('tr', [el('th')].concat(columns.map(c => el('th', {className: {"new-point": c.newGroup}}, c.label)))),
+            el('tr', [el('th')].concat(columns.map((c, i) => el('th', {
+                className: {
+                    "new-point": c.newGroup,
+                    sortable: true,
+                    sorted: sortIdx === i,
+                    "sorted-asc": state.sortAsc,
+                },
+                onclick: `handleSort(${i})`,
+            }, c.label)))),
         ].join("\n");
+        let comp = columns[sortIdx].is_number ? numComp : strComp;
+        if (!state.sortAsc) comp = revComp(comp);
         $("#main-table tbody").innerHTML = bodyRows
+            .sort((a, b) =>
+                comp(a[state.sortCol], b[state.sortCol]))
             .map((r, rowNum) => el(
                 'tr',
                 [el('td', null, rowNum + 1)].concat(columns.map((c, i) => el('td', {className: {
@@ -283,6 +301,19 @@ function render(state, {columns, columnGroups, bodyRows, totalRows}) {
         document.body.classList.remove("sidebar");
     }
 }
+
+handleSort = idx => setState(s => {
+    if (s.sortCol === idx) {
+        return {
+            sortAsc: !s.sortAsc,
+        };
+    } else {
+        return {
+            sortCol: idx,
+            sortAsc: idx === 0,
+        }
+    }
+});
 
 selectBlock = sel => {
     fetchTableData(parseInt(sel.value))

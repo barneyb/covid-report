@@ -66,11 +66,16 @@ tfoot th {
 }
 th.sortable {
     cursor: pointer;
-}
-th.sorted,
-th.sortable:hover {
-    background-color: #f0f7ff;
     user-select: none;
+}
+th.sortable:hover {
+    background-color: #f7fff7;
+}
+th.sorted {
+    background-image: linear-gradient(transparent, #f0f7ff 100%);
+}
+th.sorted.sorted-asc {
+    background-image: linear-gradient(#f0f7ff, transparent 100%);
 }
 tbody tr.hot {
     background-color: #f8f8c9;

@@ -70,7 +70,7 @@ const numComp = (a, b) => {
     return 0;
 };
 const strComp = (a, b) => a < b ? -1 : a > b ? 1 : 0;
-const revComp = sort => (a, b) => sort(b, a);
+const revComp = comp => (a, b) => comp(b, a);
 const sidebar = $("#sidebar .content");
 if (sidebar) {
     $("#show-sidebar")
