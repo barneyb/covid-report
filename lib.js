@@ -169,18 +169,23 @@ const drawLineChart = (series, options) => {
         s.values.reduce((a, b) => Math.min(a, b), min),
         s.values.reduce((a, b) => Math.max(a, b), max),
     ], [999999999, -999999999])
-    let gridpoints;
+    let gridpoints, gridLabelPlaces;
     if (opts.gridlines) {
         margins.top += 10;
         margins.left += 10;
         margins.bottom += 10;
-        // char width...
-        margins.right += 10 * Math.ceil(Math.log10(ymax));
+        let d = parseFloat(new Intl.NumberFormat('en-US', {
+            maximumSignificantDigits: 1
+        })
+            .format((ymax - ymin) / (opts.height / 50)));
+        if (d <= 0) throw new Error("what?!");
+        gridLabelPlaces = Math.max(0, -Math.floor(Math.log10(d)));
         gridpoints = [];
-        let v, d;
-        for (v = ymin, d = Math.max(1, Math.round((ymax - ymin) / (opts.height / 50))); v < ymax; v += d) {
+        let v; // so we can use it after the loop.
+        for (v = ymin; v < ymax; v += d) {
             gridpoints.push(v);
         }
+        margins.right += 11 * formatNumber(v, gridLabelPlaces).length;
         gridpoints.push(v);
         ymax = v;
     }
@@ -216,7 +221,7 @@ const drawLineChart = (series, options) => {
                     'font-size': "14px",
                     x: margins.left + chartWidth + 2,
                     y: v2y(v) + 5,
-                }, v)),
+                }, formatNumber(v, gridLabelPlaces))),
         ),
         opts.dates && el('g', {},
             opts.dates
