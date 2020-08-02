@@ -68,10 +68,10 @@ function init(dataUrl) {
     window.toggleExpanded = buildToggler("expanded");
     const render = state => {
         if (state.sidebar) {
-            sidebar.innerHTML = drawPicker(state);
+            $sidebar.innerHTML = drawPicker(state);
             document.body.classList.add("sidebar");
         } else {
-            sidebar.innerText = "";
+            $sidebar.innerText = "";
             document.body.classList.remove("sidebar");
         }
     }

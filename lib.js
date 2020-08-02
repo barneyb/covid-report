@@ -39,8 +39,7 @@ const formatPercent = (v, places = 1, plus=false) => {
 const formatDeathRate = v => formatNumber(v, 1)
 const formatDeathRateSegment = v => formatNumber(v, 2)
 const Delta = "&#x1D6AB;"
-const parseQS = () => {
-    const qs = location.search;
+const parseQS = (qs = location.search) => {
     if (!qs) return {};
     return qs.substr(1)
         .split("&")
@@ -57,6 +56,34 @@ const parseQS = () => {
             }
             return r;
         }, {});
+};
+const formatQS = data => {
+    if (!data) return "";
+    const qs = "?" + Object.keys(data)
+        .flatMap(k => {
+            const prefix = encodeURIComponent(k) + "="
+            const v = data[k];
+            if (v instanceof Array) {
+                return v.map(e => prefix + encodeURIComponent(e));
+            } else {
+                return prefix + encodeURIComponent(v);
+            }
+        })
+        .join("&");
+    return qs === "?" ? "" : qs;
+};
+const pushQS = dataOrQS => {
+    let qs, data;
+    if (typeof dataOrQS === "string") {
+        qs = dataOrQS;
+        data = parseQS(qs);
+    } else {
+        data = dataOrQS;
+        qs = formatQS(data);
+    }
+    if (location.search !== qs) {
+        history.pushState(data, document.title, qs);
+    }
 }
 const camel2kebab = p => {
     for (let i = p.length - 1; i > 0; i--) {
@@ -112,8 +139,8 @@ const numComp = (a, b) => {
 };
 const strComp = (a, b) => a < b ? -1 : a > b ? 1 : 0;
 const revComp = comp => (a, b) => comp(b, a);
-const sidebar = $("#sidebar .content");
-if (sidebar) {
+const $sidebar = $("#sidebar .content");
+if ($sidebar) {
     $("#show-sidebar")
         .addEventListener("click", () => setState({sidebar: true}))
     $("#hide-sidebar")
