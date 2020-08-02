@@ -377,7 +377,10 @@ function fetchTableData(id) {
         it.classList.remove("active"));
     document.querySelectorAll("#navbar .block-table[data-id='" + id + "']").forEach(it =>
         it.classList.add("active"));
-    history.pushState({}, '', "?id=" + id);
+    const newQS = "?id=" + id
+    if (location.search !== newQS) {
+        history.pushState({}, '', newQS);
+    }
     fetch("data/block_" + id + ".json")
         .then(resp => resp.json())
         .then(block => {
