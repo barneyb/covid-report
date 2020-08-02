@@ -58,11 +58,6 @@ const parseQS = () => {
             return r;
         }, {});
 }
-const tag = (el, c, attrs) =>
-    `<${el}${Object.keys(attrs || {})
-        .map(k => ` ${k === "className" ? "class" : k}="${attrs[k]}"`)
-        .join('')}>${c && c.join ? c.filter(IDENTITY)
-        .join("") : c || ''}</${el}>`;
 const camel2kebab = p => {
     for (let i = p.length - 1; i > 0; i--) {
         const c = p.charAt(i)
@@ -72,12 +67,13 @@ const camel2kebab = p => {
     }
     return p;
 }
-const el = function(name, attrs, children) {
+const el = (name, attrs, children) => {
     if (children == null && (attrs instanceof Array || typeof attrs === "string")) {
         children = attrs;
         attrs = undefined;
     }
-    if (attrs && attrs.hasOwnProperty("style")) {
+    if (attrs == null) attrs = {};
+    if (attrs.hasOwnProperty("style")) {
         const st = attrs.style;
         if (st instanceof Array) {
             attrs.style = st.join(";");
@@ -87,7 +83,7 @@ const el = function(name, attrs, children) {
                 .join(";");
         }
     }
-    if (attrs && attrs.hasOwnProperty("className")) {
+    if (attrs.hasOwnProperty("className")) {
         const cns = attrs.className;
         if (cns instanceof Array) {
             attrs.className = cns
@@ -104,7 +100,10 @@ const el = function(name, attrs, children) {
     for (const k in attrs) {
         if (attrs[k] == null) delete attrs[k];
     }
-    return tag(name, children, attrs)
+    return `<${name}${Object.keys(attrs)
+        .map(k => ` ${k === "className" ? "class" : k}="${attrs[k]}"`)
+        .join('')}>${children && children.join ? children.filter(IDENTITY)
+        .join("") : children || ''}</${name}>`;
 };
 const numComp = (a, b) => {
     if (isActualNumber(a)) return isActualNumber(b) ? a - b : 1;
@@ -131,10 +130,10 @@ fetch("data/last-update.txt")
     .then(ld => {
         const d = parseDate(ld);
         window.lastUpdate = d;
-        $("#navbar").innerHTML += tag(
+        $("#navbar").innerHTML += el(
             "span",
-            "Updated: " + formatDate(d),
             {className: "updated-at"},
+            "Updated: " + formatDate(d),
         );
         if (d < Date.now() - 3 * 86400 * 1000) {
             document.body.classList.add("stale-data");
