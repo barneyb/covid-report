@@ -1,534 +1,497 @@
-/*
- * Oh hai! Fancy meeting you here. You look fabulous, by the way. Very healthy.
- */
-function init(rawData, datasetName, hotRows = [], extraTotals = {}) {
-    const series = [
-        {
-            scope: "jurisdiction",
-            name: "Jurisdiction",
-            expr: j => j.name,
-            format: IDENTITY,
-            hot: true,
-        },
-        {
-            scope: "jurisdiction",
-            name: "Population",
-            desc: "An estimate of total population.",
-            expr: j => j.pop,
-            hot: true,
-        },
-        {
-            scope: "jurisdiction",
-            name: "C19 Cases",
-            desc: "Total COVID-19 cases reported.",
-            expr: j => {
-                const d = j.data;
-                return d[d.length - 1].total_cases;
-            },
-            hot: true,
-        },
-        {
-            scope: "jurisdiction",
-            name: "C19 Cases/100K",
-            desc: "Total COVID-19 cases per 100,000 population.",
-            expr: j => {
-                const d = j.data;
-                return d[d.length - 1].total_cases  / j.pop * HunThou;
-            },
-        },
-        {
-            scope: "jurisdiction",
-            name: "C19 Deaths",
-            desc: "Total COVID-19 deaths reported.",
-            expr: j => {
-                const d = j.data;
-                return d[d.length - 1].total_deaths;
-            },
-        },
-        {
-            scope: "jurisdiction",
-            name: "C19 Deaths/100K",
-            desc: "Total COVID-19 deaths per 100,000 population.",
-            test: p => p.deaths,
-            expr: j => {
-                const d = j.data;
-                return d[d.length - 1].total_deaths  / j.pop * HunThou;
-            },
-            format: formatDeathRate,
-        },
-        {
-            scope: "jurisdiction",
-            name: "C19 Mortality",
-            desc: "Total COVID-19 deaths per total COVID-19 cases.",
-            test: p => p.deaths,
-            expr: j => {
-                const d = j.data;
-                const p = d[d.length - 1]
-                return p.total_deaths / p.total_cases;
-            },
-            format: formatPercent,
-        },
-        {
-            scope: "jurisdiction",
-            name: "DR",
-            desc: "An estimate of expected deaths per day per 100,000 population, regardless of cause.",
-            expr: j => j.rates.total,
-            format: formatDeathRateSegment,
-        },
-        {
-            scope: "jurisdiction",
-            name: "Cardiac DR",
-            desc: "An estimate of expected cardiac disease deaths (I00-I99: Diseases of the circulatory system) per day per 100,000 population.",
-            expr: j => j.rates.circ,
-            format: formatDeathRateSegment,
-        },
-        {
-            scope: "jurisdiction",
-            name: "Cancer DR",
-            desc: "An estimate of expected cancer-related deaths (C00-D48: Neoplasms) per day per 100,000 population.",
-            expr: j => j.rates.cancer,
-            format: formatDeathRateSegment,
-        },
-        {
-            scope: "jurisdiction",
-            name: "Respiratory DR",
-            desc: "An estimate of expected respiratory disease deaths (J00-J98: Diseases of the respiratory system) per day per 100,000 population.",
-            expr: j => j.rates.resp,
-            format: formatDeathRateSegment,
-        },
-        {
-            scope: "jurisdiction",
-            name: "Mental DR",
-            desc: "An estimate of expected mental disorder deaths (F01-F99: Mental and behavioural disorders) per day per 100,000 population.",
-            expr: j => j.rates.mental,
-            format: formatDeathRateSegment,
-        },
-        {
-            scope: "jurisdiction",
-            name: "Non-Trans Accident DR",
-            desc: "An estimate of expected non-transportation accidental deaths (W00-X59: Other external causes of accidental injury) per day per 100,000 population.",
-            expr: j => j.rates.non_trans,
-            format: formatDeathRateSegment,
-        },
-        {
-            scope: "jurisdiction",
-            name: "Self-Harm DR",
-            desc: "An estimate of expected self-harm deaths (X60-X84: Intentional self-harm) per day per 100,000 population.",
-            expr: j => j.rates.self,
-            format: formatDeathRateSegment,
-        },
-        {
-            scope: "jurisdiction",
-            name: "Transport DR",
-            desc: "An estimate of expected transportation-related deaths (V01-V99: Transport accidents) per day per 100,000 population.",
-            expr: j => j.rates.trans,
-            format: formatDeathRateSegment,
-        },
-        {
-            name: "Cases",
-            desc: "Average cases reported per day this week.",
-            test: p => p.case_delta,
-            expr: d => d.cases,
-            cold: true,
-            time: true,
-        },
-        {
-            name: "Case Rate",
-            desc: "Average cases reported per day per 100,000 population this week.",
-            test: p => p.case_delta,
-            expr: (d, p, j) => d.cases / j.pop * HunThou,
-            format: v => formatNumber(v, 1),
-            time: true,
-        },
-        {
-            name: Delta + "Case Rate",
-            desc: "Change in case rate from last week",
-            test: (p, pidx) => pidx < rawData.points.length - 2,
-            format: formatPercent,
-        },
-        {
-            name: "Deaths",
-            desc: "Average deaths reported per day this week.",
-            test: p => p.death_delta,
-            expr: d => d.deaths,
-            cold: true,
-            time: true,
-        },
-        {
-            name: "Death Rate",
-            desc: "Average deaths reported per day per 100,000 population this week.",
-            test: p => p.death_delta,
-            expr: (d, p, j) => d.deaths / j.pop * HunThou,
-            format: formatDeathRateSegment,
-            cold: true,
-            time: true,
-        },
-        {
-            name: "Case Mortality",
-            desc: "Deaths this week per case this week.",
-            test: p => p.death_delta,
-            expr: d => d.deaths / d.cases,
-            format: formatPercent,
-            time: true,
-        },
-    ];
-    series.forEach(s => {
-        if (s.scope == null) s.scope = "point";
-        if (s.test == null) s.test = fTrue;
-        if (s.format == null) s.format = formatNumber;
-    });
-    rawData.points.forEach(p => {
-        p.label = formatDate(p.date);
-    });
+LS_KEY = "covid-table-block";
+weeklySeries = [{
+    key: "cases",
+    label: "Cases",
+    desc: "Cases reported this week.",
+    calc: p => p.weekly_cases,
+    hot: true,
+}, {
+    key: "case_rate",
+    label: "Case Rate",
+    desc: "Average cases reported per day per 100,000 population this week.",
+    calc: (p, j) => p.weekly_cases
+        ? p.weekly_cases / Week / j.population * HunThou
+        : null,
+    format: v => formatNumber(v, 1),
+    hot: true,
+}, {
+    key: "case_wow",
+    label: Delta + "Case Rate",
+    desc: "Change in case rate from last week",
+    calc: (p, j, pidx) => {
+        if (pidx+1 >= j.points.length) return null;
+        const prev = j.points[pidx+1].weekly_cases
+        if (prev === 0) return null;
+        return (p.weekly_cases - prev) / prev;
+    },
+    format: formatPercent,
+    hot: true,
+}, {
+    key: "deaths",
+    label: "Deaths",
+    desc: "Deaths reported this week.",
+    calc: p => p.weekly_deaths,
+}, {
+    key: "death_rate",
+    label: "Death Rate",
+    desc: "Average deaths reported per day per 100,000 population this week.",
+    calc: (p, j) => p.weekly_deaths
+        ? p.weekly_deaths / Week / j.population * HunThou
+        : null,
+    format: formatDeathRateSegment,
+}, {
+    key: "case_mortality",
+    label: "Case Mortality",
+    desc: "Deaths this week per case this week.",
+    calc: p => p.weekly_deaths && p.weekly_cases
+        ? p.weekly_deaths / p.weekly_cases
+        : null,
+    format: formatPercent,
+}];
+jurisdictionSeries = [{
+    key: "name",
+    label: "Jurisdiction",
+    calc: j => j.name,
+    format: IDENTITY,
+    is_number: false,
+    hot: true,
+}, {
+    key: "population",
+    label: "Population",
+    desc: "An estimate of total population.",
+    calc: j => j.population,
+    hot: true,
+}, {
+    key: "total_cases",
+    label: "C19 Cases",
+    desc: "Total COVID-19 cases reported.",
+    calc: j => j.total_cases,
+}, {
+    key: "total_case_rate",
+    label: "C19 Cases/100K",
+    desc: "Total COVID-19 cases per 100,000 population.",
+    calc: j => j.total_cases
+        ? j.total_cases / j.population * HunThou
+        : null,
+}, {
+    key: "total_deaths",
+    label: "C19 Deaths",
+    desc: "Total COVID-19 deaths reported.",
+    calc: j => j.total_deaths,
+}, {
+    key: "total_death_rate",
+    label: "C19 Deaths/100K",
+    desc: "Total COVID-19 deaths per 100,000 population.",
+    calc: j => j.total_deaths
+        ? j.total_deaths / j.population * HunThou
+        : null,
+    format: formatDeathRate,
+}, {
+    key: "mortality",
+    label: "C19 Mortality",
+    desc: "Total COVID-19 deaths per total COVID-19 cases.",
+    calc: j => j.total_deaths && j.total_cases
+        ? j.total_deaths / j.total_cases
+        : null,
+    format: formatPercent,
+}];
+weeklySeries.concat(jurisdictionSeries).forEach(s => {
+    if (!s.hasOwnProperty("format")) s.format = formatNumber;
+    if (!s.hasOwnProperty("is_number")) s.is_number = true;
+})
 
-    const dataRecords = rawData.jurisdictions
-        .map(j => ({
-            name: j.name,
-            pop: j.population,
-            data: rawData.points.map((p, i) => {
-                const d = j.data[i];
-                const fs = {
-                    total_cases: d.cases,
-                }
-                if (p.deaths) fs.total_deaths = d.deaths;
-                if (p.case_delta) {
-                    if (p.days !== Week) throw new Error("Non-week period!");
-                    fs.cases = d.since.cases / Week;
-                    if (p.death_delta) {
-                        fs.deaths = d.since.deaths / Week;
-                    }
-                }
-                return fs;
-            }),
-            rates: Object.keys(j.mortality_rates || {})
-                .reduce((rs, k) => ({
-                    ...rs,
-                    [k]: j.mortality_rates[k] / 365.24,
-                }), {}),
-        }));
-    const buildTotal = (name, records) => {
-        const sumUp = supplier => records
-            .map(supplier)
-            .reduce((s, n) => s + n, 0);
-        return {
-            total: true,
-            name,
-            pop: sumUp(j => j.pop),
-            data: rawData.points.map((p, i) => {
-                const fs = {
-                    total_cases: sumUp(j => j.data[i].total_cases),
-                }
-                if (p.deaths) fs.total_deaths = sumUp(j => j.data[i].total_deaths);
-                if (p.case_delta) {
-                    fs.cases = sumUp(j => j.data[i].cases);
-                    if (p.death_delta) {
-                        fs.deaths = sumUp(j => j.data[i].deaths);
-                    }
-                }
-                return fs;
-            }),
-            rates: Object.keys(rawData.jurisdictions[0].mortality_rates || {})
-                .reduce((rs, k) => ({
-                    ...rs,
-                    [k]: sumUp(j => j.pop * j.rates[k])
-                    / sumUp(j => j.pop),
-                }), {}),
-        }
-    }
-    dataRecords.push(buildTotal("Total", dataRecords));
-    Object.keys(extraTotals).forEach(n =>
-        dataRecords.push(buildTotal(n, dataRecords.filter(it => !it.total && extraTotals[n](it)))));
-    for (const rec of dataRecords) {
-        rec.groups = rawData.points
-            .reduce((agg, p, pidx) => {
-                const data = series
-                    .filter(s => s.scope === "point")
-                    .filter(s => s.test(p, pidx))
-                    .reduce((ss, s) => {
-                        if (s.name.indexOf(Delta) === 0) return ss;
-                        let val = s.expr(rec.data[pidx], p, rec)
-                        ss = {
-                            ...ss,
-                            [s.name]: val,
-                        };
-                        if (s.time && agg.prev) {
-                            const prev = agg.prev[s.name];
-                            if (prev) {
-                                // noinspection JSPrimitiveTypeWrapperUsage
-                                val = new Number(val);
-                                val._change = prev === 0
-                                    ? val === 0 ? 0 : 10 // Any increase from zero means tenfold! By fiat!
-                                    : (val - prev) / prev;
-                                ss[s.name] = val;
-                                ss[Delta + s.name] = val._change;
-                            }
-                        }
-                        return ss;
-                    }, {
-                        _prev: agg.prev,
-                    })
-                return {
-                    prev: data,
-                    ps: {
-                        ...agg.ps,
-                        [p.label]: data,
-                        [undefined]: series
-                            .filter(s => s.scope === "jurisdiction")
-                            .reduce((ss, s) => ({
-                                ...ss,
-                                [s.name]: s.expr(rec),
-                            }), {}),
-                    },
-                }
-            }, {}).ps;
-    }
+state = {
+    sortCol: 0,
+    sortAsc: true,
+    loading: 0,
+    hotDateIdxs: [0, 1, 2, 3],
+    hotSeries: weeklySeries.concat(jurisdictionSeries)
+        .filter(s => s.hot)
+        .map(s => s.key),
+};
+tableState = {};
 
-    const buildTable = state => {
-        const hotSeries = series
-            .filter(s => !state.coldSeries.includes(s.name))
-        const columns = [
-            series[0],
-            ...rawData.points
-                .slice(2) // never allow the first two points
-                .filter((_, i) => !state.coldGroupIdxs.includes(i + 2))
-                .reverse()
-                .flatMap((p, pidx) =>
-                    hotSeries
-                        .filter(s => s.scope === "point")
-                        .filter(s => s.test(p, pidx))
-                        .map(s => ({
-                            group: p.label,
-                            ...s,
-                            p: p,
-                        }))),
-            ...hotSeries
-                .filter(it => it.scope === "jurisdiction")
-                .slice(1), // name
-        ];
-        const columnGroups = columns
-            .map(c => ({
-                group: c.group || "",
-                count: 1,
-            }))
-            .reduce((gs, c) => {
-                const last = gs[gs.length - 1];
-                if (last && last.group === c.group) {
-                    last.count += 1;
-                } else {
-                    gs.push(c);
-                }
-                return gs; // tee hee
-            }, []);
-        const bodyRows = [];
-        const totalRows = [];
-        dataRecords.map(rec =>
-            [rec.total, columns.map(c =>
-                rec.groups[c.group][c.name])])
-            .forEach(([total, cols]) =>
-                (total ? totalRows : bodyRows).push(cols));
-        return {
-            columns,
-            columnGroups,
-            totalRows,
-            bodyRows,
-        };
+function setState(s) {
+    const prev = state;
+    if (typeof s === "function") {
+        s = s(prev);
     }
-
-    window.LS_KEY = `covid-${datasetName}-state`;
-    let state = {};
-    let tableState = {};
-    window.setState = s => {
-        const prev = state;
-        state = {
-            ...prev,
-            ...(typeof s === "function" ? s(prev) : s),
-        };
-        window.localStorage.setItem(LS_KEY, JSON.stringify(state));
-        if (state.coldGroupIdxs !== prev.coldGroupIdxs || state.coldSeries !== prev.coldSeries) {
-            tableState = buildTable(state);
-        }
-        render({
-            ...state,
-            ...tableState,
-        });
+    if (s == null) return;
+    state = {
+        ...prev,
+        ...s,
     };
-    const toggleBuilder = cn => it =>
-        setState(s => {
-            const next = s[cn].slice();
-            let idx = next.indexOf(it);
-            if (idx < 0) {
-                idx = next.indexOf(null);
-                idx < 0 ? next.push(it) : (next[idx] = it);
-            } else {
-                next[idx] = null;
-            }
-            return {[cn]: next};
-        });
-    window.toggleHotRow = toggleBuilder('hotRows');
-    window.toggleGroup = toggleBuilder('coldGroupIdxs');
-    window.toggleSeries = toggleBuilder('coldSeries');
-    const injectRows = (node, rows) =>
-        node.innerHTML = rows
-            .map(r =>
-                tag('tr', r.join ? r.join("") : r))
-            .join("\n");
-    const head = $("#main-table thead");
-    const body = $("#main-table tbody");
-    const foot = $("#main-table tfoot");
-    const render = state => {
-        const labelPointCells = () =>
-            tag('th')
-            + state.columnGroups.map(g =>
-                tag('th', g.group, {
-                    colspan: g.count,
-                    className: "new-point",
+    if (["dates", "rows", "hotDateIdxs", "hotSeries"].some(k => state[k] !== prev[k])) {
+        tableState = buildTable(state);
+    }
+    render(state, tableState);
+}
+
+// This guy will take the raw dates/series and apply filters to build the table
+// to render. Sorting will happen during render.
+function buildTable(state) {
+    if (!state.dates) return {};
+    if (!state.rows) return {};
+    const allCols = [];
+    state.dates
+        .forEach((d, i) => {
+            const group = formatDate(d)
+            const hot = state.hotDateIdxs.indexOf(i) >= 0;
+            return weeklySeries.forEach(spec =>
+                allCols.push({
+                    ...spec,
+                    group,
+                    hot: hot && state.hotSeries.indexOf(spec.key) >= 0,
                 }))
-                .join("");
-        const newPointIdxs = state.columnGroups
-            .reduce((agg, g) => {
-                agg.n += g.count;
-                agg.idxs.push(agg.n);
-                return agg; // tee-hee
-            }, {n: 0, idxs: [0]})
-            .idxs;
-        const sublabelPointCells = () =>
-            tag('th')
-            + state.columns.map((c, i) => {
-                const attrs = {
-                    className: "sortable",
-                };
-                if (c.desc) attrs.title = c.desc;
-                if (newPointIdxs.includes(i)) {
-                    attrs.className += " new-point";
-                }
-                if (state.sortCol === i) {
-                    attrs.onclick = `setState(s => ({sortCol:${i},sortAsc:!s.sortAsc}))`;
-                    attrs.className += " sorted";
-                } else {
-                    attrs.onclick = `setState({sortCol:${i},sortAsc:${i === 0}})`;
-                }
-                return tag('th', c.name, attrs)
+        });
+    jurisdictionSeries.forEach(spec => {
+        if (spec.key === "name") allCols.unshift({
+            ...spec,
+            hot: true, // this one's always hot
+        });
+        else allCols.push({
+            ...spec,
+            hot: state.hotSeries.indexOf(spec.key) >= 0,
+        });
+    });
+    const [hotCols, indexes] = allCols.map((c, i) => [c, i])
+        .filter(([c, ignored]) => c.hot)
+        .reduce((pair, [c, i]) => [
+            pair[0].concat(c),
+            pair[1].concat(i),
+        ], [[], []]);
+    const groups = hotCols.reduce((gs, c) => {
+        if (gs.length === 0 || gs[gs.length - 1].label !== c.group) {
+            c.newGroup = true;
+            gs.push({
+                label: c.group,
+                size: 1,
             })
-                .join("");
-        const renderRow = (r, el, num, extraClass) =>
-            tag(el, num)
-            + state.columns.map((c, i) => {
-                const val = r[i];
-                return tag(el, c.format(val), {
-                    className: [
-                        isNum(val) ? "number" : "",
-                        newPointIdxs.includes(i) ? "new-point" : "",
-                        extraClass,
-                    ].filter(IDENTITY).join(" "),
-                })
-            })
-                .join("");
-        const labelRow = labelPointCells()
-        const sublabelRow = sublabelPointCells(state)
-        injectRows(head, [
-            labelRow,
-            sublabelRow,
-        ]);
-        let comp = isNum(state.bodyRows[0][state.sortCol]) ? numComp : strComp;
+        } else {
+            gs[gs.length - 1].size += 1;
+        }
+        return gs;
+    }, []);
+    const body = [];
+    const total = []
+    state.rows.forEach(s => {
+        const d = [];
+        for (let i = 0; i < indexes.length; i++) {
+            d.push(s.data[indexes[i]]);
+        }
+        if (s.is_total) {
+            total.push(d);
+        } else {
+            body.push(d);
+        }
+    });
+    return {
+        columns: hotCols,
+        columnGroups: groups,
+        bodyRows: body,
+        totalRows: total,
+    };
+}
+
+function render(state, {columns, columnGroups, bodyRows, totalRows}) {
+    if (bodyRows) {
+        const block = $("#block-name")
+        block.innerText = state.block.name;
+        document.title = block.parentNode.innerText;
+
+        const sortIdx = isActualNumber(state.sortCol) && state.sortCol >= 0 && state.sortCol < columns.length
+            ? state.sortCol
+            : 0;
+        $("#main-table thead").innerHTML = [
+            el('tr', [el('th')].concat(columnGroups.map(g => el('th', {colspan: g.size, className: "new-point"}, g.label)))),
+            el('tr', [el('th')].concat(columns.map((c, i) => el('th', {
+                className: {
+                    "new-point": c.newGroup,
+                    sortable: true,
+                    sorted: sortIdx === i,
+                    "sorted-asc": state.sortAsc,
+                },
+                title: c.desc,
+                onclick: `handleSort(${i})`,
+            }, c.label)))),
+        ].join("\n");
+        let comp = columns[sortIdx].is_number ? numComp : strComp;
         if (!state.sortAsc) comp = revComp(comp);
-        body.innerHTML = state.bodyRows
+        $("#main-table tbody").innerHTML = bodyRows
             .sort((a, b) =>
                 comp(a[state.sortCol], b[state.sortCol]))
-            .map((r, i) => {
-                const hotIdx = state.hotRows.indexOf(r[0])
-                return tag('tr', renderRow(r, 'td', i + 1), {
-                    className: hotIdx >= 0 ? `hot hot-${hotIdx}` : "",
-                    onclick: `toggleHotRow('${r[0]}')`,
-                })
-            })
-            .join("\n")
-        injectRows(foot, [
-            ...state.totalRows
-                .map(r => renderRow(r, 'th', null, 'total')),
-            sublabelRow,
-            labelRow,
-        ]);
-        if (state.sidebar) {
-            const chkbx = (label, checked, attrs, desc) => {
-                if (checked) {
-                    attrs.checked = "checked";
-                }
-                return tag('label', [
-                    tag('input', undefined, {
-                        ...attrs,
-                        type: "checkbox",
-                    }),
-                    label,
-                    desc && tag('div', desc, {className: "desc"}),
-                ]);
-            };
-            document.body.classList.add("sidebar");
-            const sections = [
-                tag('section', [
-                    tag('h3', 'Week Ending On'),
-                    ...rawData.points
-                        .map((p, i) => [p, i, !state.coldGroupIdxs.includes(i)])
-                        .slice(2) // ignore the first two points
-                        .map(([p, i, h]) => [formatDate(p.date), i, h])
-                        .reverse()
-                        .map(([l, i, h]) =>
-                            chkbx(l, h, {
-                                onclick: `toggleGroup(${i})`,
-                            })),
-                ]),
-                tag('section', [
-                    tag('h3', 'Weekly Series'),
-                    ...series
-                        .filter(it => it.scope === "point")
-                        .map(s =>
-                            chkbx(s.name, !state.coldSeries.includes(s.name), {
-                                onclick: `toggleSeries('${s.name}')`,
-                            }, s.desc)),
-                ]),
-                tag('section', [
-                    tag('h3', 'Jurisdiction Series'),
-                    ...series
-                        .slice(1) // name
-                        .filter(it => it.scope === "jurisdiction")
-                        .map(s =>
-                            chkbx(s.name, !state.coldSeries.includes(s.name), {
-                                onclick: `toggleSeries('${s.name}')`,
-                            }, s.desc)),
-                ]),
-            ];
-            sidebar.innerHTML = tag('form', sections);
-        } else {
-            sidebar.innerText = "";
-            document.body.classList.remove("sidebar");
-        }
-    };
-    setState(() => {
-        let state = {
-            sortCol: 0,
-            sortAsc: true,
-            hotRows,
-            sidebar: false,
-            coldGroupIdxs: rawData.points
-                .map((_, i) => i)
-                .slice()
-                .reverse()
-                .slice(4),
-            coldSeries: series
-                .filter(it =>
-                    it.scope === "point" ? it.cold : !it.hot)
-                .map(it => it.name),
-        };
-        try {
-            const cache = window.localStorage.getItem(LS_KEY);
-            window.localStorage.removeItem("covid-report-state");
-            window.localStorage.removeItem("covid-table-state");
-            if (cache) {
-                state = {
-                    ...state,
-                    ...JSON.parse(cache),
-                };
+            .map((r, rowNum) => el(
+                'tr',
+                [el('td', null, rowNum + 1)].concat(columns.map((c, i) => el('td', {className: {
+                        "new-point": c.newGroup,
+                        "number": c.is_number,
+                    }}, c.format(r[i])))),
+            )).join("\n");
+        $("#main-table tfoot").innerHTML = totalRows
+            .map(r => el(
+                'tr',
+                [el('th')].concat(columns.map((c, i) => el('th', {className: {
+                        "new-point": c.newGroup,
+                        "number": c.is_number,
+                    }}, c.format(r[i])))),
+            )).join("\n");
+    } else {
+        $("#main-table thead").innerHTML = "";
+        $("#main-table tbody").innerHTML = el('tr', el('td', "Loading..."));
+        $("#main-table tfoot").innerHTML = "";
+    }
+
+    if (state.sidebar) {
+        const chkbx = (label, checked, attrs, desc) => {
+            if (checked) {
+                attrs.checked = "checked";
             }
-        } catch (e) {}
-        return state;
+            return el('label', [
+                el('input', {
+                    ...attrs,
+                    type: "checkbox",
+                }),
+                label,
+                desc && el('div', {className: "desc"}, desc),
+            ]);
+        };
+        document.body.classList.add("sidebar");
+        const sections = []
+        if (state.blocks) {
+            sections.push(el('section', [
+                el('h3', 'Block'),
+                el('select', {
+                    onchange: "selectBlock(this)",
+                }, state.blocks.map(b => {
+                    const attrs = {value: b.id}
+                    if (b.id === state.activeBlock) attrs.selected = "selected";
+                    return el('option', attrs, b.is_us ? ("&nbsp; " + b.name + ", US") : b.name)
+                })),
+            ]));
+        }
+        if (state.dates) {
+            sections.push(el('section', [
+                el('h3', 'Weeks Ending'),
+                el('div', state.dates
+                    .map((d, i) =>
+                        chkbx(formatDate(d), state.hotDateIdxs.indexOf(i) >= 0, {
+                            onclick: `toggleDate(${i})`,
+                        })),
+                ),
+            ]));
+        }
+        sections.push(el('section', [
+            el('h3', 'Weekly Series'),
+            el('div', weeklySeries.map(s =>
+                chkbx(s.label, state.hotSeries.indexOf(s.key) >= 0, {
+                    onclick: `toggleSeries('${s.key}')`
+                }, s.desc))),
+        ]));
+        sections.push(el('section', [
+            el('h3', 'Jurisdiction Series'),
+            el('div', jurisdictionSeries
+                .filter(s => s.key !== "name") // don't allow disabling this one
+                .map(s =>
+                    chkbx(s.label, state.hotSeries.indexOf(s.key) >= 0, {
+                        onclick: `toggleSeries('${s.key}')`
+                    }, s.desc))),
+        ]));
+        sidebar.innerHTML = el('form', sections);
+    } else {
+        sidebar.innerHTML = "";
+        document.body.classList.remove("sidebar");
+    }
+}
+
+handleSort = idx => setState(s => {
+    if (s.sortCol === idx) {
+        return {
+            sortAsc: !s.sortAsc,
+        };
+    } else {
+        return {
+            sortCol: idx,
+            sortAsc: idx === 0,
+        }
+    }
+});
+
+selectBlock = sel => {
+    fetchTableData(parseInt(sel.value))
+}
+
+function _togglerBuilder(key) {
+    return idx => {
+        setState(s => {
+            const next = s[key].slice();
+            const i = next.indexOf(idx);
+            if (i < 0) {
+                next.push(idx);
+            } else {
+                next.splice(i, 1);
+            }
+            return {
+                [key]: next,
+            };
+        });
+    };
+}
+
+toggleDate = _togglerBuilder("hotDateIdxs");
+toggleSeries = _togglerBuilder("hotSeries");
+
+function byDayToByWeek(byDay) {
+    const byWeek = [];
+    for (let i = byDay.length - 1; i >= 0; i -= 7) {
+        byWeek.unshift(byDay[i]);
+    }
+    return byWeek;
+}
+
+function aggArrayKey(items, key) {
+    const agg = items[0][key].map(() => 0)
+    items.map(it => it[key]).forEach(v => {
+        for (let i = agg.length - 1; i >= 0; i--) {
+            agg[i] += v[i];
+        }
+    }, agg);
+    return agg;
+}
+
+function fetchTableData(id) {
+    setState({
+        activeBlock: id,
+        block: null,
+        dates: null,
+        series: null,
+        loading: true,
     });
+    document.querySelectorAll("#navbar .block-table").forEach(it =>
+        it.classList.remove("active"));
+    document.querySelectorAll("#navbar .block-table[data-id='" + id + "']").forEach(it =>
+        it.classList.add("active"));
+    history.pushState({}, '', "?id=" + id);
+    fetch("data/block_" + id + ".json")
+        .then(resp => resp.json())
+        .then(block => {
+            const series = block.segments
+                .map(s => {
+                    s = {
+                        ...s,
+                        cases_by_week: byDayToByWeek(s.cases_by_day),
+                        deaths_by_week: byDayToByWeek(s.deaths_by_day),
+                    };
+                    delete s.cases_by_day;
+                    delete s.deaths_by_day;
+                    return s;
+                });
+            delete block.segments;
+            const total = {
+                ...block,
+                is_total: true,
+                cases_by_week: aggArrayKey(series, 'cases_by_week'),
+                deaths_by_week: aggArrayKey(series, 'deaths_by_week'),
+            }
+            series.push(total);
+            // now cull all but one of the leading zeros (if there are any)
+            const lastZero = Math.min(
+                total.cases_by_week.lastIndexOf(0),
+                total.deaths_by_week.lastIndexOf(0),
+            );
+            if (lastZero > 0) {
+                for (const s of series) {
+                    s.cases_by_week = s.cases_by_week.slice(lastZero);
+                    s.deaths_by_week = s.deaths_by_week.slice(lastZero);
+                }
+            }
+            // get the list of dates; any array will do
+            const dates = total.cases_by_week.reduce(ds => {
+                if (ds == null) {
+                    const d = window.lastUpdate
+                    d.setHours(12); // avoid having to deal with DST :)
+                    return [new Date(d.valueOf() - 86400 * 1000)];
+                } else {
+                    ds.unshift(new Date(ds[0].valueOf() - 7 * 86400 * 1000));
+                    return ds;
+                }
+            }, null).slice(1).reverse();
+            // everything's all lined up. Time to do the things!
+            const rows = series
+                .filter(s => s.population > 0) // no people, bah!
+                .map(s => {
+                    // noinspection JSPrimitiveTypeWrapperUsage
+                    s.points = s.cases_by_week.map((c, i) => {
+                        const r = {
+                            total_cases: c,
+                            total_deaths: s.deaths_by_week[i],
+                        }
+                        if (i > 0) {
+                            r.weekly_cases = r.total_cases - s.cases_by_week[i - 1];
+                            r.weekly_deaths = r.total_deaths - s.deaths_by_week[i - 1];
+                        }
+                        return r;
+                    }).slice(1).reverse();
+                    const data = [];
+                    dates.forEach((d, i) => {
+                        weeklySeries.forEach(spec =>
+                            data.push(spec.calc(s.points[i], s, i)));
+                    });
+                    jurisdictionSeries.forEach(spec => {
+                        const v = spec.calc(s);
+                        if (spec.key === "name") data.unshift(v);
+                        else data.push(v);
+                    });
+                    return {
+                        id: s.id,
+                        name: s.name,
+                        is_total: s.is_total,
+                        data,
+                    }
+                });
+            setState({
+                rows,
+                dates,
+                block: {
+                    id: block.id,
+                    name: block.name,
+                },
+                loading: false,
+            });
+        })
+}
+
+fetch("data/blocks.json")
+    .then(resp => resp.json())
+    .then(blocks => {
+        blocks.forEach(b => {
+            b.is_beb = b.id >= ID_BEB;
+            b.is_us = Math.floor(b.id / 100000) === ID_US;
+        });
+        blocks.sort((a, b) => {
+            // beb's first
+            if (a.is_beb !== b.is_beb) {
+                return a.is_beb ? -1 : 1;
+            }
+            // non-US next
+            if (a.is_us !== b.is_us) {
+                return a.is_us ? 1 : -1;
+            }
+            // they're in the same bucket, so alphabetical
+            return a.name.localeCompare(b.name);
+        });
+        setState({
+            blocks,
+        });
+        if (!isNaN(idFromQS)) {
+            if (blocks.find(b => b.id === idFromQS)) {
+                fetchTableData(idFromQS);
+            } else {
+                fetchTableData(ID_US);
+            }
+        }
+    });
+qs = parseQS();
+idFromQS = parseInt(qs.id)
+if (isNaN(idFromQS)) {
+    fetchTableData(ID_US);
 }
