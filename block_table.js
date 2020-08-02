@@ -20,11 +20,9 @@ weeklySeries = [{
     desc: "Change in case rate from last week",
     calc: (p, j, pidx) => {
         if (pidx+1 >= j.points.length) return null;
-        const curr = p.weekly_cases / j.population * HunThou;
-        const lastWeek = j.points[pidx+1].weekly_cases
-        if (lastWeek === 0) return null;
-        const prev = lastWeek / j.population * HunThou;
-        return (curr - prev) / prev;
+        const prev = j.points[pidx+1].weekly_cases
+        if (prev === 0) return null;
+        return (p.weekly_cases - prev) / prev;
     },
     format: formatPercent,
     hot: true,
