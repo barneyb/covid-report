@@ -184,6 +184,7 @@ function fetchTableData(id) {
         block: null,
         dates: null,
         segments: null,
+        hotSegments: [id],
         loading: true,
     });
     fetch("data/block_" + id + ".json")
