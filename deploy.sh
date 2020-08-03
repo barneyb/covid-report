@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 
+cd `dirname $0`
+
+LOCAL_DIR=`pwd`/target/client
 REMOTE_HOST=barneyb.com
 REMOTE_DIR=/vol/www/static/covid/
-
-cd `dirname $0`
 
 DO_JAR=0
 DO_REFRESH=1
@@ -24,21 +25,30 @@ while [ "$1" != "" ]; do
   esac
 done
 
+
 if [ $DO_JAR -eq 0 ]; then
   mvn clean package
-  cp target/*.jar covid.jar
+  mkdir -p $LOCAL_DIR
+  cp target/*.jar $LOCAL_DIR/covid.jar
+else
+  rm -rf $LOCAL_DIR
+  mkdir -p $LOCAL_DIR
 fi
 
 rsync -a \
+  --exclude data \
+  src/main/webapp/* \
+  $LOCAL_DIR
+
+cp mortality.csv $LOCAL_DIR
+
+pushd $LOCAL_DIR
+rsync -a \
   --progress --stats \
-  *.html \
-  *.js \
-  *.css \
-  events.txt \
-  mortality.csv \
-  covid.jar \
-  hopkins \
+  --delete-after \
+  * \
   $REMOTE_HOST:$REMOTE_DIR
+popd
 
 if [ $DO_REFRESH -eq 0 ]; then
   ssh $REMOTE_HOST bash $REMOTE_DIR/hopkins/refresh.sh
