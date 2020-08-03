@@ -177,7 +177,8 @@ const drawLineChart = (series, options) => {
         let d = parseFloat(new Intl.NumberFormat('en-US', {
             maximumSignificantDigits: 1
         })
-            .format((ymax - ymin) / (opts.height / 50)));
+            .format((ymax - ymin) / (opts.height / 50))
+            .replace(/,/g, ''));
         if (d <= 0) throw new Error("what?!");
         gridLabelPlaces = Math.max(0, -Math.floor(Math.log10(d)));
         gridpoints = [];
@@ -185,7 +186,7 @@ const drawLineChart = (series, options) => {
         for (v = ymin; v < ymax; v += d) {
             gridpoints.push(v);
         }
-        margins.right += 11 * formatNumber(v, gridLabelPlaces).length;
+        margins.right += 5 + 9 * formatNumber(v, gridLabelPlaces).length;
         gridpoints.push(v);
         ymax = v;
     }
