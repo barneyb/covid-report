@@ -30,5 +30,5 @@ build/
 /src/main/resources/application-default.yaml
 
 /cdc-data-*.json
-/data
+/src/main/webapp/data
 /covid.jar
