@@ -64,7 +64,6 @@ rsync -a \
   --exclude *.html \
   --exclude *.js \
   --exclude *.css \
-  --exclude data \
   $SRC_DIR/ $LOCAL_DIR/
 
 pushd $LOCAL_DIR
