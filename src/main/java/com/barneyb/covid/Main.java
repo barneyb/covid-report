@@ -64,17 +64,24 @@ public class Main implements ApplicationRunner {
         _prev = now;
     }
 
-    @Override
-    public void run(ApplicationArguments args) throws Exception {
-        logStep("enter main");
-        if (args.containsOption("clean")) {
-            // This feels like the wrong way to do it. It does work.
-            for (var f : Objects.requireNonNull(outputDir.toFile().listFiles())) {
-                //noinspection ResultOfMethodCallIgnored
+    @SuppressWarnings("ResultOfMethodCallIgnored")
+    private void prepareTarget(boolean doClean) {
+        var out = outputDir.toFile();
+        if (!out.exists()) {
+            out.mkdirs();
+        } else if (doClean) {
+            // This feels like the wrong way to do it. It does work though.
+            for (var f : Objects.requireNonNull(out.listFiles())) {
                 f.delete();
             }
             logStep("clean complete");
         }
+    }
+
+    @Override
+    public void run(ApplicationArguments args) throws Exception {
+        logStep("enter main");
+        prepareTarget(args.containsOption("clean"));
 
         if (args.containsOption("mortality")) {
             mortality.emit(Files.newBufferedWriter(Path.of("mortality.csv")));
@@ -93,18 +100,6 @@ public class Main implements ApplicationRunner {
         if (args.containsOption("hopkins")) {
             hopkinsTransform.transform(this::logStep);
         }
-
-        tableJson.emit(Files.newOutputStream(outputDir.resolve("table-ww.json")), wwStore);
-        tableTsv.emit(Files.newOutputStream(outputDir.resolve("table-ww.tsv")), wwStore);
-        logStep("Global table emitted");
-
-        tableJson.emit(Files.newOutputStream(outputDir.resolve("table-us.json")), usStore);
-        tableTsv.emit(Files.newOutputStream(outputDir.resolve("table-us.tsv")), usStore);
-        logStep("US table emitted");
-
-        tableJson.emit(Files.newOutputStream(outputDir.resolve("table-or.json")), orStore);
-        tableTsv.emit(Files.newOutputStream(outputDir.resolve("table-or.tsv")), orStore);
-        logStep("Oregon table emitted");
     }
 
 }
