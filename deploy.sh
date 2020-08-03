@@ -28,14 +28,11 @@ done
 
 if [ $DO_JAR -eq 0 ]; then
   mvn clean package
-  mkdir -p $LOCAL_DIR
 else
   rm -rf $LOCAL_DIR
-  mkdir -p $LOCAL_DIR
 fi
+mkdir -p $LOCAL_DIR
 cp target/*.jar $LOCAL_DIR/covid.jar
-mkdir $LOCAL_DIR/hopkins
-cp $SRC_DIR/hopkins/refresh.sh $LOCAL_DIR/hopkins
 
 declare -A assets
 # find all JS/CSS assets
@@ -61,6 +58,14 @@ for a in "${!assets[@]}"; do
   cp $SRC_DIR/$a $LOCAL_DIR/${assets[$a]}
   sed -i -e "s/$a/${assets[$a]}/" $LOCAL_DIR/*.html
 done
+
+# get anything else
+rsync -a \
+  --exclude *.html \
+  --exclude *.js \
+  --exclude *.css \
+  --exclude data \
+  $SRC_DIR/ $LOCAL_DIR/
 
 pushd $LOCAL_DIR
 rsync --archive \
