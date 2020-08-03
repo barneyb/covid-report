@@ -100,18 +100,6 @@ public class Main implements ApplicationRunner {
         if (args.containsOption("hopkins")) {
             hopkinsTransform.transform(this::logStep);
         }
-
-        tableJson.emit(Files.newOutputStream(outputDir.resolve("table-ww.json")), wwStore);
-        tableTsv.emit(Files.newOutputStream(outputDir.resolve("table-ww.tsv")), wwStore);
-        logStep("Global table emitted");
-
-        tableJson.emit(Files.newOutputStream(outputDir.resolve("table-us.json")), usStore);
-        tableTsv.emit(Files.newOutputStream(outputDir.resolve("table-us.tsv")), usStore);
-        logStep("US table emitted");
-
-        tableJson.emit(Files.newOutputStream(outputDir.resolve("table-or.json")), orStore);
-        tableTsv.emit(Files.newOutputStream(outputDir.resolve("table-or.tsv")), orStore);
-        logStep("Oregon table emitted");
     }
 
 }

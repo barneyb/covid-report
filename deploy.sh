@@ -40,8 +40,6 @@ rsync -a \
   src/main/webapp/* \
   $LOCAL_DIR
 
-cp mortality.csv $LOCAL_DIR
-
 pushd $LOCAL_DIR
 rsync -a \
   --progress --stats \
