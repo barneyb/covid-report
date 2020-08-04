@@ -2,69 +2,37 @@
 
 cd `dirname $0`
 
-SRC_DIR=`pwd`/src/main/webapp
 LOCAL_DIR=`pwd`/target/client
 REMOTE_HOST=barneyb.com
 REMOTE_DIR=/vol/www/static/covid/
 
-DO_JAR=0
+DO_BUILD=0
+BUILD_OPTS=""
 DO_REFRESH=1
 
 while [ "$1" != "" ]; do
   case $1 in
+    "--skip-build")
+      shift
+      DO_BUILD=1
+      ;;
     "--client-only")
       shift
-      DO_JAR=1
+      BUILD_OPTS="$BUILD_OPTS --client-only"
       ;;
     "--refresh")
       shift
       DO_REFRESH=0
       ;;
     *)
-      echo "Usage `basename $0` [ --client-only ] [ --refresh ]"
+      echo "Usage `basename $0` [--skip-build] [ --client-only ] [ --refresh ]"
       exit 1
   esac
 done
 
-if [ $DO_JAR -eq 0 ]; then
-  mvn clean package
-else
-  rm -rf $LOCAL_DIR
+if [ $DO_BUILD -eq 0 ]; then
+  ./build.sh $BUILD_OPTS
 fi
-mkdir -p $LOCAL_DIR
-cp target/*.jar $LOCAL_DIR/covid.jar
-
-declare -A assets
-# find all JS/CSS assets
-for a in `find $SRC_DIR -name "*.html" \
-  | xargs cat \
-  | egrep '<(script src=|link href=)"' \
-  | sed -e 's/.*\(script src\|link href\)="\([^"]*\)".*$/\2/' \
-  | sort -u`; do
-    assets[$a]=`shasum $SRC_DIR/$a | cut -c 1-10`
-done
-# compute hashes for each file
-for a in "${!assets[@]}"; do
-  IFS='.' read -r -aparts <<< "$a"
-  fn=${parts[0]}.${assets[$a]}.${parts[1]}
-  assets[$a]=$fn
-done
-# move all the HTMLs over as-is
-for a in `find $SRC_DIR -name "*.html"`; do
-  cp $a $LOCAL_DIR
-done
-# copy each asset over, replace it's refs in the HTMLs
-for a in "${!assets[@]}"; do
-  cp $SRC_DIR/$a $LOCAL_DIR/${assets[$a]}
-  sed -i -e "s/$a/${assets[$a]}/" $LOCAL_DIR/*.html
-done
-
-# get anything else
-rsync -a \
-  --exclude *.html \
-  --exclude *.js \
-  --exclude *.css \
-  $SRC_DIR/ $LOCAL_DIR/
 
 pushd $LOCAL_DIR
 rsync --archive \
