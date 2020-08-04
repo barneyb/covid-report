@@ -31,7 +31,7 @@ function _pickCtrlBuilder(type) {
     };
 }
 
-function getSegmentsWithTotal(block, keys, segmentTransform = IDENTITY) {
+function getDataSegments(block, keys, segmentTransform = IDENTITY) {
     const segments = block.segments.map(segmentTransform);
     addFlags(segments)
     segments.sort(blockComp);
@@ -45,7 +45,7 @@ function getSegmentsWithTotal(block, keys, segmentTransform = IDENTITY) {
     }
     segments.push(total);
     removeLeadingZeros(segments, total, keys);
-    return [segments, total];
+    return segments;
 }
 
 function aggArrayKey(items, key) {

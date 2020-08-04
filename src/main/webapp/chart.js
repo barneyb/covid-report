@@ -47,7 +47,6 @@ pointSeries.forEach(s => {
 })
 
 state = {
-    hotSegments: [],
 };
 
 function setState(s) {
@@ -86,37 +85,36 @@ toggleSegment = _togglerBuilder("hotSegments");
 $pageHeader = $("#page-header")
 $chart = $("#chart")
 function render(state) {
-    const series = state.activeSeries
-    if (state.segments) {
-        document.title = $pageHeader.innerText = state.block.name + " " + series.label;
-        const cold = [];
-        const hot = [];
-        for (const s of state.segments) {
-            const r = {
-                values: s[series.key],
-                title: s.name,
-                onclick: `toggleSegment(${s.id})`
-            };
-            if (state.hotSegments.indexOf(s.id) >= 0) {
-                r.color = formatHsl(s.hue, 50, 50)
-                hot.push(r);
-            } else {
-                r.color = formatHsl(s.hue, ...(s.is_total ? [20, 70] : [10, 80]))
-                cold.push(r);
-            }
-        }
-        setTimeout(() => {
-            const opts = {
-                width: $chart.clientWidth,
-                height: $chart.clientHeight,
-                stroke: 3,
-                dates: state.dates,
-            };
-            $chart.innerHTML = drawLineChart(cold.concat(hot), opts);
-        });
-    } else {
+    if (!state.segments) {
         $chart.innerHTML = el('div', { className: "loading" }, "Loading...");
+        return;
     }
+    const series = state.activeSeries
+    document.title = $pageHeader.innerText = state.block.name + " " + series.label;
+    const [hot, cold] = state.segments.reduce(([h, c], s) => {
+        if (state.hotSegments.indexOf(s.id) >= 0) {
+            h.push(s);
+        } else {
+            c.push(s);
+        }
+        return [h, c];
+    }, [[], []]);
+    const tb = hot => s => ({
+        values: s[series.key],
+        title: s.name,
+        onclick: `toggleSegment(${s.id})`,
+        color: hot
+            ? formatHsl(s.hue, 50, 50)
+            : formatHsl(s.hue, ...(s.is_total ? [20, 70] : [10, 80])),
+    });
+    setTimeout(() => {
+        $chart.innerHTML = drawLineChart(cold.map(tb(false)).concat(hot.map(tb(true))), {
+            width: $chart.clientWidth,
+            height: $chart.clientHeight,
+            stroke: 3,
+            dates: state.dates,
+        });
+    });
     if (state.sidebar) {
         const radio = _pickCtrlBuilder("radio");
         const chkbx = _pickCtrlBuilder("checkbox");
@@ -142,20 +140,18 @@ function render(state) {
                     onclick: `selectSeries('${s.key}')`
                 }, s.desc))),
         ]));
-        if (state.segments) {
-            sections.push(el('section', [
-                el('h3', 'Segments'),
-                el('div', state.segments.map(s =>
-                    chkbx(el('span', [
-                        s.name,
-                        el('span', {className: "swatch", style: {backgroundColor: formatHsl(s.hue, 100, 50)}}),
-                    ]), state.hotSegments.indexOf(s.id) >= 0, {
-                        name: 'segment',
-                        value: s.id,
-                        onclick: `toggleSegment(${s.id})`
-                    })))
-            ]));
-        }
+        sections.push(el('section', [
+            el('h3', 'Segments'),
+            el('div', hot.concat(cold).map(s =>
+                chkbx(el('span', [
+                    s.name,
+                    el('span', {className: "swatch", style: {backgroundColor: formatHsl(s.hue, 100, 50)}}),
+                ]), state.hotSegments.indexOf(s.id) >= 0, {
+                    name: 'segment',
+                    value: s.id,
+                    onclick: `toggleSegment(${s.id})`
+                })))
+        ]));
         $sidebar.innerHTML = el('form', sections);
         document.body.classList.add("sidebar");
     } else {
@@ -190,11 +186,11 @@ function fetchTableData(id) {
     fetch("data/block_" + id + ".json")
         .then(resp => resp.json())
         .then(block => {
-            const [rawSegments, total] = getSegmentsWithTotal(
+            const rawSegments = getDataSegments(
                 block,
                 ["cases_by_day", "deaths_by_day"],
             );
-            const rawDates = buildDates(total, "cases_by_day");
+            const rawDates = buildDates(rawSegments[0], "cases_by_day");
             const segments = rawSegments
                 .filter(s => s.population > 0) // no people, bah!
                 .map(s => {
@@ -224,9 +220,8 @@ function fetchTableData(id) {
             // assign them hues here, so they're stable
             segments.forEach((s, i) => {
                 // noinspection JSPrimitiveTypeWrapperUsage
-                s.hue = 40 + (i / rawSegments.length) * 280;
+                s.hue = s.is_total ? 0 : 40 + (i / rawSegments.length) * 280;
             });
-            segments[segments.length - 1].hue = 0; // always red!
             setState({
                 segments,
                 dates: rawDates.slice(1),

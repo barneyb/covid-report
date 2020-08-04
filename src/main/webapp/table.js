@@ -347,7 +347,7 @@ function fetchTableData(id) {
     fetch("data/block_" + id + ".json")
         .then(resp => resp.json())
         .then(block => {
-            const [rawSegments, total] = getSegmentsWithTotal(
+            const rawSegments = getDataSegments(
                 block,
                 ["cases_by_week", "deaths_by_week"],
                 s => {
@@ -361,7 +361,7 @@ function fetchTableData(id) {
                     return s;
                 },
             );
-            const rawDates = buildDates(total, "cases_by_week", Week);
+            const rawDates = buildDates(rawSegments[0], "cases_by_week", Week);
             const rows = rawSegments
                 .filter(s => s.population > 0) // no people, bah!
                 .map(s => {
