@@ -84,6 +84,18 @@ toggleSegment = _togglerBuilder("hotSegments");
 
 $pageHeader = $("#page-header")
 $chart = $("#chart")
+$legend = $("#legend")
+
+function swatch(s) {
+    return el(
+        'span',
+        {
+            className: "swatch",
+            style: {backgroundColor: formatHsl(s.hue, 60, 50)},
+        },
+    )
+}
+
 function render(state) {
     if (!state.segments) {
         $chart.innerHTML = el('div', { className: "loading" }, "Loading...");
@@ -107,7 +119,7 @@ function render(state) {
             ? formatHsl(s.hue, 50, 50)
             : formatHsl(s.hue, ...(s.is_total ? [20, 70] : [10, 80])),
     });
-    setTimeout(() => {
+    setTimeout(() => { // sidebar show has to draw DOM so we can measure
         $chart.innerHTML = drawLineChart(cold.map(tb(false)).concat(hot.map(tb(true))), {
             width: $chart.clientWidth,
             height: $chart.clientHeight,
@@ -115,6 +127,22 @@ function render(state) {
             dates: state.dates,
         });
     });
+    // legend
+    if (hot.length > 0) {
+        $legend.innerHTML = hot.map(s =>
+            el('div', [
+                swatch(s),
+                s.name,
+                el('a', {
+                    className: "remove",
+                    onclick: `toggleSegment(${s.id})`,
+                }, 'X')
+            ])).join("\n");
+        $legend.classList.remove("empty");
+    } else {
+        $legend.innerText = "";
+        $legend.classList.add("empty");
+    }
     if (state.sidebar) {
         const radio = _pickCtrlBuilder("radio");
         const chkbx = _pickCtrlBuilder("checkbox");
@@ -142,15 +170,13 @@ function render(state) {
         ]));
         sections.push(el('section', [
             el('h3', 'Segments'),
-            el('div', hot.concat(cold).map(s =>
-                chkbx(el('span', [
-                    s.name,
-                    el('span', {className: "swatch", style: {backgroundColor: formatHsl(s.hue, 100, 50)}}),
-                ]), state.hotSegments.indexOf(s.id) >= 0, {
-                    name: 'segment',
-                    value: s.id,
-                    onclick: `toggleSegment(${s.id})`
-                })))
+            el('div', state.segments.map(s =>
+                chkbx(el('span', [s.name, swatch(s)]),
+                    state.hotSegments.indexOf(s.id) >= 0, {
+                        name: 'segment',
+                        value: s.id,
+                        onclick: `toggleSegment(${s.id})`
+                    })))
         ]));
         $sidebar.innerHTML = el('form', sections);
         document.body.classList.add("sidebar");

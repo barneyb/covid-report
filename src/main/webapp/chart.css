@@ -1,11 +1,48 @@
+#container {
+    position: relative;
+}
+.sidebar #container {
+    width: calc(100% - 21em - 1px);
+}
 #chart {
     width: 100%;
     height: 80vh;
     background-color: white;
     user-select: none;
 }
-.sidebar #chart {
-    width: calc(100% - 21em);
+#chart .loading {
+    text-align: center;
+    padding-top: 30vh;
+}
+#legend {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    background-color: white;
+    border: 1px solid #eee;
+    font-size: 90%;
+    padding: 0.5em;
+}
+#legend.empty {
+    display: none;
+}
+#legend .remove {
+    float: right;
+    cursor: pointer;
+    margin: 0 0 0 0.5em;
+    width: 1em;
+    height: 1em;
+    text-align: center;
+    border: 1px solid #eee;
+    border-radius: 2px;
+    color: #999;
+    font-family: monospace;
+    font-weight: bold;
+}
+#legend .remove:hover {
+    color: #333;
+    background-color: #fee;
+    border-color: #fcc;
 }
 .sidebar #sidebar {
     position: static;
@@ -15,15 +52,14 @@
 #sidebar .content {
     /*max-height: 85vh;*/
 }
-#chart .loading {
-    text-align: center;
-    padding-top: 30vh;
-}
-#sidebar .swatch {
+.swatch {
     display: inline-block;
     margin: 0.1em 0.3em 0;
     border-radius: 50%;
     border: 0.5px solid #999;
     width: 0.6em;
     height: 0.6em;
+}
+#legend .swatch {
+    margin-left: 0;
 }
