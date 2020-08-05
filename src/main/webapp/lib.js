@@ -152,6 +152,10 @@ const numComp = (a, b) => {
 };
 const strComp = (a, b) => a < b ? -1 : a > b ? 1 : 0;
 const revComp = comp => (a, b) => comp(b, a);
+const arrayMax = arr => {
+    // arr.reduce(Math.max, 0) doesn't work for some reason?
+    return arr.reduce((a, b) => Math.max(a, b), 0);
+};
 const formatHsl = (h, s, l) =>
     `hsl(${formatNumber(h, 2)},${formatNumber(s, 2)}%,${formatNumber(l, 2)}%)`;
 const drawLineChart = (series, options) => {

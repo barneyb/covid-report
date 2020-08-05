@@ -49,8 +49,8 @@
     float: right;
     box-shadow: none;
 }
-#sidebar .content {
-    /*max-height: 85vh;*/
+#sidebar section.segments .irrelevant {
+    opacity: 0.4;
 }
 .swatch {
     display: inline-block;

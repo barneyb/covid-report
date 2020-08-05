@@ -106,7 +106,7 @@ function render(state) {
     const [hot, cold] = state.segments.reduce(([h, c], s) => {
         if (state.hotSegments.indexOf(s.id) >= 0) {
             h.push(s);
-        } else {
+        } else if (s.is_relevant) {
             c.push(s);
         }
         return [h, c];
@@ -168,10 +168,14 @@ function render(state) {
                     onclick: `selectSeries('${s.key}')`
                 }, s.desc))),
         ]));
-        sections.push(el('section', [
+        sections.push(el('section', {className: "segments"}, [
             el('h3', 'Segments'),
             el('div', state.segments.map(s =>
-                chkbx(el('span', [s.name, swatch(s)]),
+                chkbx(el('span', {
+                    className: {
+                        irrelevant: !s.is_relevant,
+                    }
+                }, [s.name, swatch(s)]),
                     state.hotSegments.indexOf(s.id) >= 0, {
                         name: 'segment',
                         value: s.id,
@@ -216,6 +220,9 @@ function fetchTableData(id) {
                 block,
                 ["cases_by_day", "deaths_by_day"],
             );
+            const relevanceThreshold = arrayMax(rawSegments.find(s => s.is_total).cases_by_day)
+                / rawSegments.reduce((c, s) => s.is_total ? c : (c + 1), 0)
+                / 5;
             const rawDates = buildDates(rawSegments[0], "cases_by_day");
             const segments = rawSegments
                 .filter(s => s.population > 0) // no people, bah!
@@ -237,6 +244,7 @@ function fetchTableData(id) {
                         id: s.id,
                         name: s.name,
                         is_total: !!s.is_total,
+                        is_relevant: s.is_total || arrayMax(s.cases_by_day) >= relevanceThreshold,
                     };
                     pointSeries.forEach(spec => {
                         r[spec.key] = points.map(p => spec.calc(p, s));
