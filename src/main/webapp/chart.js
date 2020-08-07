@@ -87,7 +87,9 @@ toggleSegment = _togglerBuilder("hotSegments");
 $pageHeader = $("#page-header")
 $chart = $("#chart")
 $legend = $("#legend")
-
+$dateTrack = $("#date-track")
+$thumbLeft = $("#date-track .range-mask.left")
+$thumbRight = $("#date-track .range-mask.right")
 function swatch(s) {
     return el(
         'span',
@@ -138,6 +140,22 @@ function render(state) {
             stroke: 3,
             dates: datesToDisplay,
         });
+        const s = hot.length === 0 ? null : hot[hot.length - 1];
+        $dateTrack.innerHTML = [
+            s && drawLineChart([{
+                values: s[series.key],
+                color: formatHsl(s.hue, 60, 50),
+            }], {
+                width: $dateTrack.clientWidth,
+                height: $dateTrack.clientHeight,
+                stroke: 1,
+                gridlines: false,
+            }),
+            el('div', {className: "range-mask left"},
+                el("div", {className: "thumb"}, "||")),
+            el('div', {className: "range-mask right"},
+                el("div", {className: "thumb"}, "||"))
+        ].join("\n");
     });
     // legend
     if (hot.length > 0) {
