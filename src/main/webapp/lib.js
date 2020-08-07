@@ -190,12 +190,14 @@ const drawLineChart = (series, options) => {
         for (v = ymin; v < ymax; v += d) {
             gridpoints.push(v);
         }
-        margins.right += 5 + 9 * formatNumber(v, gridLabelPlaces).length;
+        margins.right += 5 + 7 * formatNumber(v, gridLabelPlaces).length;
         gridpoints.push(v);
         ymax = v;
     }
+    let today;
     if (opts.dates) {
         margins.bottom += 20;
+        today = opts.dates[opts.dates.length - 1];
     }
     const chartHeight = opts.height - margins.top - margins.bottom;
     const dy = chartHeight / (ymax - ymin);
@@ -204,10 +206,31 @@ const drawLineChart = (series, options) => {
     const len = series[0].values.length
     const dx = chartWidth / (len - 1)
     const i2x = i => margins.left + i * dx;
+    const drawMonthLabel = (d, x) => {
+        // is it the first?
+        if (d.getDate() !== 1) return false;
+        // is there room before the right edge?
+        if (x + 2 + 5 * 7 >= chartWidth + margins.left) return false;
+        // GO!
+        return true;
+    };
+    const drawWeekLabel = (d, ignored) => {
+        // is it sunday?
+        if (d.getDay() !== 0) return false;
+        // is there room after the first?
+        if (d.getDate() * dx < 2 + 5 * 7 + 2) return false;
+        // is there room before EoM
+        const eom = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+        const cutoff = new Date(Math.min(today, eom));
+        if (d.getDate() >= cutoff.getDate() - 2) return false;
+        // GO!
+        return true;
+    };
     return el(
         'svg',
         {
             viewBox: `0 0 ${opts.width} ${opts.height}`,
+            'font-size': "12px", // this is a 12x7 character. By fiat.
         },
         opts.gridlines && el('g', {},
             gridpoints.map((v, i) => el('line', {
@@ -215,43 +238,44 @@ const drawLineChart = (series, options) => {
                 y1: v2y(v),
                 x2: margins.left + chartWidth,
                 y2: v2y(v),
-                stroke: i % 2 === 0 ? "#ccc" : "#ddd",
+                stroke: i % 2 === 0 ? "#bbb" : "#ddd",
                 'stroke-width': "0.5px",
                 'vector-effect': "non-scaling-stroke",
             })),
             gridpoints
                 .filter((v, i) => i % 2 === 0)
                 .map(v => el('text', {
-                    fill: "#666",
-                    'font-size': "14px",
+                    fill: "#333",
                     x: margins.left + chartWidth + 2,
-                    y: v2y(v) + 5,
+                    y: v2y(v) + 4,
                 }, formatNumber(v, gridLabelPlaces))),
         ),
         opts.dates && el('g', {},
             opts.dates
                 .map((d, i) => [d, i])
                 .filter(([d]) => d.getDate() === 1 || d.getDay() === 0)
-                .flatMap(([d, i]) => [
+                .map(([d, i]) => {
+                    const x = i2x(i)
+                    return [d, x, d.getDate() === 1, drawWeekLabel(d, x)]
+                })
+                .flatMap(([d, x, mo, wk]) => [
                     el('line', {
-                        x1: i2x(i),
+                        x1: x,
                         y1: margins.top,
-                        x2: i2x(i),
-                        y2: margins.top + chartHeight + 15,
-                        stroke: d.getDate() === 1 ? "#ccc" : "#ddd",
-                        'stroke-width': d.getDate() === 1 ? "1px" : "0.5px",
+                        x2: x,
+                        y2: margins.top + chartHeight + (mo || wk ? 15 : 0),
+                        stroke: mo ? "#666" : "#ddd",
+                        'stroke-width': "0.5px",
                         'vector-effect': "non-scaling-stroke",
                     }),
-                    d.getDate() === 1 && el('text', {
-                        fill: "#666",
-                        'font-size': "12px",
-                        x: i2x(i) + 2,
+                    drawMonthLabel(d, x) && el('text', {
+                        fill: "#333",
+                        x: x + 2,
                         y: margins.top + chartHeight + 13,
                     }, formatDate(d)),
-                    d.getDay() === 0 && d.getDate() > 5 && d.getDate() < 27 && el('text', {
+                    wk && el('text', {
                         fill: "#888",
-                        'font-size': "12px",
-                        x: i2x(i) + 2,
+                        x: x + 2,
                         y: margins.top + chartHeight + 13,
                     }, d.getDate()),
                 ])
