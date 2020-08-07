@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>About</title>
+    <link href="main.css" type="text/css" rel="stylesheet" />
+    <style type="text/css">
+        hr { width: 70%; margin: 2em auto; border: 1px solid #cba; }
+    </style>
+</head>
+<body>
+<div id="navbar">
+    <a href="./">Home</a>
+    <a href="chart.html?id=840">Daily Charts</a>
+    <a href="table.html?id=840">Weekly Tables</a>
+    <a href="about.html" class="active">About</a>
+</div>
+<h1>About</h1>
+<p>I'm Barney. I'm a programmer and data junkie. I trust you to be every bit as
+    smart as you are. I'm not much for babying; I'd rather design for intent.
+</p>
+<p>COVID-19 and population data from the
+    <a href="https://github.com/CSSEGISandData/COVID-19">COVID-19 Data
+        Repository</a> by the Center for Systems Science and Engineering (CSSE)
+    at Johns Hopkins University.
+</p>
+<p>You can drop me a line at <a href="mailto:c19d@barneyb.com">c19d@barneyb.com</a>
+    if you'd like to get in touch. Or call me, though you'll need to your own
+    digging for that one. If you find my Twitter account, don't expect a
+    response. Any likely matches on other social networks are false.
+</p>
+<hr />
+<p>All data are updated daily, about 5:20am UTC, including any historical
+    corrections. That's CSSE's schedule, plus a handful of minutes on my end to
+    hopefully avoid missing updates.
+</p>
+<p>Weekly figures are labeled by their final day, anchored to today. If you come
+    back tomorrow, everything will be shifted forward one day. There's no way
+    to get a "weeks starting Sunday" (or whatever day you wish) sort of view;
+    they are always anchored to today with rolling week boundaries.
+</p>
+<p>Series with "Rate" in their name are <em>per day</em> per 100K population.
+    Even when looking at a weekly view. When you want to compare a daily figure
+    against a weekly table, you'll thank me for the table showing a daily
+    average over the week, instead of seven times that figure.
+</p>
+<hr />
+<p>The tech stack is very simple:
+</p>
+<ol>
+    <li>CSSE's repo of CSV files</li>
+    <li>a Java utility aggregates, indexes, and transforms the data</li>
+    <li>a JS client presents the data</li>
+</ol>
+<p>Parts two and three are available at
+    <a href="https://github.com/barneyb/covid-report">https://github.com/barneyb/covid-report</a>
+    if you want source. The Java binary you'll have to build yourself. There is
+    no build process for the client. The Java code uses Spring, Jackson, Lombok,
+    and OpenCSV. The client code is entirely mine.
+</p>
+<p>Note that if you go poking in the code, I have deliberately <em>not</em>
+    looked to following reasonable development practices. This is a personal
+    project, and primarily about playing <em>with the code</em>. Finding the
+    pain points that drive the best practices in a toy project is exactly the
+    sort of thing. This is also the first time I'd ever used Lombok or Java's
+    new-ish functional pieces, as I've always looked to Groovy for similar
+    features (along with its meta-programming voodoo).
+</p>
+<p>All of the infrastructure pieces are also present in the Github repository,
+    aside from the <code>cron</code> config:
+</p>
+<pre>    17 21 * * * $COVID_ROOT/hopkins/refresh.sh</pre>
+<p>Yes, I use the cron email as notification of new data. It works. Yes, I run
+    my box on my local time, not UTC. That one is less graceful. I am hoping the
+    whole pandemic thing will be over before fall's DST transition.
+</p>
+</body>
+</html>
