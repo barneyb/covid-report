@@ -88,6 +88,24 @@ $pageHeader = $("#page-header")
 $chart = $("#chart")
 $legend = $("#legend")
 $dateTrack = $("#date-track")
+$dateTrack.addEventListener("pointerdown", e => {
+    const range = e.target.parentNode;
+    const key = range.classList.contains("left") ? "left" : "right";
+    const motionOrigin = e.clientX;
+    const rangeOrigin = parseFloat(range.style.left);
+    const onPointerMove = e => {
+        const deltaX = e.clientX - motionOrigin;
+        range.style.left = rangeOrigin + deltaX + "px";
+    }
+    const onPointerUp = e => {
+        const deltaX = e.clientX - motionOrigin;
+        console.log("moved", key, deltaX);
+        document.removeEventListener("pointerup", onPointerUp);
+        document.removeEventListener("pointermove", onPointerMove);
+    }
+    document.addEventListener("pointerup", onPointerUp);
+    document.addEventListener("pointermove", onPointerMove);
+});
 $thumbLeft = $("#date-track .range-mask.left")
 $thumbRight = $("#date-track .range-mask.right")
 function swatch(s) {
@@ -141,20 +159,37 @@ function render(state) {
             dates: datesToDisplay,
         });
         const s = hot.length === 0 ? null : hot[hot.length - 1];
+        const width = $dateTrack.clientWidth
         $dateTrack.innerHTML = [
             s && drawLineChart([{
                 values: s[series.key],
                 color: formatHsl(s.hue, 60, 50),
             }], {
-                width: $dateTrack.clientWidth,
+                width,
                 height: $dateTrack.clientHeight,
                 stroke: 1,
                 gridlines: false,
             }),
-            el('div', {className: "range-mask left"},
-                el("div", {className: "thumb"}, "||")),
-            el('div', {className: "range-mask right"},
-                el("div", {className: "thumb"}, "||"))
+            el('div', {
+                    className: "range-mask left",
+                    style: {
+                        left: width * start / state.dates.length - width + "px",
+                    },
+                },
+                el("div", {
+                    className: "thumb",
+                }, "||"),
+            ),
+            el('div', {
+                    className: "range-mask right",
+                    style: {
+                        left: width * end / state.dates.length + "px",
+                    },
+                },
+                el("div", {
+                    className: "thumb",
+                }, "||"),
+            ),
         ].join("\n");
     });
     // legend
