@@ -47,6 +47,8 @@ pointSeries.forEach(s => {
 })
 
 state = {
+    start: new Date(2020, 3 - 1, 15),
+    end: new Date(),
 };
 
 function setState(s) {
@@ -119,12 +121,22 @@ function render(state) {
             ? formatHsl(s.hue, 50, 50)
             : formatHsl(s.hue, ...(s.is_total ? [20, 70] : [10, 80])),
     });
+    const start = state.dates.findIndex(d => d >= state.start);
+    let end = state.dates.findIndex(d => d > state.end);
+    if (end < 0) end = state.dates.length;
+    const datesToDisplay = state.dates.slice(start, end);
+    const seriesToDisplay = cold.map(tb(false))
+        .concat(hot.map(tb(true)))
+        .map(s => {
+            s.values = s.values.slice(start, end);
+            return s;
+        });
     setTimeout(() => { // sidebar show has to draw DOM so we can measure
-        $chart.innerHTML = drawLineChart(cold.map(tb(false)).concat(hot.map(tb(true))), {
+        $chart.innerHTML = drawLineChart(seriesToDisplay, {
             width: $chart.clientWidth,
             height: $chart.clientHeight,
             stroke: 3,
-            dates: state.dates,
+            dates: datesToDisplay,
         });
     });
     // legend
