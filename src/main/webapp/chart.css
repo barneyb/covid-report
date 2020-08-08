@@ -1,14 +1,15 @@
 #container {
     position: relative;
     background-color: white;
+    user-select: none;
+    --date-track-height: 45px;
 }
 .sidebar #container {
     width: calc(100% - 21em - 1px);
 }
 #chart {
     width: 100%;
-    height: calc(80vh - 30px);
-    user-select: none;
+    height: calc(80vh - var(--date-track-height));
 }
 #chart .loading {
     text-align: center;
@@ -45,19 +46,24 @@
     border-color: #fcc;
 }
 #date-track {
-    height: 30px;
+    height: var(--date-track-height);
+}
+.range-track {
     border: 1px solid #eee;
     position: relative;
     overflow: hidden;
 }
-#date-track .range-mask {
+.range-track .range-mask {
     position: absolute;
     top: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0,0,0,0.08);
+    background-color: rgba(225,225,225,0.8);
+    border-style: solid;
+    border-color: #999;
+    border-width: 0 1px;
 }
-.range-mask .thumb {
+.range-track .range-mask .thumb {
     float: right;
     margin-top: 6px;
     margin-right: -6px;
@@ -69,12 +75,12 @@
     border: 1px solid #ccc;
     border-radius: 0.5em;
     user-select: none;
-    cursor: pointer;
+    cursor: col-resize;
 }
-.range-mask .thumb:hover {
+.range-track .range-mask .thumb:hover {
     background-color: #ddd;
 }
-#date-track .range-mask.right .thumb {
+.range-track .range-mask.end .thumb {
     float: left;
     margin-right: 0;
     margin-left: -6px;

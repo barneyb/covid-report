@@ -88,24 +88,6 @@ $pageHeader = $("#page-header")
 $chart = $("#chart")
 $legend = $("#legend")
 $dateTrack = $("#date-track")
-$dateTrack.addEventListener("pointerdown", e => {
-    const range = e.target.parentNode;
-    const key = range.classList.contains("left") ? "left" : "right";
-    const motionOrigin = e.clientX;
-    const rangeOrigin = parseFloat(range.style.left);
-    const onPointerMove = e => {
-        const deltaX = e.clientX - motionOrigin;
-        range.style.left = rangeOrigin + deltaX + "px";
-    }
-    const onPointerUp = e => {
-        const deltaX = e.clientX - motionOrigin;
-        console.log("moved", key, deltaX);
-        document.removeEventListener("pointerup", onPointerUp);
-        document.removeEventListener("pointermove", onPointerMove);
-    }
-    document.addEventListener("pointerup", onPointerUp);
-    document.addEventListener("pointermove", onPointerMove);
-});
 $thumbLeft = $("#date-track .range-mask.left")
 $thumbRight = $("#date-track .range-mask.right")
 function swatch(s) {
@@ -141,9 +123,7 @@ function render(state) {
             ? formatHsl(s.hue, 50, 50)
             : formatHsl(s.hue, ...(s.is_total ? [20, 70] : [10, 80])),
     });
-    const start = state.dates.findIndex(d => d >= state.start);
-    let end = state.dates.findIndex(d => d > state.end);
-    if (end < 0) end = state.dates.length;
+    const [start, end] = rangeToIndices(state.dates, state.start, state.end);
     const datesToDisplay = state.dates.slice(start, end);
     const seriesToDisplay = cold.map(tb(false))
         .concat(hot.map(tb(true)))
@@ -158,39 +138,25 @@ function render(state) {
             stroke: 3,
             dates: datesToDisplay,
         });
-        const s = hot.length === 0 ? null : hot[hot.length - 1];
-        const width = $dateTrack.clientWidth
-        $dateTrack.innerHTML = [
-            s && drawLineChart([{
-                values: s[series.key],
-                color: formatHsl(s.hue, 60, 50),
-            }], {
-                width,
+        const s = hot.length === 0
+            ? cold[cold.length - 1]
+            : hot[hot.length - 1];
+        $dateTrack.innerHTML = drawDateRangeSlider(
+            state.dates,
+            state.start,
+            state.end,
+            {
+                width: $dateTrack.clientWidth,
                 height: $dateTrack.clientHeight,
-                stroke: 1,
-                gridlines: false,
-            }),
-            el('div', {
-                    className: "range-mask left",
-                    style: {
-                        left: width * start / state.dates.length - width + "px",
-                    },
+                series: s && {
+                    values: s[series.key],
+                    color: formatHsl(s.hue, 60, 50),
                 },
-                el("div", {
-                    className: "thumb",
-                }, "||"),
-            ),
-            el('div', {
-                    className: "range-mask right",
-                    style: {
-                        left: width * end / state.dates.length + "px",
-                    },
-                },
-                el("div", {
-                    className: "thumb",
-                }, "||"),
-            ),
-        ].join("\n");
+                callback: (start, end) => setState({
+                    start,
+                    end,
+                }),
+            });
     });
     // legend
     if (hot.length > 0) {
