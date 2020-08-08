@@ -208,18 +208,21 @@ const drawDateRangeSlider = (dates, startDate, endDate, options) => {
             opts.onMotion(dates[posToIdx(startPos + maskWidth)], dates[posToIdx(endPos)])
         }
         $sm.querySelector(".thumb").addEventListener("pointerdown", e => {
+            e.preventDefault();
             const motionOrigin = e.clientX;
             const maskOrigin = startPos;
             const minPos = idxToPos(0) - maskWidth;
             const maxPos = idxToPos(endIdx - 1) - maskWidth;
             const onPointerMove = e => {
+                e.preventDefault();
                 startPos = maskOrigin + (e.clientX - motionOrigin);
                 if (startPos < minPos) startPos = minPos;
                 if (startPos > maxPos) startPos = maxPos;
                 doMotion();
                 $sm.style.left = startPos + "px";
             }
-            const onPointerUp = () => {
+            const onPointerUp = e => {
+                e.preventDefault();
                 startIdx = posToIdx(startPos + maskWidth);
                 startPos = idxToPos(startIdx) - maskWidth;
                 $sm.style.left = startPos + "px";
@@ -231,18 +234,21 @@ const drawDateRangeSlider = (dates, startDate, endDate, options) => {
             document.addEventListener("pointermove", onPointerMove);
         });
         $em.querySelector(".thumb").addEventListener("pointerdown", e => {
+            e.preventDefault();
             const motionOrigin = e.clientX;
             const maskOrigin = endPos;
             const minPos = idxToPos(startIdx + 1);
             const maxPos = idxToPos(dates.length - 1);
             const onPointerMove = e => {
+                e.preventDefault();
                 endPos = maskOrigin + (e.clientX - motionOrigin);
                 if (endPos < minPos) endPos = minPos;
                 if (endPos > maxPos) endPos = maxPos;
                 doMotion();
                 $em.style.left = endPos + "px";
             }
-            const onPointerUp = () => {
+            const onPointerUp = e => {
+                e.preventDefault();
                 endIdx = posToIdx(endPos);
                 endPos = idxToPos(endIdx);
                 $em.style.left = endPos + "px";

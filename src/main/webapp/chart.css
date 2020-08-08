@@ -66,6 +66,7 @@
 }
 .range-track .range-mask .thumb {
     float: right;
+    touch-action: none;
     margin-top: 6px;
     margin-right: -6px;
     width: 10px;
