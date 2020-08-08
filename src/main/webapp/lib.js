@@ -346,6 +346,15 @@ const drawLineChart = (series, options) => {
             'font-size': "12px", // this is a 12x7 character. By fiat.
         },
         opts.gridlines && el('g', {},
+            el('line', {
+                x1: margins.left + chartWidth,
+                y1: margins.top,
+                x2: margins.left + chartWidth,
+                y2: margins.top + chartHeight,
+                stroke: "#666",
+                'stroke-width': "0.5px",
+                'vector-effect': "non-scaling-stroke",
+            }),
             gridpoints.map((v, i) => el('line', {
                 x1: margins.left,
                 y1: v2y(v),
@@ -360,7 +369,7 @@ const drawLineChart = (series, options) => {
                 .map(v => el('text', {
                     fill: "#333",
                     x: margins.left + chartWidth + 2,
-                    y: v2y(v) + 4,
+                    y: v2y(v) + 3.5,
                 }, formatNumber(v, gridLabelPlaces))),
         ),
         opts.dates && el('g', {},
