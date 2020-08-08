@@ -188,77 +188,66 @@ const drawDateRangeSlider = (dates, startDate, endDate, options) => {
     let [startIdx, endIdx] = rangeToIndices(dates, startDate, endDate);
     endIdx -= 1; // the math is easier w/ a closed range
     const id = nextId("range-slider");
-    const doChange = () =>
-        opts.onCommit && opts.onCommit(dates[startIdx], dates[endIdx]);
+    const doMotion = (si, ei) =>
+        opts.onMotion && opts.onMotion(dates[si], dates[ei]);
+    const doCommit = (si, ei) =>
+        opts.onCommit && opts.onCommit(dates[si], dates[ei]);
     setTimeout(() => { // tee hee!
-        const $el = $("#" + id)
-        const $sm = $el.querySelector(".range-mask.start");
-        const maskWidth = $sm.clientWidth;
         const idxToPos = i =>
             i * dx + pad - 1; // border
         const posToIdx = p =>
             Math.round((p + 1 - pad) / dx);
-        let startPos = idxToPos(startIdx) - maskWidth;
-        $sm.style.left = startPos + "px";
-        const $em = $el.querySelector(".range-mask.end");
-        let endPos = idxToPos(endIdx);
-        $em.style.left = endPos + "px";
-        const doMotion = () => {
-            if (!opts.onMotion) return;
-            opts.onMotion(dates[posToIdx(startPos + maskWidth)], dates[posToIdx(endPos)])
-        }
-        $sm.querySelector(".thumb").addEventListener("pointerdown", e => {
-            e.preventDefault();
-            const motionOrigin = e.clientX;
-            const maskOrigin = startPos;
-            const minPos = idxToPos(0) - maskWidth;
-            const maxPos = idxToPos(endIdx - 1) - maskWidth;
-            const onPointerMove = e => {
+        const doThumb = ($mask, idx, buildIdxRange, idxToPos, posToIdx, doMotion, doCommit) => {
+            let pos = idxToPos(idx)
+            $mask.style.left = pos + "px";
+            $mask.querySelector(".thumb").addEventListener("pointerdown", e => {
                 e.preventDefault();
-                startPos = maskOrigin + (e.clientX - motionOrigin);
-                if (startPos < minPos) startPos = minPos;
-                if (startPos > maxPos) startPos = maxPos;
-                doMotion();
-                $sm.style.left = startPos + "px";
-            }
-            const onPointerUp = e => {
-                e.preventDefault();
-                startIdx = posToIdx(startPos + maskWidth);
-                startPos = idxToPos(startIdx) - maskWidth;
-                $sm.style.left = startPos + "px";
-                doChange();
-                document.removeEventListener("pointerup", onPointerUp);
-                document.removeEventListener("pointermove", onPointerMove);
-            }
-            document.addEventListener("pointerup", onPointerUp);
-            document.addEventListener("pointermove", onPointerMove);
-        });
-        $em.querySelector(".thumb").addEventListener("pointerdown", e => {
-            e.preventDefault();
-            const motionOrigin = e.clientX;
-            const maskOrigin = endPos;
-            const minPos = idxToPos(startIdx + 1);
-            const maxPos = idxToPos(dates.length - 1);
-            const onPointerMove = e => {
-                e.preventDefault();
-                endPos = maskOrigin + (e.clientX - motionOrigin);
-                if (endPos < minPos) endPos = minPos;
-                if (endPos > maxPos) endPos = maxPos;
-                doMotion();
-                $em.style.left = endPos + "px";
-            }
-            const onPointerUp = e => {
-                e.preventDefault();
-                endIdx = posToIdx(endPos);
-                endPos = idxToPos(endIdx);
-                $em.style.left = endPos + "px";
-                doChange();
-                document.removeEventListener("pointerup", onPointerUp);
-                document.removeEventListener("pointermove", onPointerMove);
-            }
-            document.addEventListener("pointerup", onPointerUp);
-            document.addEventListener("pointermove", onPointerMove);
-        });
+                const motionOrigin = e.clientX;
+                const maskOrigin = idxToPos(idx);
+                const [minPos, maxPos] = buildIdxRange().map(idxToPos);
+                const onPointerMove = e => {
+                    e.preventDefault();
+                    pos = maskOrigin + (e.clientX - motionOrigin);
+                    if (pos < minPos) pos = minPos;
+                    if (pos > maxPos) pos = maxPos;
+                    doMotion(posToIdx(pos));
+                    $mask.style.left = pos + "px";
+                }
+                const onPointerUp = e => {
+                    e.preventDefault();
+                    idx = posToIdx(pos);
+                    pos = idxToPos(idx);
+                    $mask.style.left = pos + "px";
+                    doCommit(idx);
+                    document.removeEventListener("pointerup", onPointerUp);
+                    document.removeEventListener("pointermove", onPointerMove);
+                }
+                document.addEventListener("pointerup", onPointerUp);
+                document.addEventListener("pointermove", onPointerMove);
+            });
+        };
+
+        const $el = $("#" + id)
+        const $sm = $el.querySelector(".range-mask.start");
+        const maskWidth = $sm.clientWidth;
+
+        doThumb($sm,
+            startIdx,
+            () => [0, endIdx - 1],
+            i => idxToPos(i) - maskWidth,
+            p => posToIdx(p + maskWidth),
+            i => doMotion(i, endIdx),
+            i => doCommit(startIdx = i, endIdx),
+        );
+
+        doThumb($el.querySelector(".range-mask.end"),
+            endIdx,
+            () => [startIdx + 1, dates.length - 1],
+            idxToPos,
+            posToIdx,
+            i => doMotion(startIdx, i),
+            i => doCommit(startIdx, endIdx = i),
+        );
     });
     return el("div", {
         id,
