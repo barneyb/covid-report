@@ -226,6 +226,13 @@ const drawLineChart = (series, options) => {
         // GO!
         return true;
     };
+    const datesToDraw = opts.dates && opts.dates
+        .map((d, i) => [d, i])
+        .filter(([d]) => d.getDate() === 1 || d.getDay() === 0)
+        .map(([d, i]) => {
+            const x = i2x(i)
+            return [d, x, d.getDate() === 1, drawWeekLabel(d, x)]
+        })
     return el(
         'svg',
         {
@@ -251,34 +258,29 @@ const drawLineChart = (series, options) => {
                 }, formatNumber(v, gridLabelPlaces))),
         ),
         opts.dates && el('g', {},
-            opts.dates
-                .map((d, i) => [d, i])
-                .filter(([d]) => d.getDate() === 1 || d.getDay() === 0)
-                .map(([d, i]) => {
-                    const x = i2x(i)
-                    return [d, x, d.getDate() === 1, drawWeekLabel(d, x)]
+            datesToDraw.map(([d, x, mo, wk]) =>
+                el('line', {
+                    x1: x,
+                    y1: margins.top,
+                    x2: x,
+                    y2: margins.top + chartHeight + (mo || wk ? 15 : 0),
+                    stroke: mo ? "#666" : "#ddd",
+                    'stroke-width': "0.5px",
+                    'vector-effect': "non-scaling-stroke",
                 })
-                .flatMap(([d, x, mo, wk]) => [
-                    el('line', {
-                        x1: x,
-                        y1: margins.top,
-                        x2: x,
-                        y2: margins.top + chartHeight + (mo || wk ? 15 : 0),
-                        stroke: mo ? "#666" : "#ddd",
-                        'stroke-width': "0.5px",
-                        'vector-effect': "non-scaling-stroke",
-                    }),
-                    drawMonthLabel(d, x) && el('text', {
-                        fill: "#333",
-                        x: x + 2,
-                        y: margins.top + chartHeight + 13,
-                    }, formatDate(d)),
-                    wk && el('text', {
-                        fill: "#888",
-                        x: x + 2,
-                        y: margins.top + chartHeight + 13,
-                    }, d.getDate()),
-                ])
+            ),
+            datesToDraw.flatMap(([d, x, mo, wk]) => [
+                drawMonthLabel(d, x) && el('text', {
+                    fill: "#333",
+                    x: x + 2,
+                    y: margins.top + chartHeight + 13,
+                }, formatDate(d)),
+                wk && el('text', {
+                    fill: "#888",
+                    x: x + 2,
+                    y: margins.top + chartHeight + 13,
+                }, d.getDate()),
+            ])
         ),
         series.map(s => el('polyline', {
                 points: s.values
