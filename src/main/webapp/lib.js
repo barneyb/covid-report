@@ -187,60 +187,55 @@ const drawDateRangeSlider = (dates, startDate, endDate, options) => {
     const dx = (width - 1) / (dates.length - 1);
     let [startIdx, endIdx] = rangeToIndices(dates, startDate, endDate);
     endIdx -= 1; // the math is easier w/ a closed range
-    const id = nextId("range-slider");
-    const doMotion = (si, ei) =>
-        opts.onMotion && opts.onMotion(dates[si], dates[ei]);
-    const doCommit = (si, ei) =>
-        opts.onCommit && opts.onCommit(dates[si], dates[ei]);
-    setTimeout(() => { // tee hee!
-        const idxToPos = i =>
-            i * dx + pad - 1; // border
-        const posToIdx = p =>
-            Math.round((p + 1 - pad) / dx);
-        const doThumb = ($mask, idx, buildIdxRange, idxToPos, posToIdx, doMotion, doCommit) => {
-            let pos = idxToPos(idx)
-            $mask.style.left = pos + "px";
-            $mask.querySelector(".thumb").addEventListener("pointerdown", e => {
+    const buildDoer = key =>(si, ei) =>
+        opts[key] && opts[key](dates[si], dates[ei]);
+    const doMotion = buildDoer("onMotion");
+    const doCommit = buildDoer("onCommit");
+    const idxToPos = i => i * dx + pad - 1; // border
+    const posToIdx = p => Math.round((p + 1 - pad) / dx);
+    const maskWidth = opts.width - 2;
+    const idxToPos_start = i => idxToPos(i) - maskWidth;
+    const posToIdx_start = p => posToIdx(p + maskWidth);
+    const doThumb = ($el, idx, buildIdxRange, idxToPos, posToIdx, doMotion, doCommit) => {
+        let pos = idxToPos(idx)
+        $el.querySelector(".thumb").addEventListener("pointerdown", e => {
+            e.preventDefault();
+            const motionOrigin = e.clientX;
+            const maskOrigin = idxToPos(idx);
+            const [minPos, maxPos] = buildIdxRange().map(idxToPos);
+            const onPointerMove = e => {
                 e.preventDefault();
-                const motionOrigin = e.clientX;
-                const maskOrigin = idxToPos(idx);
-                const [minPos, maxPos] = buildIdxRange().map(idxToPos);
-                const onPointerMove = e => {
-                    e.preventDefault();
-                    pos = maskOrigin + (e.clientX - motionOrigin);
-                    if (pos < minPos) pos = minPos;
-                    if (pos > maxPos) pos = maxPos;
-                    doMotion(posToIdx(pos));
-                    $mask.style.left = pos + "px";
-                }
-                const onPointerUp = e => {
-                    e.preventDefault();
-                    idx = posToIdx(pos);
-                    pos = idxToPos(idx);
-                    $mask.style.left = pos + "px";
-                    doCommit(idx);
-                    document.removeEventListener("pointerup", onPointerUp);
-                    document.removeEventListener("pointermove", onPointerMove);
-                }
-                document.addEventListener("pointerup", onPointerUp);
-                document.addEventListener("pointermove", onPointerMove);
-            });
-        };
-
-        const $el = $("#" + id)
-        const $sm = $el.querySelector(".range-mask.start");
-        const maskWidth = $sm.clientWidth;
-
-        doThumb($sm,
+                pos = maskOrigin + (e.clientX - motionOrigin);
+                if (pos < minPos) pos = minPos;
+                if (pos > maxPos) pos = maxPos;
+                doMotion(posToIdx(pos));
+                $el.style.left = pos + "px";
+            }
+            const onPointerUp = e => {
+                e.preventDefault();
+                idx = posToIdx(pos);
+                pos = idxToPos(idx);
+                $el.style.left = pos + "px";
+                doCommit(idx);
+                document.removeEventListener("pointerup", onPointerUp);
+                document.removeEventListener("pointermove", onPointerMove);
+            }
+            document.addEventListener("pointerup", onPointerUp);
+            document.addEventListener("pointermove", onPointerMove);
+        });
+    };
+    const startId = nextId("range-mask-start");
+    const endId = nextId("range-mask-start");
+    setTimeout(() => { // can't set 'em up until they're in the DOM
+        doThumb($("#" + startId),
             startIdx,
             () => [0, endIdx - 1],
-            i => idxToPos(i) - maskWidth,
-            p => posToIdx(p + maskWidth),
+            idxToPos_start,
+            posToIdx_start,
             i => doMotion(i, endIdx),
             i => doCommit(startIdx = i, endIdx),
         );
-
-        doThumb($el.querySelector(".range-mask.end"),
+        doThumb($("#" + endId),
             endIdx,
             () => [startIdx + 1, dates.length - 1],
             idxToPos,
@@ -250,7 +245,6 @@ const drawDateRangeSlider = (dates, startDate, endDate, options) => {
         );
     });
     return el("div", {
-        id,
         className: "range-track",
         style: {
             padding: `0 ${pad}px`,
@@ -264,10 +258,18 @@ const drawDateRangeSlider = (dates, startDate, endDate, options) => {
             dates,
             dateOverlay: true,
         }),
-        el('div', {className: "range-mask start"},
+        el('div', {
+            id: startId,
+            className: "range-mask start",
+                style: `left:${idxToPos_start(startIdx)}px`,
+            },
             el("div", {className: "thumb"}, "||"),
         ),
-        el('div', {className: "range-mask end"},
+        el('div', {
+            id: endId,
+            className: "range-mask end",
+                style: `left:${idxToPos(endIdx)}px`,
+            },
             el("div", {className: "thumb"}, "||"),
         ),
     ]);
