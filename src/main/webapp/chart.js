@@ -123,21 +123,24 @@ function render(state) {
             ? formatHsl(s.hue, 50, 50)
             : formatHsl(s.hue, ...(s.is_total ? [20, 70] : [10, 80])),
     });
-    const [start, end] = rangeToIndices(state.dates, state.start, state.end);
-    const datesToDisplay = state.dates.slice(start, end);
-    const seriesToDisplay = cold.map(tb(false))
-        .concat(hot.map(tb(true)))
-        .map(s => {
-            s.values = s.values.slice(start, end);
-            return s;
-        });
-    setTimeout(() => { // sidebar show has to draw DOM so we can measure
+    const paintChart = (sd, ed) => {
+        const [start, end] = rangeToIndices(state.dates, sd, ed);
+        const datesToDisplay = state.dates.slice(start, end);
+        const seriesToDisplay = cold.map(tb(false))
+            .concat(hot.map(tb(true)))
+            .map(s => {
+                s.values = s.values.slice(start, end);
+                return s;
+            });
         $chart.innerHTML = drawLineChart(seriesToDisplay, {
             width: $chart.clientWidth,
             height: $chart.clientHeight,
             stroke: 3,
             dates: datesToDisplay,
         });
+    }
+    setTimeout(() => { // sidebar show has to draw DOM so we can measure
+        paintChart(state.start, state.end);
         const s = hot.length === 0
             ? cold[cold.length - 1]
             : hot[hot.length - 1];
@@ -152,7 +155,8 @@ function render(state) {
                     values: s[series.key],
                     color: formatHsl(s.hue, 60, 50),
                 },
-                callback: (start, end) => setState({
+                onMotion: paintChart,
+                onCommit: (start, end) => setState({
                     start,
                     end,
                 }),

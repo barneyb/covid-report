@@ -177,7 +177,8 @@ const drawDateRangeSlider = (dates, startDate, endDate, options) => {
         width: 200,
         height: 75,
         series: null,
-        callback: (s, e) =>
+        onMotion: null,
+        onCommit: (s, e) =>
             console.log(formatDate(s), formatDate(e)),
         ...options,
     };
@@ -188,7 +189,7 @@ const drawDateRangeSlider = (dates, startDate, endDate, options) => {
     endIdx -= 1; // the math is easier w/ a closed range
     const id = nextId("range-slider");
     const doChange = () =>
-        opts.callback(dates[startIdx], dates[endIdx]);
+        opts.onCommit && opts.onCommit(dates[startIdx], dates[endIdx]);
     setTimeout(() => { // tee hee!
         const $el = $("#" + id)
         const $sm = $el.querySelector(".range-mask.start");
@@ -202,6 +203,10 @@ const drawDateRangeSlider = (dates, startDate, endDate, options) => {
         const $em = $el.querySelector(".range-mask.end");
         let endPos = idxToPos(endIdx);
         $em.style.left = endPos + "px";
+        const doMotion = () => {
+            if (!opts.onMotion) return;
+            opts.onMotion(dates[posToIdx(startPos + maskWidth)], dates[posToIdx(endPos)])
+        }
         $sm.querySelector(".thumb").addEventListener("pointerdown", e => {
             const motionOrigin = e.clientX;
             const maskOrigin = startPos;
@@ -211,6 +216,7 @@ const drawDateRangeSlider = (dates, startDate, endDate, options) => {
                 startPos = maskOrigin + (e.clientX - motionOrigin);
                 if (startPos < minPos) startPos = minPos;
                 if (startPos > maxPos) startPos = maxPos;
+                doMotion();
                 $sm.style.left = startPos + "px";
             }
             const onPointerUp = () => {
@@ -233,6 +239,7 @@ const drawDateRangeSlider = (dates, startDate, endDate, options) => {
                 endPos = maskOrigin + (e.clientX - motionOrigin);
                 if (endPos < minPos) endPos = minPos;
                 if (endPos > maxPos) endPos = maxPos;
+                doMotion();
                 $em.style.left = endPos + "px";
             }
             const onPointerUp = () => {
