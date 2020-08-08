@@ -1,3 +1,7 @@
+const nextId = (() => {
+    let id_seq = 0;
+    return prefix => prefix + (++id_seq);
+})();
 const $ = document.querySelector.bind(document);
 const HunThou = 100000;
 const Week = 7;
@@ -15,12 +19,14 @@ const parseDate = ld => {
         .map(p => parseInt(p, 10));
     return new Date(ps[0], ps[1] - 1, ps[2]);
 };
-const formatDate = ld =>
-    (typeof ld === "string" ? parseDate(ld) : ld)
+const formatDate = ld => {
+    if (ld == null) return "";
+    return (typeof ld === "string" ? parseDate(ld) : ld)
         .toLocaleDateString("en-US", {
             month: "short",
             day: "numeric",
-        });
+        })
+};
 const nfpMap = new Map();
 const formatNumber = (v, places = 0) => {
     if (!isActualNumber(v)) return '';
@@ -158,6 +164,112 @@ const arrayMax = arr => {
 };
 const formatHsl = (h, s, l) =>
     `hsl(${formatNumber(h, 2)},${formatNumber(s, 2)}%,${formatNumber(l, 2)}%)`;
+const rangeToIndices = (coll, min, max) => {
+    let start = coll.findIndex(d => d >= min);
+    if (start < 0) start = 0;
+    let end = coll.findIndex(d => d > max);
+    if (end < 0) end = coll.length;
+    return [start, end];
+}
+// The drawn slider MUST be synchronously placed into the DOM!
+const drawDateRangeSlider = (dates, startDate, endDate, options) => {
+    const opts = {
+        width: 200,
+        height: 75,
+        series: null,
+        callback: (s, e) =>
+            console.log(formatDate(s), formatDate(e)),
+        ...options,
+    };
+    const pad = 8;
+    const width = opts.width - 2 * pad - 1;
+    const dx = (width - 1) / (dates.length - 1);
+    let [startIdx, endIdx] = rangeToIndices(dates, startDate, endDate);
+    endIdx -= 1; // the math is easier w/ a closed range
+    const id = nextId("range-slider");
+    const doChange = () =>
+        opts.callback(dates[startIdx], dates[endIdx]);
+    setTimeout(() => { // tee hee!
+        const $el = $("#" + id)
+        const $sm = $el.querySelector(".range-mask.start");
+        const maskWidth = $sm.clientWidth;
+        const idxToPos = i =>
+            i * dx + pad - 1; // border
+        const posToIdx = p =>
+            Math.round((p + 1 - pad) / dx);
+        let startPos = idxToPos(startIdx) - maskWidth;
+        $sm.style.left = startPos + "px";
+        const $em = $el.querySelector(".range-mask.end");
+        let endPos = idxToPos(endIdx);
+        $em.style.left = endPos + "px";
+        $sm.querySelector(".thumb").addEventListener("pointerdown", e => {
+            const motionOrigin = e.clientX;
+            const maskOrigin = startPos;
+            const minPos = idxToPos(0) - maskWidth;
+            const maxPos = idxToPos(endIdx - 1) - maskWidth;
+            const onPointerMove = e => {
+                startPos = maskOrigin + (e.clientX - motionOrigin);
+                if (startPos < minPos) startPos = minPos;
+                if (startPos > maxPos) startPos = maxPos;
+                $sm.style.left = startPos + "px";
+            }
+            const onPointerUp = () => {
+                startIdx = posToIdx(startPos + maskWidth);
+                startPos = idxToPos(startIdx) - maskWidth;
+                $sm.style.left = startPos + "px";
+                doChange();
+                document.removeEventListener("pointerup", onPointerUp);
+                document.removeEventListener("pointermove", onPointerMove);
+            }
+            document.addEventListener("pointerup", onPointerUp);
+            document.addEventListener("pointermove", onPointerMove);
+        });
+        $em.querySelector(".thumb").addEventListener("pointerdown", e => {
+            const motionOrigin = e.clientX;
+            const maskOrigin = endPos;
+            const minPos = idxToPos(startIdx + 1);
+            const maxPos = idxToPos(dates.length - 1);
+            const onPointerMove = e => {
+                endPos = maskOrigin + (e.clientX - motionOrigin);
+                if (endPos < minPos) endPos = minPos;
+                if (endPos > maxPos) endPos = maxPos;
+                $em.style.left = endPos + "px";
+            }
+            const onPointerUp = () => {
+                endIdx = posToIdx(endPos);
+                endPos = idxToPos(endIdx);
+                $em.style.left = endPos + "px";
+                doChange();
+                document.removeEventListener("pointerup", onPointerUp);
+                document.removeEventListener("pointermove", onPointerMove);
+            }
+            document.addEventListener("pointerup", onPointerUp);
+            document.addEventListener("pointermove", onPointerMove);
+        });
+    });
+    return el("div", {
+        id,
+        className: "range-track",
+        style: {
+            padding: `0 ${pad}px`,
+        }
+    }, [
+        opts.series && drawLineChart([opts.series], {
+            width,
+            height: opts.height,
+            stroke: 1,
+            gridlines: false,
+            dates,
+            dateOverlay: true,
+        }),
+        el('div', {className: "range-mask start"},
+            el("div", {className: "thumb"}, "||"),
+        ),
+        el('div', {className: "range-mask end"},
+            el("div", {className: "thumb"}, "||"),
+        ),
+    ]);
+};
 const drawLineChart = (series, options) => {
     const opts = {
         width: 200,
@@ -165,6 +277,7 @@ const drawLineChart = (series, options) => {
         stroke: 3,
         title: null,
         dates: null,
+        dateOverlay: false,
         gridlines: true,
         ...options,
     };
@@ -175,8 +288,6 @@ const drawLineChart = (series, options) => {
     ], [999999999, -999999999])
     let gridpoints, gridLabelPlaces;
     if (opts.gridlines) {
-        margins.top += 10;
-        margins.left += 10;
         margins.bottom += 10;
         let d = parseFloat(new Intl.NumberFormat('en-US', {
             maximumSignificantDigits: 1
@@ -196,7 +307,7 @@ const drawLineChart = (series, options) => {
     }
     let today;
     if (opts.dates) {
-        margins.bottom += 20;
+        if (!opts.dateOverlay) margins.bottom += 20;
         today = opts.dates[opts.dates.length - 1];
     }
     const chartHeight = opts.height - margins.top - margins.bottom;
@@ -206,26 +317,28 @@ const drawLineChart = (series, options) => {
     const len = series[0].values.length
     const dx = chartWidth / (len - 1)
     const i2x = i => margins.left + i * dx;
-    const drawMonthLabel = (d, x) => {
-        // is it the first?
+    const isRoomBeforeEOM = d => {
+        const eom = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+        const cutoff = Math.min(today, eom);
+        return (cutoff - d) / 86400 / 1000 * dx > 6 * 7;
+    };
+    const doMonthLabel = (d, ignored) => {
         if (d.getDate() !== 1) return false;
         // is there room before the right edge?
-        if (x + 2 + 5 * 7 >= chartWidth + margins.left) return false;
-        // GO!
-        return true;
+        return isRoomBeforeEOM(d);
     };
-    const drawWeekLabel = (d, ignored) => {
-        // is it sunday?
-        if (d.getDay() !== 0) return false;
-        // is there room after the first?
-        if (d.getDate() * dx < 2 + 5 * 7 + 2) return false;
-        // is there room before EoM
-        const eom = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-        const cutoff = new Date(Math.min(today, eom));
-        if (d.getDate() >= cutoff.getDate() - 2) return false;
-        // GO!
-        return true;
+    const doDateLabel = (d, ignored) => {
+        if (d.getDate() === 1) return false;
+        if ((d.getDate() - 1) * dx < 2 + 5 * 7 + 2) return false;
+        return isRoomBeforeEOM(d);
     };
+    const datesToDraw = opts.dates && opts.dates
+        .map((d, i) => [d, i])
+        .filter(([d]) => d.getDate() === 1 || d.getDay() === 0 || dx > 6 * 7)
+        .map(([d, i]) => {
+            const x = i2x(i)
+            return [d, x, d.getDate() === 1, doDateLabel(d, x)];
+        });
     return el(
         'svg',
         {
@@ -233,6 +346,15 @@ const drawLineChart = (series, options) => {
             'font-size': "12px", // this is a 12x7 character. By fiat.
         },
         opts.gridlines && el('g', {},
+            el('line', {
+                x1: margins.left + chartWidth,
+                y1: margins.top,
+                x2: margins.left + chartWidth,
+                y2: margins.top + chartHeight,
+                stroke: "#666",
+                'stroke-width': "0.5px",
+                'vector-effect': "non-scaling-stroke",
+            }),
             gridpoints.map((v, i) => el('line', {
                 x1: margins.left,
                 y1: v2y(v),
@@ -247,38 +369,33 @@ const drawLineChart = (series, options) => {
                 .map(v => el('text', {
                     fill: "#333",
                     x: margins.left + chartWidth + 2,
-                    y: v2y(v) + 4,
+                    y: v2y(v) + 3.5,
                 }, formatNumber(v, gridLabelPlaces))),
         ),
         opts.dates && el('g', {},
-            opts.dates
-                .map((d, i) => [d, i])
-                .filter(([d]) => d.getDate() === 1 || d.getDay() === 0)
-                .map(([d, i]) => {
-                    const x = i2x(i)
-                    return [d, x, d.getDate() === 1, drawWeekLabel(d, x)]
+            datesToDraw.map(([ignored, x, mo, dt]) =>
+                el('line', {
+                    x1: x,
+                    y1: margins.top,
+                    x2: x,
+                    y2: margins.top + chartHeight + (mo || dt ? 15 : 0),
+                    stroke: mo ? "#666" : "#ddd",
+                    'stroke-width': "0.5px",
+                    'vector-effect': "non-scaling-stroke",
                 })
-                .flatMap(([d, x, mo, wk]) => [
-                    el('line', {
-                        x1: x,
-                        y1: margins.top,
-                        x2: x,
-                        y2: margins.top + chartHeight + (mo || wk ? 15 : 0),
-                        stroke: mo ? "#666" : "#ddd",
-                        'stroke-width': "0.5px",
-                        'vector-effect': "non-scaling-stroke",
-                    }),
-                    drawMonthLabel(d, x) && el('text', {
-                        fill: "#333",
-                        x: x + 2,
-                        y: margins.top + chartHeight + 13,
-                    }, formatDate(d)),
-                    wk && el('text', {
-                        fill: "#888",
-                        x: x + 2,
-                        y: margins.top + chartHeight + 13,
-                    }, d.getDate()),
-                ])
+            ),
+            datesToDraw.flatMap(([d, x, mo, dt], i) => [
+                (i === 0 || doMonthLabel(d, x)) && el('text', {
+                    fill: "#333",
+                    x: x + 2,
+                    y: margins.top + chartHeight + (opts.dateOverlay ? -3 : 13),
+                }, formatDate(d)),
+                i !== 0 && dt && el('text', {
+                    fill: "#888",
+                    x: x + 2,
+                    y: margins.top + chartHeight + (opts.dateOverlay ? -3 : 13),
+                }, d.getDate()),
+            ])
         ),
         series.map(s => el('polyline', {
                 points: s.values

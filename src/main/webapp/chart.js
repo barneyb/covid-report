@@ -47,6 +47,8 @@ pointSeries.forEach(s => {
 })
 
 state = {
+    start: new Date(2020, 3 - 1, 15),
+    end: new Date(),
 };
 
 function setState(s) {
@@ -85,7 +87,9 @@ toggleSegment = _togglerBuilder("hotSegments");
 $pageHeader = $("#page-header")
 $chart = $("#chart")
 $legend = $("#legend")
-
+$dateTrack = $("#date-track")
+$thumbLeft = $("#date-track .range-mask.left")
+$thumbRight = $("#date-track .range-mask.right")
 function swatch(s) {
     return el(
         'span',
@@ -119,13 +123,40 @@ function render(state) {
             ? formatHsl(s.hue, 50, 50)
             : formatHsl(s.hue, ...(s.is_total ? [20, 70] : [10, 80])),
     });
+    const [start, end] = rangeToIndices(state.dates, state.start, state.end);
+    const datesToDisplay = state.dates.slice(start, end);
+    const seriesToDisplay = cold.map(tb(false))
+        .concat(hot.map(tb(true)))
+        .map(s => {
+            s.values = s.values.slice(start, end);
+            return s;
+        });
     setTimeout(() => { // sidebar show has to draw DOM so we can measure
-        $chart.innerHTML = drawLineChart(cold.map(tb(false)).concat(hot.map(tb(true))), {
+        $chart.innerHTML = drawLineChart(seriesToDisplay, {
             width: $chart.clientWidth,
             height: $chart.clientHeight,
             stroke: 3,
-            dates: state.dates,
+            dates: datesToDisplay,
         });
+        const s = hot.length === 0
+            ? cold[cold.length - 1]
+            : hot[hot.length - 1];
+        $dateTrack.innerHTML = drawDateRangeSlider(
+            state.dates,
+            state.start,
+            state.end,
+            {
+                width: $dateTrack.clientWidth,
+                height: $dateTrack.clientHeight,
+                series: s && {
+                    values: s[series.key],
+                    color: formatHsl(s.hue, 60, 50),
+                },
+                callback: (start, end) => setState({
+                    start,
+                    end,
+                }),
+            });
     });
     // legend
     if (hot.length > 0) {
