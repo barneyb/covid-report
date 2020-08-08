@@ -17,10 +17,11 @@
 }
 #legend {
     position: absolute;
-    top: 1px;
-    left: 1px;
+    top: 0;
+    left: 0;
     background-color: var(--body-bgc);
-    border: 1px solid #eee;
+    border-right: 1px solid #eee;
+    border-bottom: 1px solid #eee;
     font-size: 90%;
     padding: 0.3em 0.5em;
 }

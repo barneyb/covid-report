@@ -288,6 +288,8 @@ const drawLineChart = (series, options) => {
     ], [999999999, -999999999])
     let gridpoints, gridLabelPlaces;
     if (opts.gridlines) {
+        margins.top += 10;
+        margins.left += 10;
         margins.bottom += 10;
         let d = parseFloat(new Intl.NumberFormat('en-US', {
             maximumSignificantDigits: 1
@@ -307,7 +309,7 @@ const drawLineChart = (series, options) => {
     }
     let today;
     if (opts.dates) {
-        if (!opts.dateOverlay) margins.bottom += 20;
+        if (!opts.dateOverlay) margins.bottom += opts.gridlines ? 15 : 20;
         today = opts.dates[opts.dates.length - 1];
     }
     const chartHeight = opts.height - margins.top - margins.bottom;
