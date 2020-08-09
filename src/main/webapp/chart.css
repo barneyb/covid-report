@@ -48,9 +48,11 @@
 }
 #date-track {
     height: var(--date-track-height);
+    border: 1px solid #eee;
+    box-sizing: content-box;
 }
 .range-track {
-    border: 1px solid #eee;
+    height: 100%;
     position: relative;
     overflow: hidden;
 }
