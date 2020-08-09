@@ -447,6 +447,10 @@ const fromQS = qs =>
         if (qs.s) {
             next.sortAsc = qs.s.charAt(0) !== "!";
             next.sortCol = parseInt(next.sortAsc ? qs.s : qs.s.substr(1));
+            if (!isActualNumber(next.sortCol)) {
+                next.sortAsc = true;
+                next.sortCol = 0;
+            }
         }
         if (qs.h) {
             next.hotRows = new Set(qs.h.split(".")

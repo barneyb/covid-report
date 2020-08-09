@@ -82,21 +82,12 @@ const formatQS = data => {
     return qs === "?" ? "" : qs;
 };
 const afterQueryStringSet = qs => {
-    const bals = document.querySelectorAll("a.qs-aware");
-    let active = false;
+    const bals = document.querySelectorAll("#navbar > a[href]");
     for (const l of bals) {
-        if (l.classList.contains("active")) {
-            active = true;
-            break;
-        }
-    }
-    if (active) {
-        for (const l of bals) {
-            l.setAttribute(
-                "href",
-                l.getAttribute("href").split("?")[0] + qs,
-            );
-        }
+        l.setAttribute(
+            "href",
+            l.getAttribute("href").split("?")[0] + qs,
+        );
     }
 }
 afterQueryStringSet(location.search);
