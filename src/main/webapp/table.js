@@ -100,7 +100,8 @@ weeklySeries.concat(jurisdictionSeries).forEach(s => {
     if (!s.hasOwnProperty("is_number")) s.is_number = true;
 })
 
-state = {
+let tableState = {};
+const setState = useState({
     sortCol: 0,
     sortAsc: true,
     loading: 0,
@@ -109,24 +110,12 @@ state = {
         .filter(s => s.hot)
         .map(s => s.key),
     sidebar: location.search === "?sidebar",
-};
-tableState = {};
-
-function setState(s) {
-    const prev = state;
-    if (typeof s === "function") {
-        s = s(prev);
-    }
-    if (s == null) return;
-    state = {
-        ...prev,
-        ...s,
-    };
+}, (state, prev) => {
     if (["dates", "rows", "hotDateIdxs", "hotSeries"].some(k => state[k] !== prev[k])) {
         tableState = buildTable(state);
     }
     render(state, tableState);
-}
+});
 
 // This guy will take the raw dates/series and apply filters to build the table
 // to render. Sorting will happen during render.

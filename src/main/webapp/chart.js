@@ -49,34 +49,12 @@ pointSeries.forEach(s => {
 });
 defaultSeries = seriesLookup["case_rate"]
 
-state = {
+const setState = useState({
     activeSeries: defaultSeries,
     start: new Date(2020, 3 - 1, 15),
     end: new Date(),
     sidebar: location.search === "?sidebar",
-};
-
-__setting = false;
-function setState(s, done) {
-    if (__setting) throw new Error("Reentrant setState!");
-    __setting = true;
-    const prev = state;
-    try {
-        if (typeof s === "function") {
-            s = s(prev);
-        }
-        if (s == null) return;
-        state = {
-            ...prev,
-            ...s,
-        };
-        render(state);
-        toQS(state);
-    } finally {
-        __setting = false;
-    }
-    done && done(state, prev);
-}
+}, render);
 
 selectBlock = sel =>
     fetchTableData(parseInt(sel.value));
@@ -105,6 +83,7 @@ function swatch(s) {
 }
 
 function render(state) {
+    toQS(state);
     const series = state.activeSeries
     if (state.block) {
         document.title = $pageHeader.innerText = state.block.name + " " + series.label;
@@ -332,7 +311,7 @@ const toQS = state => {
     if (state.hotSegments) qs.h = state.hotSegments.join(",");
     qs.d = [state.start, state.end].map(unparseDate).join(":");
     const curr = history.state;
-    return pushQS(qs, curr && curr.id === qs.id && curr.s === qs.s)
+    return pushQS(qs, curr && curr.id === qs.id && curr.s === qs.s);
 };
 
 const fromQS = qs =>

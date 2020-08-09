@@ -108,6 +108,29 @@ const pushQS = (dataOrQS, replace) => {
         }
     }
 }
+const useState = (init, updated) => {
+    let state = {...init};
+    let __setting = false;
+    return function setState(s, updateComplete) {
+        if (__setting) throw new Error("Reentrant setState!");
+        __setting = true;
+        const prev = state;
+        try {
+            if (typeof s === "function") {
+                s = s(prev);
+            }
+            if (s == null) return;
+            state = {
+                ...prev,
+                ...s,
+            };
+            updated && updated(state, prev);
+        } finally {
+            __setting = false;
+        }
+        updateComplete && updateComplete(state, prev);
+    }
+}
 const camel2kebab = p => {
     for (let i = p.length - 1; i > 0; i--) {
         const c = p.charAt(i)
