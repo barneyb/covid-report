@@ -42,45 +42,49 @@ pointSeries = [{
         : null,
     format: formatPercent,
 }];
+seriesLookup = {};
 pointSeries.forEach(s => {
     if (!s.hasOwnProperty("format")) s.format = formatNumber;
-})
+    seriesLookup[s.key] = s;
+});
+defaultSeries = seriesLookup["case_rate"]
 
 state = {
+    activeSeries: defaultSeries,
     start: new Date(2020, 3 - 1, 15),
     end: new Date(),
+    sidebar: location.search === "?sidebar",
 };
 
-function setState(s) {
+__setting = false;
+function setState(s, done) {
+    if (__setting) throw new Error("Reentrant setState!");
+    __setting = true;
     const prev = state;
-    if (typeof s === "function") {
-        s = s(prev);
+    try {
+        if (typeof s === "function") {
+            s = s(prev);
+        }
+        if (s == null) return;
+        state = {
+            ...prev,
+            ...s,
+        };
+        render(state);
+        toQS(state);
+    } finally {
+        __setting = false;
     }
-    if (s == null) return;
-    state = {
-        ...prev,
-        ...s,
-    };
-    render(state);
-    if (state.activeSeries && state.activeBlock) {
-        pushQS({
-            id: state.activeBlock,
-            s: state.activeSeries.key,
-        });
-    }
+    done && done(state, prev);
 }
 
 selectBlock = sel =>
     fetchTableData(parseInt(sel.value));
 
-selectSeries = key => {
-    const s = pointSeries.find(s =>
-        s.key === key)
-    if (s == null) return selectSeries("case_rate");
+selectSeries = key =>
     setState({
-        activeSeries: s,
-    })
-};
+        activeSeries: seriesLookup[key] || defaultSeries,
+    });
 
 toggleSegment = _togglerBuilder("hotSegments");
 
@@ -101,87 +105,89 @@ function swatch(s) {
 }
 
 function render(state) {
-    if (!state.segments) {
-        $chart.innerHTML = el('div', { className: "loading" }, "Loading...");
-        return;
-    }
     const series = state.activeSeries
-    document.title = $pageHeader.innerText = state.block.name + " " + series.label;
-    const [hot, cold] = state.segments.reduce(([h, c], s) => {
-        if (state.hotSegments.indexOf(s.id) >= 0) {
-            h.push(s);
-        } else if (s.is_relevant) {
-            c.push(s);
-        }
-        return [h, c];
-    }, [[], []]);
-    const tb = hot => s => ({
-        values: s[series.key],
-        title: s.name,
-        onclick: `toggleSegment(${s.id})`,
-        color: hot
-            ? formatHsl(s.hue, 50, 50)
-            : formatHsl(s.hue, ...(s.is_total ? [20, 70] : [10, 80])),
-    });
-    const paintChart = (sd, ed) => {
-        const [start, end] = rangeToIndices(state.dates, sd, ed);
-        const datesToDisplay = state.dates.slice(start, end);
-        const seriesToDisplay = cold.map(tb(false))
-            .concat(hot.map(tb(true)))
-            .map(s => {
-                s.values = s.values.slice(start, end);
-                return s;
-            });
-        $chart.innerHTML = drawLineChart(seriesToDisplay, {
-            width: $chart.clientWidth,
-            height: $chart.clientHeight,
-            stroke: 3,
-            dates: datesToDisplay,
-        });
+    if (state.block) {
+        document.title = $pageHeader.innerText = state.block.name + " " + series.label;
     }
-    setTimeout(() => { // sidebar show has to draw DOM so we can measure
-        paintChart(state.start, state.end);
-        const s = hot.length === 0
-            ? cold[cold.length - 1]
-            : hot[hot.length - 1];
-        $dateTrack.innerHTML = drawDateRangeSlider(
-            state.dates,
-            state.start,
-            state.end,
-            {
-                width: $dateTrack.clientWidth,
-                height: $dateTrack.clientHeight,
-                series: s && {
-                    values: s[series.key],
-                    color: formatHsl(s.hue, 60, 50),
-                },
-                onMotion: paintChart,
-                onCommit: (start, end) => setState({
-                    start,
-                    end,
-                }),
+    if (state.segments) {
+        const [hot, cold] = state.segments.reduce(([h, c], s) => {
+            if (state.hotSegments.indexOf(s.id) >= 0) {
+                h.push(s);
+            } else if (s.is_relevant) {
+                c.push(s);
+            }
+            return [h, c];
+        }, [[], []]);
+        const tb = hot => s => ({
+            values: s[series.key],
+            title: s.name,
+            onclick: `toggleSegment(${s.id})`,
+            color: hot
+                ? formatHsl(s.hue, 50, 50)
+                : formatHsl(s.hue, ...(s.is_total ? [20, 70] : [10, 80])),
+        });
+        const paintChart = (sd, ed) => {
+            const [start, end] = rangeToIndices(state.dates, sd, ed);
+            const datesToDisplay = state.dates.slice(start, end);
+            const seriesToDisplay = cold.map(tb(false))
+                .concat(hot.map(tb(true)))
+                .map(s => {
+                    s.values = s.values.slice(start, end);
+                    return s;
+                });
+            $chart.innerHTML = drawLineChart(seriesToDisplay, {
+                width: $chart.clientWidth,
+                height: $chart.clientHeight,
+                stroke: 3,
+                dates: datesToDisplay,
             });
-    });
-    // legend
-    if (hot.length > 0) {
-        $legend.innerHTML = hot.map(s =>
-            el('div', [
-                swatch(s),
-                s.name,
-                el('a', {
-                    className: "remove",
-                    onclick: `toggleSegment(${s.id})`,
-                }, el('svg', {
-                    viewbox: "0 0 10 10"
-                }, [
-                    el('line', {x1: 2, y1: 2, x2: 8, y2: 8, stroke: "#999"}),
-                    el('line', {x1: 8, y1: 2, x2: 2, y2: 8, stroke: "#999"}),
-                ]))
-            ])).join("\n");
-        $legend.classList.remove("empty");
+        }
+        setTimeout(() => { // sidebar show has to draw DOM so we can measure
+            paintChart(state.start, state.end);
+            const s = hot.length === 0
+                ? cold[cold.length - 1]
+                : hot[hot.length - 1];
+            $dateTrack.innerHTML = drawDateRangeSlider(
+                state.dates,
+                state.start,
+                state.end,
+                {
+                    width: $dateTrack.clientWidth,
+                    height: $dateTrack.clientHeight,
+                    series: s && {
+                        values: s[series.key],
+                        color: formatHsl(s.hue, 60, 50),
+                    },
+                    onMotion: paintChart,
+                    onCommit: (start, end) => setState({
+                        start,
+                        end,
+                    }),
+                });
+        });
+        // legend
+        if (hot.length > 0) {
+            $legend.innerHTML = hot.map(s =>
+                el('div', [
+                    swatch(s),
+                    s.name,
+                    el('a', {
+                        className: "remove",
+                        onclick: `toggleSegment(${s.id})`,
+                    }, el('svg', {
+                        viewbox: "0 0 10 10"
+                    }, [
+                        el('line', {x1: 2, y1: 2, x2: 8, y2: 8, stroke: "#999"}),
+                        el('line', {x1: 8, y1: 2, x2: 2, y2: 8, stroke: "#999"}),
+                    ]))
+                ])).join("\n");
+            $legend.classList.remove("empty");
+        } else {
+            $legend.innerText = "";
+            $legend.classList.add("empty");
+        }
     } else {
-        $legend.innerText = "";
-        $legend.classList.add("empty");
+        $chart.innerHTML = el('div', { className: "loading" }, "Loading...");
     }
     if (state.sidebar) {
         const radio = _pickCtrlBuilder("radio");
@@ -208,7 +214,7 @@ function render(state) {
                     onclick: `selectSeries('${s.key}')`
                 }, s.desc))),
         ]));
-        sections.push(el('section', {className: "segments"}, [
+        state.segments && sections.push(el('section', {className: "segments"}, [
             el('h3', 'Segments'),
             el('div', state.segments.map(s =>
                 chkbx(el('span', {
@@ -250,7 +256,6 @@ function fetchTableData(id) {
         block: null,
         dates: null,
         segments: null,
-        hotSegments: [id],
         loading: true,
     });
     fetch("data/block_" + id + ".json")
@@ -296,37 +301,89 @@ function fetchTableData(id) {
                 // noinspection JSPrimitiveTypeWrapperUsage
                 s.hue = s.is_total ? 0 : 40 + (i / rawSegments.length) * 280;
             });
-            setState({
-                segments,
-                dates: rawDates.slice(1),
-                block: {
-                    id: block.id,
-                    name: block.name,
-                },
-                loading: false,
+            setState(s => {
+                let hotSegments = null;
+                if (s.hotSegments) {
+                    const ids = new Set(segments.map(s => s.id));
+                    hotSegments = s.hotSegments
+                        .filter(id => ids.has(id));
+                }
+                if (!hotSegments || hotSegments.length === 0) {
+                    hotSegments = [id];
+                }
+                return {
+                    segments,
+                    hotSegments,
+                    dates: rawDates.slice(1),
+                    block: {
+                        id: block.id,
+                        name: block.name,
+                    },
+                    loading: false,
+                };
             });
         })
 }
 
-window.addEventListener("popstate", e => {
-    if (e.state.id) fetchTableData(e.state.id);
-});
+const toQS = state => {
+    const qs = {};
+    if (state.activeBlock) qs.id = "" + state.activeBlock;
+    if (state.activeSeries) qs.s = state.activeSeries.key;
+    if (state.hotSegments) qs.h = state.hotSegments.join(",");
+    qs.d = [state.start, state.end].map(unparseDate).join(":");
+    const curr = history.state;
+    return pushQS(qs, curr && curr.id === qs.id && curr.s === qs.s)
+};
+
+const fromQS = qs =>
+    qs && setState(s => {
+        if (typeof qs.id === "string") {
+            qs.id = parseInt(qs.id);
+        }
+        if (s.blocks && s.blocks.every(b => b.id !== qs.id)) {
+            qs.id = ID_US;
+        }
+        const next = {
+            activeBlock: qs.id,
+        };
+        if (seriesLookup.hasOwnProperty(qs.s)) {
+            next.activeSeries = seriesLookup[qs.s];
+        }
+        if (qs.h) {
+            next.hotSegments = qs.h.split(",")
+                .map(s => parseInt(s))
+                .filter(isActualNumber);
+        }
+        if (qs.d) {
+            try {
+                const [sd, ed] = qs.d.split(":").map(parseDate);
+                next.start = sd;
+                next.end = ed;
+            } catch (e) {
+                console.warn("error parsing dates - ignore", e);
+            }
+        }
+        return next;
+    }, (s, p) => {
+        if (s.activeBlock !== p.activeBlock) fetchTableData(s.activeBlock);
+    });
+
+window.addEventListener("popstate", e => fromQS(e.state));
 window.addEventListener("resize", () => setState({})); // tee hee
 
-const qs = parseQS();
-qs.id = parseInt(qs.id);
-selectSeries(qs.s)
+fromQS(parseQS());
 fetch("data/blocks.json")
     .then(resp => resp.json())
     .then(blocks => {
-        addFlags(blocks)
+        addFlags(blocks);
         blocks.sort(blockComp);
-        setState({
-            blocks,
-        });
-        if (blocks.find(b => b.id === qs.id)) {
-            fetchTableData(qs.id);
-        } else {
-            fetchTableData(ID_US);
-        }
+        setState(s => {
+            const next = {
+                blocks,
+            };
+            if (blocks.every(b => b.id !== s.activeBlock)) {
+                next.activeBlock = ID_US;
+            }
+            return next;
+        }, s => fetchTableData(s.activeBlock));
     });

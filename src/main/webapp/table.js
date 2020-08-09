@@ -108,6 +108,7 @@ state = {
     hotSeries: weeklySeries.concat(jurisdictionSeries)
         .filter(s => s.hot)
         .map(s => s.key),
+    sidebar: location.search === "?sidebar",
 };
 tableState = {};
 

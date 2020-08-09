@@ -19,6 +19,8 @@ const parseDate = ld => {
         .map(p => parseInt(p, 10));
     return new Date(ps[0], ps[1] - 1, ps[2]);
 };
+const unparseDate = d =>
+    `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
 const formatDate = ld => {
     if (ld == null) return "";
     return (typeof ld === "string" ? parseDate(ld) : ld)
@@ -50,7 +52,7 @@ const parseQS = (qs = location.search) => {
     return qs.substr(1)
         .split("&")
         .map(p => p.split("="))
-        .map(p => [p.shift(), p.join("=")])
+        .map(p => [decodeURIComponent(p.shift()), decodeURIComponent(p.join("="))])
         .reduce((r, [k, v]) => {
             if (r.hasOwnProperty(k)) {
                 if (!(r[k] instanceof Array)) {
@@ -66,6 +68,7 @@ const parseQS = (qs = location.search) => {
 const formatQS = data => {
     if (!data) return "";
     const qs = "?" + Object.keys(data)
+        .sort()
         .flatMap(k => {
             const prefix = encodeURIComponent(k) + "="
             const v = data[k];
@@ -78,7 +81,7 @@ const formatQS = data => {
         .join("&");
     return qs === "?" ? "" : qs;
 };
-const pushQS = dataOrQS => {
+const pushQS = (dataOrQS, replace) => {
     let qs, data;
     if (typeof dataOrQS === "string") {
         qs = dataOrQS;
@@ -88,7 +91,8 @@ const pushQS = dataOrQS => {
         qs = formatQS(data);
     }
     if (location.search !== qs) {
-        history.pushState(data, document.title, qs);
+        if (replace) history.replaceState(data, '', qs);
+        else history.pushState(data, '', qs);
     }
 }
 const camel2kebab = p => {
@@ -197,6 +201,7 @@ const drawDateRangeSlider = (dates, startDate, endDate, options) => {
     const idxToPos_start = i => idxToPos(i) - maskWidth;
     const posToIdx_start = p => posToIdx(p + maskWidth);
     const doThumb = ($el, idx, buildIdxRange, idxToPos, posToIdx, doMotion, doCommit) => {
+        if (!$el) return; // render race
         let pos = idxToPos(idx)
         $el.querySelector(".thumb").addEventListener("pointerdown", e => {
             e.preventDefault();
@@ -424,12 +429,9 @@ if ($sidebar) {
         .addEventListener("click", () => setState({sidebar: true}))
     $("#hide-sidebar")
         .addEventListener("click", () => setState({sidebar: false}))
-    $("#reset-to-defaults").addEventListener("click", () => {
-        window.localStorage.setItem(LS_KEY, JSON.stringify({
-            sidebar: true,
-        }));
-        window.location.reload();
-    })
+    $("#reset-to-defaults")
+        .addEventListener("click", () => location = "?sidebar")
+    if (location.search === "?sidebar") document.body.classList.add("sidebar");
 }
 fetch("data/last-update.txt")
     .then(r => r.text())
