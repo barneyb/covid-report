@@ -92,7 +92,7 @@ function render(state) {
     }
     if (state.segments) {
         const [hot, cold] = state.segments.reduce(([h, c], s) => {
-            if (state.hotSegments.indexOf(s.id) >= 0) {
+            if (state.hotSegments.has(s.id)) {
                 h.push(s);
             } else if (s.is_relevant) {
                 c.push(s);
@@ -203,7 +203,7 @@ function render(state) {
                         irrelevant: !s.is_relevant,
                     }
                 }, [s.name, swatch(s)]),
-                    state.hotSegments.indexOf(s.id) >= 0, {
+                    state.hotSegments.has(s.id), {
                         name: 'segment',
                         value: s.id,
                         onclick: `toggleSegment(${s.id})`
@@ -279,18 +279,19 @@ function fetchTableData(id) {
                     return r;
                 });
             setState(s => {
-                let hotSegments = null;
+                let hotSegments = new Set();
                 if (s.hotSegments) {
                     const ids = new Set(segments.map(s => s.id));
-                    hotSegments = s.hotSegments
-                        .filter(id => ids.has(id));
+                    for (const id of s.hotSegments) {
+                        if (ids.has(id)) hotSegments.add(id);
+                    }
                 }
-                if (!hotSegments || hotSegments.length === 0) {
-                    hotSegments = [id];
+                if (hotSegments.size === 0) {
+                    hotSegments.add(id);
                 }
                 return {
                     segments,
-                    hotSegments,
+                    hotSegments: hotSegments,
                     dates: rawDates.slice(1),
                     block: {
                         id: block.id,
@@ -306,7 +307,7 @@ const toQS = state => {
     const qs = {};
     if (state.activeBlock) qs.id = "" + state.activeBlock;
     if (state.activeSeries) qs.s = state.activeSeries.key;
-    if (state.hotSegments) qs.h = state.hotSegments.sort().join(".");
+    if (state.hotSegments) qs.h = [...state.hotSegments].sort().join(".");
     qs.dr = [state.start, state.end].map(unparseDate).join(".");
     const curr = history.state;
     return pushQS(qs, curr && curr.id === qs.id && curr.s === qs.s);
@@ -327,9 +328,9 @@ const fromQS = qs =>
             next.activeSeries = seriesLookup[qs.s];
         }
         if (qs.h) {
-            next.hotSegments = qs.h.split(".")
+            next.hotSegments = new Set(qs.h.split(".")
                 .map(s => parseInt(s))
-                .filter(isActualNumber);
+                .filter(isActualNumber));
         }
         if (qs.dr) {
             try {

@@ -92,16 +92,12 @@ function init(data) {
             count === 0 ? "-" : oneInFormat.format(pop / count),
             title);
     const isExpanded = (state, section, area) =>
-        state.expanded[section] && state.expanded[section].indexOf(area) >= 0;
+        state.expanded[section] && state.expanded[section].has(area);
     window.toggleCard = (section, area) => {
         setState(s => {
-            const next = (s.expanded[section] || []).slice();
-            const idx = next.indexOf(area);
-            if (idx < 0) {
-                next.push(area);
-            } else {
-                next.splice(idx, 1);
-            }
+            const next = new Set(s.expanded[section] || []);
+            if (next.has(area)) next.delete(area);
+            else next.add(area);
             return {
                 expanded: {
                     ...s.expanded,

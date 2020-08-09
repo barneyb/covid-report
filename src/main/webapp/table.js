@@ -107,11 +107,11 @@ const setState = useState({
     sortCol: 0,
     sortAsc: true,
     loading: 0,
-    hotDateIdxs: [0, 1, 2, 3],
-    hotSeries: weeklySeries.concat(jurisdictionSeries)
+    hotDateIdxs: new Set([0, 1, 2, 3]),
+    hotSeries: new Set(weeklySeries.concat(jurisdictionSeries)
         .filter(s => s.hot)
-        .map(s => s.key),
-    hotRows: [],
+        .map(s => s.key)),
+    hotRows: new Set(),
     sidebar: location.search === "?sidebar",
 }, (state, prev) => {
     toQS(state);
@@ -130,12 +130,12 @@ function buildTable(state) {
     state.dates
         .forEach((d, i) => {
             const group = formatDate(d)
-            const hot = state.hotDateIdxs.indexOf(i) >= 0;
+            const hot = state.hotDateIdxs.has(i);
             return weeklySeries.forEach(spec =>
                 allCols.push({
                     ...spec,
                     group,
-                    hot: hot && state.hotSeries.indexOf(spec.key) >= 0,
+                    hot: hot && state.hotSeries.has(spec.key),
                 }))
         });
     jurisdictionSeries.forEach(spec => {
@@ -145,7 +145,7 @@ function buildTable(state) {
         });
         else allCols.push({
             ...spec,
-            hot: state.hotSeries.indexOf(spec.key) >= 0,
+            hot: state.hotSeries.has(spec.key),
         });
     });
     const [hotCols, indexes] = allCols.map((c, i) => [c, i])
@@ -231,7 +231,9 @@ function render(state, {columns, columnGroups, bodyRows, totalRows}) {
                         newPoint: c.newGroup,
                         number: c.is_number,
                     },
-                    style: state.hotRows.indexOf(r.id) < 0 ? null : "background-color: " + formatHsl(r.hue, 100, 95),
+                    style: state.hotRows.has(r.id)
+                        ? `background-color: ${formatHsl(r.hue, 100, 90)}`
+                        : null,
                 }, c.format(r[i])))
             )).join("\n");
         $tfoot.innerHTML = totalRows
@@ -273,7 +275,7 @@ function render(state, {columns, columnGroups, bodyRows, totalRows}) {
             sections.push(el('section', [
                 el('h3', 'Weeks Ending'),
                 el('div', state.dates.map((d, i) =>
-                    chkbx(formatDate(d), state.hotDateIdxs.indexOf(i) >= 0, {
+                    chkbx(formatDate(d), state.hotDateIdxs.has(i), {
                         onclick: `toggleDate(${i})`,
                     })),
                 ),
@@ -282,7 +284,7 @@ function render(state, {columns, columnGroups, bodyRows, totalRows}) {
         sections.push(el('section', [
             el('h3', 'Weekly Series'),
             el('div', weeklySeries.map(s =>
-                chkbx(s.label, state.hotSeries.indexOf(s.key) >= 0, {
+                chkbx(s.label, state.hotSeries.has(s.key), {
                     name: 'series',
                     value: s.key,
                     onclick: `toggleSeries('${s.key}')`
@@ -293,7 +295,7 @@ function render(state, {columns, columnGroups, bodyRows, totalRows}) {
             el('div', jurisdictionSeries
                 .filter(s => s.key !== "name") // don't allow disabling this one
                 .map(s =>
-                    chkbx(s.label, state.hotSeries.indexOf(s.key) >= 0, {
+                    chkbx(s.label, state.hotSeries.has(s.key), {
                         onclick: `toggleSeries('${s.key}')`
                     }, s.desc))),
         ]));
@@ -414,9 +416,9 @@ function fetchTableData(id) {
 const toQS = state => {
     const qs = {};
     if (state.activeBlock) qs.id = "" + state.activeBlock;
-    if (state.hotDateIdxs) qs.ds = state.hotDateIdxs.sort(numComp).join(".");
-    if (state.hotSeries) qs.ss = state.hotSeries.sort().join(".");
-    if (state.hotRows) qs.h = state.hotRows.sort(numComp).join(".");
+    if (state.hotDateIdxs) qs.ds = [...state.hotDateIdxs].sort(numComp).join(".");
+    if (state.hotSeries) qs.ss = [...state.hotSeries].sort().join(".");
+    if (state.hotRows) qs.h = [...state.hotRows].sort(numComp).join(".");
     qs.s = (state.sortAsc ? "" : "!") + state.sortCol;
     const curr = history.state;
     return pushQS(qs, curr && curr.id === qs.id);
@@ -434,22 +436,22 @@ const fromQS = qs =>
             activeBlock: qs.id,
         };
         if (qs.ds) {
-            next.hotDateIdxs = qs.ds.split(".")
+            next.hotDateIdxs = new Set(qs.ds.split(".")
                 .map(s => parseInt(s))
-                .filter(isActualNumber);
+                .filter(isActualNumber));
         }
         if (qs.ss) {
-            next.hotSeries = qs.ss.split(".")
-                .filter(s => seriesLookup.hasOwnProperty(s));
+            next.hotSeries = new Set(qs.ss.split(".")
+                .filter(s => seriesLookup.hasOwnProperty(s)));
         }
         if (qs.s) {
             next.sortAsc = qs.s.charAt(0) !== "!";
             next.sortCol = parseInt(next.sortAsc ? qs.s : qs.s.substr(1));
         }
         if (qs.h) {
-            next.hotRows = qs.h.split(".")
+            next.hotRows = new Set(qs.h.split(".")
                 .map(s => parseInt(s))
-                .filter(isActualNumber);
+                .filter(isActualNumber));
         }
         return next;
     }, (s, p) => {
