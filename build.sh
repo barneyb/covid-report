@@ -28,28 +28,37 @@ mkdir -p $LOCAL_DIR
 cp target/*.jar $LOCAL_DIR/covid.jar
 
 declare -A assets
-# find all JS/CSS assets
+# find all JS/CSS assets and compute destination filenames
 pushd $SRC_DIR
 for a in `ls *.js *.css`; do
-    assets[$a]=`shasum $a | cut -c 1-10`
+  IFS='.' read -r -aparts <<< "$a"
+  assets[$a]=${parts[0]}.`shasum $a | cut -c 1-10`.${parts[1]}
 done
 popd
 echo "Processing ${#assets[@]} assets"
-# compute hashes for each file
-for a in "${!assets[@]}"; do
-  IFS='.' read -r -aparts <<< "$a"
-  fn=${parts[0]}.${assets[$a]}.${parts[1]}
-  assets[$a]=$fn
-done
 # move all the HTMLs over as-is
 for a in `find $SRC_DIR -name "*.html"`; do
   cp $a $LOCAL_DIR
 done
 # copy each asset over, replace it's refs in the HTMLs
 for a in "${!assets[@]}"; do
-  cp $SRC_DIR/$a $LOCAL_DIR/${assets[$a]}
+  sed -e 's/^ *//g' \
+    -e 's~//.*~~' \
+    -e 's~\([!,;:=<>+*/]\)  *~\1~g' \
+    -e 's~  *\([!,;:=<>{+*/]\)~\1~g' \
+    -e '/^$/d' \
+    < $SRC_DIR/$a > $LOCAL_DIR/${assets[$a]}
   sed -i -e "s/$a/${assets[$a]}/" $LOCAL_DIR/*.html
 done
+
+function size() {
+  wc $1/*.$2 | tail -n 1 | tr -s ' ' | cut -d ' ' -f 4
+}
+function savings() {
+  echo "reduced $1 from `size $SRC_DIR $1` to `size $LOCAL_DIR $1`"
+}
+savings js
+savings css
 
 # get anything else
 rsync -a \
