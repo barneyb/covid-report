@@ -93,6 +93,19 @@ const pushQS = (dataOrQS, replace) => {
     if (location.search !== qs) {
         if (replace) history.replaceState(data, '', qs);
         else history.pushState(data, '', qs);
+        const bals = document.querySelectorAll("a.qs-aware");
+        let active = false;
+        for (const l of bals) {
+            if (l.classList.contains("active")) {
+                active = true;
+                break;
+            }
+        }
+        if (active) {
+            for (const l of bals) {
+                l.href = l.href.split("?")[0] + qs;
+            }
+        }
     }
 }
 const camel2kebab = p => {
