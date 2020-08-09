@@ -52,6 +52,7 @@ const setState = useState({
     activeSeries: defaultSeries,
     start: new Date(2020, 3 - 1, 15),
     endOffset: 0,
+    endOffsets: [0, 7, 14, 21],
     sidebar: location.search === "?sidebar",
 }, state => {
     toQS(state);
@@ -123,7 +124,11 @@ function render(state) {
             });
         }
         setTimeout(() => { // sidebar show has to draw DOM so we can measure
-            const endDate = state.dates[state.dates.length - 1 - state.endOffset]
+            let endDate = state.dates[state.dates.length - 1 - state.endOffset]
+            if (endDate <= state.start) {
+                // todo: this is just daft.
+                endDate = state.dates[state.dates.length - 1];
+            }
             paintChart(state.start, endDate);
             const s = hot.length === 0
                 ? cold[cold.length - 1]
@@ -304,11 +309,16 @@ function fetchTableData(id) {
 }
 
 const toQS = state => {
-    const qs = {};
+    const qs = {...INITIAL_QS};
     if (state.activeBlock) qs.id = "" + state.activeBlock;
     if (state.activeSeries) qs.s = state.activeSeries.key;
     if (state.hotSegments) qs.h = [...state.hotSegments].sort().join(".");
-    qs.dr = unparseDate(state.start) + "." + state.endOffset;
+    qs.sd = unparseDate(state.start);
+    const ds = state.endOffsets
+        .filter(i => i > state.endOffset)
+        .sort(numComp);
+    ds.unshift(state.endOffset);
+    qs.ds = ds.join(".");
     const curr = history.state;
     return pushQS(qs, curr && curr.id === qs.id && curr.s === qs.s);
 };
@@ -332,14 +342,19 @@ const fromQS = qs =>
                 .map(s => parseInt(s))
                 .filter(isActualNumber));
         }
-        if (qs.dr) {
+        if (qs.sd) {
             try {
-                const [sd, eo] = qs.dr.split(".");
-                next.start = parseDate(sd);
-                next.endOffset = parseInt(eo);
+                next.start = parseDate(qs.sd);
             } catch (e) {
-                console.warn("error parsing dates - ignore", e);
+                console.warn("error parsing start date - ignore", e);
             }
+        }
+        if (qs.ds) {
+            next.endOffsets = qs.ds.split(".")
+                .map(s => parseInt(s))
+                .filter(isActualNumber)
+                .sort(numComp);
+            next.endOffset = next.endOffsets[0];
         }
         return next;
     }, (s, p) => {

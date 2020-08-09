@@ -413,12 +413,15 @@ function fetchTableData(id) {
 }
 
 const toQS = state => {
-    const qs = {};
+    const qs = {...INITIAL_QS};
     if (state.activeBlock) qs.id = "" + state.activeBlock;
-    if (state.hotDateIdxs) qs.ds = [...state.hotDateIdxs].sort(numComp).join(".");
+    if (state.hotDateIdxs) qs.ds = [...state.hotDateIdxs]
+        .sort(numComp)
+        .map(i => i * Week)
+        .join(".");
     if (state.hotSeries) qs.ss = [...state.hotSeries].sort().join(".");
     if (state.hotRows) qs.h = [...state.hotRows].sort(numComp).join(".");
-    qs.s = (state.sortAsc ? "" : "!") + state.sortCol;
+    qs.sc = (state.sortAsc ? "" : "!") + state.sortCol;
     const curr = history.state;
     return pushQS(qs, curr && curr.id === qs.id);
 };
@@ -437,15 +440,16 @@ const fromQS = qs =>
         if (qs.ds) {
             next.hotDateIdxs = new Set(qs.ds.split(".")
                 .map(s => parseInt(s))
-                .filter(isActualNumber));
+                .filter(isActualNumber)
+                .map(i => Math.floor(i / Week)));
         }
         if (qs.ss) {
             next.hotSeries = new Set(qs.ss.split(".")
                 .filter(s => seriesLookup.hasOwnProperty(s)));
         }
-        if (qs.s) {
-            next.sortAsc = qs.s.charAt(0) !== "!";
-            next.sortCol = parseInt(next.sortAsc ? qs.s : qs.s.substr(1));
+        if (qs.sc) {
+            next.sortAsc = qs.sc.charAt(0) !== "!";
+            next.sortCol = parseInt(next.sortAsc ? qs.sc : qs.sc.substr(1));
             if (!isActualNumber(next.sortCol)) {
                 next.sortAsc = true;
                 next.sortCol = 0;
