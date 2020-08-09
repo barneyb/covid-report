@@ -171,7 +171,12 @@ function render(state) {
                 el('a', {
                     className: "remove",
                     onclick: `toggleSegment(${s.id})`,
-                }, 'X')
+                }, el('svg', {
+                    viewbox: "0 0 10 10"
+                }, [
+                    el('line', {x1: 2, y1: 2, x2: 8, y2: 8, stroke: "#999"}),
+                    el('line', {x1: 8, y1: 2, x2: 2, y2: 8, stroke: "#999"}),
+                ]))
             ])).join("\n");
         $legend.classList.remove("empty");
     } else {

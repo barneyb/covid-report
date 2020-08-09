@@ -31,20 +31,9 @@
 #legend .remove {
     float: right;
     cursor: pointer;
-    margin: 0 0 0 0.5em;
-    width: 1em;
-    height: 1em;
-    text-align: center;
-    border: 1px solid #eee;
-    border-radius: 2px;
-    color: #999;
-    font-family: monospace;
-    font-weight: bold;
-}
-#legend .remove:hover {
-    color: #333;
-    background-color: #fee;
-    border-color: #fcc;
+    margin: 1px 0 0 0.5em;
+    width: 12px;
+    height: 12px;
 }
 #date-track {
     height: var(--date-track-height);
