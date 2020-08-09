@@ -37,6 +37,7 @@ fi
 pushd $LOCAL_DIR
 rsync --archive \
   --delete \
+  --delete-after \
   --exclude data \
   --exclude stage \
   --progress --stats \
