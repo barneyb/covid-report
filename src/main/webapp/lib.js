@@ -1,3 +1,4 @@
+LS_KEY = "covid-query";
 const nextId = (() => {
     let id_seq = 0;
     return prefix => prefix + (++id_seq);
@@ -47,7 +48,7 @@ const formatPercent = (v, places = 1, plus=false) => {
 const formatDeathRate = v => formatNumber(v, 1)
 const formatDeathRateSegment = v => formatNumber(v, 2)
 const Delta = "&#x1D6AB;"
-const parseQS = (qs = location.search) => {
+const parseQS = qs => {
     if (!qs || qs === "?") return {};
     return qs.substr(1)
         .split("&")
@@ -89,6 +90,7 @@ const afterQueryStringSet = qs => {
             l.getAttribute("href").split("?")[0] + qs,
         );
     }
+    window.localStorage.setItem(LS_KEY, qs);
 }
 afterQueryStringSet(location.search);
 const pushQS = (dataOrQS, replace) => {
@@ -106,6 +108,14 @@ const pushQS = (dataOrQS, replace) => {
         afterQueryStringSet(qs)
     }
 }
+const pullQS = () => {
+    let qs = location.search;
+    if (!qs || qs === "?") {
+        // check local storage too
+        qs = window.localStorage.getItem(LS_KEY);
+    }
+    return parseQS(qs);
+};
 const useState = (init, updated) => {
     let state = {...init};
     let __setting = false;

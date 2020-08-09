@@ -1,4 +1,3 @@
-LS_KEY = "covid-table-block";
 weeklySeries = [{
     key: "cases",
     label: "Cases",
@@ -464,7 +463,7 @@ const fromQS = qs =>
 
 window.addEventListener("popstate", e => fromQS(e.state));
 
-fromQS(parseQS());
+fromQS(pullQS());
 fetch("data/blocks.json")
     .then(resp => resp.json())
     .then(blocks => {

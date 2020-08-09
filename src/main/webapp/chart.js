@@ -1,4 +1,3 @@
-LS_KEY = "covid-chart-block";
 pointSeries = [{
     key: "daily_cases",
     label: "Daily Cases",
@@ -349,7 +348,7 @@ const fromQS = qs =>
 window.addEventListener("popstate", e => fromQS(e.state));
 window.addEventListener("resize", () => setState({})); // tee hee
 
-fromQS(parseQS());
+fromQS(pullQS());
 fetch("data/blocks.json")
     .then(resp => resp.json())
     .then(blocks => {
