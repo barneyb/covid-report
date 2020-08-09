@@ -116,7 +116,11 @@ function init(data) {
                     const kids = [
                         el('header',[
                             el('button', {
-                                className: "expander" + (expanded ? " expanded" : ""),
+                                className: {
+                                    expander: true,
+                                    caretBackground: true,
+                                    expanded,
+                                },
                                 onclick: `toggleCard(&quot;${section.label}&quot;, &quot;${a.name}&quot;)`,
                             }),
                             el('h3', {title:a.name}, a.name),

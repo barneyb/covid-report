@@ -51,6 +51,18 @@ body.stale-data {
 .stale-data #navbar .updated-at {
     background-color: hsl(var(--body-warning-hue), 100%, 68%);
 }
+.caret-background {
+    background-image: url("data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiA/PjxzdmcgaGVpZ2h0PSI0OCIgdmlld0JveD0iMCAwIDQ4IDQ4IiB3aWR0aD0iNDgiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTE0LjgzIDMwLjgzbDkuMTctOS4xNyA5LjE3IDkuMTcgMi44My0yLjgzLTEyLTEyLTEyIDEyeiIvPjxwYXRoIGQ9Ik0wIDBoNDh2NDhoLTQ4eiIgZmlsbD0ibm9uZSIvPjwvc3ZnPg==");
+    background-size: cover;
+}
+button.trigger.caret-background {
+    width: 1.3em;
+    height: 1.3em;
+    transform: rotate(270deg);
+}
+.sidebar button.trigger.caret-background {
+    transform: rotate(90deg);
+}
 button.trigger {
     float: right;
     border-style: solid;
@@ -58,7 +70,7 @@ button.trigger {
     font-family: Consolas, monospace;
     font-size: 1.3rem;
     background-color: white;
-    padding: 0.2em 0.7em;
+    padding: 0.2em;
     border-radius: 3px;
     z-index: 100;
 }
@@ -69,6 +81,7 @@ button.trigger:hover {
     float: left !important;
     font-size: 1rem;
     border-radius: 2px;
+    padding: 0.2em 0.7em;
 }
 #show-sidebar {
     display: block;
