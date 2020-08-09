@@ -29,13 +29,11 @@ cp target/*.jar $LOCAL_DIR/covid.jar
 
 declare -A assets
 # find all JS/CSS assets
-for a in `find $SRC_DIR -name "*.html" \
-  | xargs cat \
-  | egrep '<(script src=|link href=)"' \
-  | sed -e 's/^.*\(script src\|link href\)="\([^"]*\)".*$/\2/' \
-  | sort -u`; do
-    assets[$a]=`shasum $SRC_DIR/$a | cut -c 1-10`
+pushd $SRC_DIR
+for a in `ls *.js *.css`; do
+    assets[$a]=`shasum $a | cut -c 1-10`
 done
+popd
 echo "Processing ${#assets[@]} assets"
 # compute hashes for each file
 for a in "${!assets[@]}"; do
