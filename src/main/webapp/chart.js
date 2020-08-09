@@ -348,7 +348,7 @@ const fromQS = qs =>
 window.addEventListener("popstate", e => fromQS(e.state));
 window.addEventListener("resize", () => setState({})); // tee hee
 
-fromQS(pullQS());
+fromQS(INITIAL_QS);
 fetch("data/blocks.json")
     .then(resp => resp.json())
     .then(blocks => {

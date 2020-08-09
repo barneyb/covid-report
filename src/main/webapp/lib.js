@@ -92,7 +92,6 @@ const afterQueryStringSet = qs => {
     }
     window.localStorage.setItem(LS_KEY, qs);
 }
-afterQueryStringSet(location.search);
 const pushQS = (dataOrQS, replace) => {
     let qs, data;
     if (typeof dataOrQS === "string") {
@@ -116,6 +115,8 @@ const pullQS = () => {
     }
     return parseQS(qs);
 };
+const INITIAL_QS = pullQS();
+afterQueryStringSet(formatQS(INITIAL_QS));
 const useState = (init, updated) => {
     let state = {...init};
     let __setting = false;
