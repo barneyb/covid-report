@@ -166,6 +166,7 @@ function buildTable(state) {
     const total = []
     state.rows.forEach(s => {
         const d = [];
+        d.hue = s.hue;
         for (let i = 0; i < indexes.length; i++) {
             d.push(s.data[indexes[i]]);
         }
@@ -235,7 +236,6 @@ function render(state, {columns, columnGroups, bodyRows, totalRows}) {
                 height: "40vh",
                 width: "60vw",
                 textAlign: "center",
-
             }
         }, "Loading..."));
         $tfoot.innerHTML = "";
@@ -380,6 +380,7 @@ function fetchTableData(id) {
                     return {
                         id: s.id,
                         name: s.name,
+                        hue: s.hue,
                         is_total: !!s.is_total,
                         data,
                     }

@@ -35,9 +35,13 @@ function getDataSegments(block, keys, segmentTransform = IDENTITY) {
     const segments = block.segments.map(segmentTransform);
     addFlags(segments)
     segments.sort(blockComp);
+    const spc = 30;
+    segments.forEach((s, i) =>
+        s.hue = s.is_total ? 0 : spc + (i / segments.length) * (360 - 2*spc));
     const total = {
         ...block,
         is_total: true,
+        hue: 0,
     }
     delete total.segments;
     for (const k of keys) {

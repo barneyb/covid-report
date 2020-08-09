@@ -267,6 +267,7 @@ function fetchTableData(id) {
                     const r = {
                         id: s.id,
                         name: s.name,
+                        hue: s.hue,
                         is_total: !!s.is_total,
                         is_relevant: s.is_total || arrayMax(s.cases_by_day) >= relevanceThreshold,
                     };
@@ -275,11 +276,6 @@ function fetchTableData(id) {
                     });
                     return r;
                 });
-            // assign them hues here, so they're stable
-            segments.forEach((s, i) => {
-                // noinspection JSPrimitiveTypeWrapperUsage
-                s.hue = s.is_total ? 0 : 40 + (i / rawSegments.length) * 280;
-            });
             setState(s => {
                 let hotSegments = null;
                 if (s.hotSegments) {
