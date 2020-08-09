@@ -54,7 +54,10 @@ const setState = useState({
     start: new Date(2020, 3 - 1, 15),
     end: new Date(),
     sidebar: location.search === "?sidebar",
-}, render);
+}, state => {
+    toQS(state);
+    render(state);
+});
 
 selectBlock = sel =>
     fetchTableData(parseInt(sel.value));
@@ -83,7 +86,6 @@ function swatch(s) {
 }
 
 function render(state) {
-    toQS(state);
     const series = state.activeSeries
     if (state.block) {
         document.title = $pageHeader.innerText = state.block.name + " " + series.label;
@@ -304,8 +306,8 @@ const toQS = state => {
     const qs = {};
     if (state.activeBlock) qs.id = "" + state.activeBlock;
     if (state.activeSeries) qs.s = state.activeSeries.key;
-    if (state.hotSegments) qs.h = state.hotSegments.join(",");
-    qs.d = [state.start, state.end].map(unparseDate).join(":");
+    if (state.hotSegments) qs.h = state.hotSegments.sort().join(".");
+    qs.dr = [state.start, state.end].map(unparseDate).join(".");
     const curr = history.state;
     return pushQS(qs, curr && curr.id === qs.id && curr.s === qs.s);
 };
@@ -325,13 +327,13 @@ const fromQS = qs =>
             next.activeSeries = seriesLookup[qs.s];
         }
         if (qs.h) {
-            next.hotSegments = qs.h.split(",")
+            next.hotSegments = qs.h.split(".")
                 .map(s => parseInt(s))
                 .filter(isActualNumber);
         }
-        if (qs.d) {
+        if (qs.dr) {
             try {
-                const [sd, ed] = qs.d.split(":").map(parseDate);
+                const [sd, ed] = qs.dr.split(".").map(parseDate);
                 next.start = sd;
                 next.end = ed;
             } catch (e) {

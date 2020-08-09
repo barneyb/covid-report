@@ -95,9 +95,11 @@ jurisdictionSeries = [{
         : null,
     format: formatPercent,
 }];
+seriesLookup = {};
 weeklySeries.concat(jurisdictionSeries).forEach(s => {
     if (!s.hasOwnProperty("format")) s.format = formatNumber;
     if (!s.hasOwnProperty("is_number")) s.is_number = true;
+    seriesLookup[s.key] = s;
 })
 
 let tableState = {};
@@ -111,6 +113,7 @@ const setState = useState({
         .map(s => s.key),
     sidebar: location.search === "?sidebar",
 }, (state, prev) => {
+    toQS(state);
     if (["dates", "rows", "hotDateIdxs", "hotSeries"].some(k => state[k] !== prev[k])) {
         tableState = buildTable(state);
     }
@@ -397,24 +400,61 @@ function fetchTableData(id) {
         })
 }
 
-window.addEventListener("popstate", e => {
-    if (e.state.id) fetchTableData(e.state.id);
-});
+const toQS = state => {
+    const qs = {};
+    if (state.activeBlock) qs.id = "" + state.activeBlock;
+    if (state.hotDateIdxs) qs.ds = state.hotDateIdxs.sort(numComp).join(".");
+    if (state.hotSeries) qs.ss = state.hotSeries.sort().join(".");
+    qs.s = (state.sortAsc ? "" : "!") + state.sortCol;
+    const curr = history.state;
+    return pushQS(qs, curr && curr.id === qs.id);
+};
 
-const qs = parseQS();
-qs.id = parseInt(qs.id);
+const fromQS = qs =>
+    qs && setState(s => {
+        if (typeof qs.id === "string") {
+            qs.id = parseInt(qs.id);
+        }
+        if (s.blocks && s.blocks.every(b => b.id !== qs.id)) {
+            qs.id = ID_US;
+        }
+        const next = {
+            activeBlock: qs.id,
+        };
+        if (qs.ds) {
+            next.hotDateIdxs = qs.ds.split(".")
+                .map(s => parseInt(s))
+                .filter(isActualNumber);
+        }
+        if (qs.ss) {
+            next.hotSeries = qs.ss.split(".")
+                .filter(s => seriesLookup.hasOwnProperty(s));
+        }
+        if (qs.s) {
+            next.sortAsc = qs.s.charAt(0) !== "!";
+            next.sortCol = parseInt(next.sortAsc ? qs.s : qs.s.substr(1));
+        }
+        return next;
+    }, (s, p) => {
+        if (s.activeBlock !== p.activeBlock) fetchTableData(s.activeBlock);
+    });
+
+window.addEventListener("popstate", e => fromQS(e.state));
+
+fromQS(parseQS());
 fetch("data/blocks.json")
     .then(resp => resp.json())
     .then(blocks => {
-        addFlags(blocks)
+        addFlags(blocks);
         blocks.sort(blockComp);
-        setState({
-            blocks,
-        });
-        if (blocks.find(b => b.id === qs.id)) {
-            fetchTableData(qs.id);
-        } else {
-            fetchTableData(ID_US);
-        }
+        setState(s => {
+            const next = {
+                blocks,
+            };
+            if (blocks.every(b => b.id !== s.activeBlock)) {
+                next.activeBlock = ID_US;
+            }
+            return next;
+        }, s => fetchTableData(s.activeBlock));
     });
 

@@ -81,6 +81,25 @@ const formatQS = data => {
         .join("&");
     return qs === "?" ? "" : qs;
 };
+const afterQueryStringSet = qs => {
+    const bals = document.querySelectorAll("a.qs-aware");
+    let active = false;
+    for (const l of bals) {
+        if (l.classList.contains("active")) {
+            active = true;
+            break;
+        }
+    }
+    if (active) {
+        for (const l of bals) {
+            l.setAttribute(
+                "href",
+                l.getAttribute("href").split("?")[0] + qs,
+            );
+        }
+    }
+}
+afterQueryStringSet(location.search);
 const pushQS = (dataOrQS, replace) => {
     let qs, data;
     if (typeof dataOrQS === "string") {
@@ -93,19 +112,7 @@ const pushQS = (dataOrQS, replace) => {
     if (location.search !== qs) {
         if (replace) history.replaceState(data, '', qs);
         else history.pushState(data, '', qs);
-        const bals = document.querySelectorAll("a.qs-aware");
-        let active = false;
-        for (const l of bals) {
-            if (l.classList.contains("active")) {
-                active = true;
-                break;
-            }
-        }
-        if (active) {
-            for (const l of bals) {
-                l.href = l.href.split("?")[0] + qs;
-            }
-        }
+        afterQueryStringSet(qs)
     }
 }
 const useState = (init, updated) => {
