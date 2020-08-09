@@ -5,7 +5,7 @@
     --date-track-height: 45px;
 }
 .sidebar #container {
-    width: calc(100% - 21em - 1px);
+    width: calc(100% - 21rem);
 }
 #chart {
     width: 100%;

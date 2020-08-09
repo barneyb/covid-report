@@ -60,7 +60,6 @@ section h1 {
     right: 0;
     width: 0.6em;
     height: 100%;
-    box-sizing: border-box;
 }
 .card .segments {
     height: 100%;

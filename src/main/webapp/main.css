@@ -1,3 +1,6 @@
+* {
+    box-sizing: border-box;
+}
 body {
     font-family: 'Roboto', sans-serif; /* not actually gonna web-font it though */
     margin: 1rem;
@@ -19,7 +22,6 @@ body.stale-data {
     position: fixed;
     width: 100%;
     height: 2em;
-    box-sizing: border-box;
     margin: -3rem -1rem;
     padding: 0 0.5em 0 1em;
     background-color: #ddeef7;
@@ -85,7 +87,7 @@ button.trigger:hover {
     position: fixed;
     right: 1rem;
     top: 3rem;
-    width: 20em;
+    width: 22rem;
     z-index: 999;
     background-color: white;
     border-left: 1px solid #ccc;

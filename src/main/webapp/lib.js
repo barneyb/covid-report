@@ -191,7 +191,7 @@ const drawDateRangeSlider = (dates, startDate, endDate, options) => {
         opts[key] && opts[key](dates[si], dates[ei]);
     const doMotion = buildDoer("onMotion");
     const doCommit = buildDoer("onCommit");
-    const idxToPos = i => i * dx + pad - 1; // border
+    const idxToPos = i => i * dx + pad;
     const posToIdx = p => Math.round((p + 1 - pad) / dx);
     const maskWidth = opts.width - 2;
     const idxToPos_start = i => idxToPos(i) - maskWidth;
