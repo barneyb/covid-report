@@ -1,7 +1,7 @@
 function _togglerBuilder(key) {
     return idx => {
         setState(s => {
-            const next = s[key].slice();
+            const next = (s[key] || []).slice();
             const i = next.indexOf(idx);
             if (i < 0) {
                 next.push(idx);

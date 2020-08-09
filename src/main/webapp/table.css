@@ -27,6 +27,8 @@ tbody td:first-child {
     text-align: right;
     color: #999;
     background-color: var(--body-bgc);
+    user-select: none;
+    cursor: crosshair;
 }
 thead,
 tfoot {

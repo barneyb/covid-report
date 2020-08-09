@@ -153,6 +153,9 @@ const el = (name, attrs, children, ...moreKids) => {
         attrs = null;
     }
     if (attrs == null) attrs = {};
+    for (const k in attrs) {
+        if (attrs[k] == null) delete attrs[k];
+    }
     if (attrs.hasOwnProperty("style")) {
         const st = attrs.style;
         if (st instanceof Array) {
@@ -176,9 +179,6 @@ const el = (name, attrs, children, ...moreKids) => {
                 .map(k => camel2kebab(k))
                 .join(" ");
         }
-    }
-    for (const k in attrs) {
-        if (attrs[k] == null) delete attrs[k];
     }
     if (moreKids.length) {
         if (children == null) {

@@ -111,6 +111,7 @@ const setState = useState({
     hotSeries: weeklySeries.concat(jurisdictionSeries)
         .filter(s => s.hot)
         .map(s => s.key),
+    hotRows: [],
     sidebar: location.search === "?sidebar",
 }, (state, prev) => {
     toQS(state);
@@ -169,6 +170,7 @@ function buildTable(state) {
     const total = []
     state.rows.forEach(s => {
         const d = [];
+        d.id = s.id;
         d.hue = s.hue;
         for (let i = 0; i < indexes.length; i++) {
             d.push(s.data[indexes[i]]);
@@ -195,42 +197,50 @@ function render(state, {columns, columnGroups, bodyRows, totalRows}) {
     if (bodyRows) {
         $blockName.innerText = state.block.name;
         document.title = $blockName.parentNode.innerText;
-
         const sortIdx = isActualNumber(state.sortCol) && state.sortCol >= 0 && state.sortCol < columns.length
             ? state.sortCol
             : 0;
         $thead.innerHTML = [
-            el('tr', [el('th')].concat(columnGroups.map(g => el('th', {colspan: g.size, className: "new-point"}, g.label)))),
-            el('tr', [el('th')].concat(columns.map((c, i) => el('th', {
-                className: {
-                    newPoint: c.newGroup,
-                    sortable: true,
-                    sorted: sortIdx === i,
-                    sortedAsc: state.sortAsc,
-                },
-                title: c.desc,
-                onclick: `handleSort(${i})`,
-            }, c.label)))),
+            el('tr', {},
+                el('th'),
+                ...columnGroups.map(g => el('th', {colspan: g.size, className: "new-point"}, g.label))),
+            el('tr', {},
+                el('th'),
+                ...columns.map((c, i) => el('th', {
+                    className: {
+                        newPoint: c.newGroup,
+                        sortable: true,
+                        sorted: sortIdx === i,
+                        sortedAsc: state.sortAsc,
+                    },
+                    title: c.desc,
+                    onclick: `handleSort(${i})`,
+                }, c.label))),
         ].join("\n");
         let comp = columns[sortIdx].is_number ? numComp : strComp;
         if (!state.sortAsc) comp = revComp(comp);
         $tbody.innerHTML = bodyRows
             .sort((a, b) =>
                 comp(a[state.sortCol], b[state.sortCol]))
-            .map((r, rowNum) => el(
-                'tr',
-                [el('td', null, rowNum + 1)].concat(columns.map((c, i) => el('td', {className: {
+            .map((r, rowNum) => el('tr', {},
+                el('td', {
+                    onclick: `toggleRow(${r.id})`,
+                }, rowNum + 1),
+                ...columns.map((c, i) => el('td', {
+                    className: {
                         newPoint: c.newGroup,
                         number: c.is_number,
-                    }}, c.format(r[i])))),
+                    },
+                    style: state.hotRows.indexOf(r.id) < 0 ? null : "background-color: " + formatHsl(r.hue, 100, 95),
+                }, c.format(r[i])))
             )).join("\n");
         $tfoot.innerHTML = totalRows
-            .map(r => el(
-                'tr',
-                [el('th')].concat(columns.map((c, i) => el('th', {className: {
+            .map(r => el('tr', {},
+                el('th'),
+                ...columns.map((c, i) => el('th', {className: {
                         newPoint: c.newGroup,
                         number: c.is_number,
-                    }}, c.format(r[i])))),
+                    }}, c.format(r[i]))),
             )).join("\n");
     } else {
         $thead.innerHTML = "";
@@ -314,6 +324,7 @@ selectBlock = sel => {
 
 toggleDate = _togglerBuilder("hotDateIdxs");
 toggleSeries = _togglerBuilder("hotSeries");
+toggleRow = _togglerBuilder("hotRows");
 
 function byDayToByWeek(byDay) {
     const byWeek = [];
@@ -405,6 +416,7 @@ const toQS = state => {
     if (state.activeBlock) qs.id = "" + state.activeBlock;
     if (state.hotDateIdxs) qs.ds = state.hotDateIdxs.sort(numComp).join(".");
     if (state.hotSeries) qs.ss = state.hotSeries.sort().join(".");
+    if (state.hotRows) qs.h = state.hotRows.sort(numComp).join(".");
     qs.s = (state.sortAsc ? "" : "!") + state.sortCol;
     const curr = history.state;
     return pushQS(qs, curr && curr.id === qs.id);
@@ -433,6 +445,11 @@ const fromQS = qs =>
         if (qs.s) {
             next.sortAsc = qs.s.charAt(0) !== "!";
             next.sortCol = parseInt(next.sortAsc ? qs.s : qs.s.substr(1));
+        }
+        if (qs.h) {
+            next.hotRows = qs.h.split(".")
+                .map(s => parseInt(s))
+                .filter(isActualNumber);
         }
         return next;
     }, (s, p) => {
