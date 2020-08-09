@@ -51,7 +51,7 @@ defaultSeries = seriesLookup["case_rate"]
 const setState = useState({
     activeSeries: defaultSeries,
     start: new Date(2020, 3 - 1, 15),
-    end: new Date(),
+    endOffset: 0,
     sidebar: location.search === "?sidebar",
 }, state => {
     toQS(state);
@@ -123,14 +123,15 @@ function render(state) {
             });
         }
         setTimeout(() => { // sidebar show has to draw DOM so we can measure
-            paintChart(state.start, state.end);
+            const endDate = state.dates[state.dates.length - 1 - state.endOffset]
+            paintChart(state.start, endDate);
             const s = hot.length === 0
                 ? cold[cold.length - 1]
                 : hot[hot.length - 1];
             $dateTrack.innerHTML = drawDateRangeSlider(
                 state.dates,
                 state.start,
-                state.end,
+                endDate,
                 {
                     width: $dateTrack.clientWidth,
                     height: $dateTrack.clientHeight,
@@ -141,7 +142,7 @@ function render(state) {
                     onMotion: paintChart,
                     onCommit: (start, end) => setState({
                         start,
-                        end,
+                        endOffset: state.dates.length - 1 - state.dates.indexOf(end),
                     }),
                 });
         });
@@ -307,7 +308,7 @@ const toQS = state => {
     if (state.activeBlock) qs.id = "" + state.activeBlock;
     if (state.activeSeries) qs.s = state.activeSeries.key;
     if (state.hotSegments) qs.h = [...state.hotSegments].sort().join(".");
-    qs.dr = [state.start, state.end].map(unparseDate).join(".");
+    qs.dr = unparseDate(state.start) + "." + state.endOffset;
     const curr = history.state;
     return pushQS(qs, curr && curr.id === qs.id && curr.s === qs.s);
 };
@@ -333,9 +334,9 @@ const fromQS = qs =>
         }
         if (qs.dr) {
             try {
-                const [sd, ed] = qs.dr.split(".").map(parseDate);
-                next.start = sd;
-                next.end = ed;
+                const [sd, eo] = qs.dr.split(".");
+                next.start = parseDate(sd);
+                next.endOffset = parseInt(eo);
             } catch (e) {
                 console.warn("error parsing dates - ignore", e);
             }
