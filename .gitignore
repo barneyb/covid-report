@@ -1,4 +1,6 @@
 target/
+node_modules/
+package-lock.json
 !**/src/main/**
 !**/src/test/**
 

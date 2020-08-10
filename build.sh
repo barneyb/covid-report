@@ -2,8 +2,10 @@
 
 cd `dirname $0`
 
-SRC_DIR=`pwd`/src/main/webapp
-LOCAL_DIR=`pwd`/target/client
+SRC_DIR=src/main/webapp
+LOCAL_DIR=target/client
+UGLIFY=./node_modules/.bin/uglifyjs
+POSTCSS=./node_modules/.bin/postcss
 
 DO_JAR=0
 
@@ -32,7 +34,7 @@ declare -A assets
 pushd $SRC_DIR
 for a in `ls *.js *.css`; do
   IFS='.' read -r -aparts <<< "$a"
-  assets[$a]=${parts[0]}.`shasum $a | cut -c 1-10`.${parts[1]}
+  assets[$a]=${parts[0]}.`shasum $a | cut -c 1-9`.${parts[1]}
 done
 popd
 echo "Processing ${#assets[@]} assets"
@@ -42,12 +44,17 @@ for a in `find $SRC_DIR -name "*.html"`; do
 done
 # copy each asset over, replace it's refs in the HTMLs
 for a in "${!assets[@]}"; do
-  sed -e 's/^ *//g' \
-    -e 's~//.*~~' \
-    -e 's~\([!,;:=<>+*/]\)  *~\1~g' \
-    -e 's~  *\([!,;:=<>{+*/]\)~\1~g' \
-    -e '/^$/d' \
-    < $SRC_DIR/$a > $LOCAL_DIR/${assets[$a]}
+  echo "  $a..."
+  if echo $a | grep "\.js" > /dev/null; then
+    $UGLIFY $SRC_DIR/$a \
+      --source-map "filename='${assets[$a]}.map',url='${assets[$a]}.map',includeSources" \
+      --output $LOCAL_DIR/${assets[$a]}
+  else
+    $POSTCSS $SRC_DIR/$a \
+      --map \
+      --use cssnano \
+      --output $LOCAL_DIR/${assets[$a]}
+  fi
   sed -i -e "s/$a/${assets[$a]}/" $LOCAL_DIR/*.html
 done
 
