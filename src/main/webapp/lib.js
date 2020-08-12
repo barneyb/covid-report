@@ -483,7 +483,8 @@ fetch("data/last-update.txt")
     .then(ld => {
         const d = parseDate(ld);
         window.lastUpdate = d;
-        $("#navbar").innerHTML += el(
+        const $navbar = $("#navbar")
+        $navbar.innerHTML += el(
             "span",
             {className: "updated-at"},
             "Updated: " + formatDate(d),
@@ -491,5 +492,8 @@ fetch("data/last-update.txt")
         if (d < Date.now() - 3 * 86400 * 1000) {
             document.body.classList.add("stale-data");
             document.body.style.setProperty("--body-warning-hue", Date.now() / 1000 % 86400 / 86400 * 360);
+        }
+        if (location.href.indexOf("/target/") > 0) {
+            $navbar.style.setProperty("background-color", "hsl(var(--body-warning-hue), 100%, 40%)");
         }
     });
