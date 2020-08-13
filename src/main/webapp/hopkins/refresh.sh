@@ -20,4 +20,4 @@ docker run --rm -v `pwd`:/data -u `id -u` -w /data/covid openjdk:11 \
 cd covid
 rsync -a --delete-after stage/ data/
 
-echo "https://ssl.barneyb.com/s/covid/"
+echo "https://covid.barneyb.com/"
