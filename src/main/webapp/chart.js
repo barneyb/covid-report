@@ -71,7 +71,6 @@ toggleSegment = _togglerBuilder("hotSegments");
 
 $pageHeader = $("#page-header")
 $chart = $("#chart")
-$legend = $("#legend")
 $dateTrack = $("#date-track")
 $thumbLeft = $("#date-track .range-mask.left")
 $thumbRight = $("#date-track .range-mask.right")
@@ -152,27 +151,6 @@ function render(state) {
                     }),
                 });
         });
-        // legend
-        if (hot.length > 0) {
-            $legend.innerHTML = hot.map(s =>
-                el('div', [
-                    swatch(s),
-                    s.name,
-                    el('a', {
-                        className: "remove",
-                        onclick: `toggleSegment(${s.id})`,
-                    }, el('svg', {
-                        viewbox: "0 0 10 10"
-                    }, [
-                        el('line', {x1: 2, y1: 2, x2: 8, y2: 8, stroke: "#999"}),
-                        el('line', {x1: 8, y1: 2, x2: 2, y2: 8, stroke: "#999"}),
-                    ]))
-                ])).join("\n");
-            $legend.classList.remove("empty");
-        } else {
-            $legend.innerText = "";
-            $legend.classList.add("empty");
-        }
     } else {
         $chart.innerHTML = el('div', { className: "loading" }, "Loading...");
     }

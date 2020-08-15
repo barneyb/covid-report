@@ -15,26 +15,6 @@
     text-align: center;
     padding-top: 30vh;
 }
-#legend {
-    position: absolute;
-    top: 0;
-    left: 0;
-    background-color: var(--body-bgc);
-    border-right: 1px solid #eee;
-    border-bottom: 1px solid #eee;
-    font-size: 90%;
-    padding: 0.3em 0.5em;
-}
-#legend.empty {
-    display: none;
-}
-#legend .remove {
-    float: right;
-    cursor: pointer;
-    margin: 1px 0 0 0.5em;
-    width: 12px;
-    height: 12px;
-}
 #date-track {
     height: var(--date-track-height);
     border: 1px solid #eee;
@@ -93,7 +73,4 @@
     border: 0.5px solid #999;
     width: 0.6em;
     height: 0.6em;
-}
-#legend .swatch {
-    margin-left: 0;
 }

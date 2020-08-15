@@ -415,7 +415,8 @@ const drawLineChart = (series, options) => {
         let $detail
         const drawDetail = di => {
             if ($detail == null)
-                $detail = document.getElementById(domId + "-detail")
+                $detail = document.getElementById(domId + "-detail");
+            if ($detail == null) return;
             const lines = [];
             if (opts.dates) {
                 lines.push({
@@ -478,11 +479,9 @@ const drawLineChart = (series, options) => {
             const v = y2v(e.offsetY);
             if (v < ymin || v > ymax) return;
             drawDetail(i, v)
-        }
+        };
         document.addEventListener("mousemove", onMouseMove);
-        document.addEventListener("mouseleave", () => {
-            if ($detail) $detail.innerHTML = '';
-        });
+        setTimeout(() => drawDetail(len - 1, ymax));
     }
     return el(
         'svg',
