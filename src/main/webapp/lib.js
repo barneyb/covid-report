@@ -451,7 +451,7 @@ const drawLineChart = (series, options) => {
                     fill: "white",
                     stroke: "#ccc",
                 }),
-                ...lines.map((l, i) => {
+                lines.map((l, i) => {
                     if (!l.color) return;
                     return el('circle', {
                         cx: 6,
@@ -460,7 +460,7 @@ const drawLineChart = (series, options) => {
                         fill: l.color,
                     })
                 }),
-                ...lines.map((l, i) => el('text', {
+                lines.map((l, i) => el('text', {
                     x: l.color ? 12 : 2,
                     y: (i + 1) * 14,
                     'font-weight': l.bold ? "bold" : "normal",
@@ -480,7 +480,7 @@ const drawLineChart = (series, options) => {
             drawDetail(i, v)
         }
         document.addEventListener("mousemove", onMouseMove);
-        document.addEventListener("mouseout", () => {
+        document.addEventListener("mouseleave", () => {
             if ($detail) $detail.innerHTML = '';
         });
     }
