@@ -425,12 +425,16 @@ const drawLineChart = (series, options) => {
                 })
             }
             series.filter(s => s.detailOnHover)
-                .forEach(s => {
-                    lines.push({
-                        text: `${s.title} (${formatNumber(s.values[di][0], 1)})`,
+                .map(s => {
+                    const v = s.values[di][0]
+                    return {
+                        v,
+                        text: `${s.title} (${formatNumber(v, 1)})`,
                         color: s.color,
-                    })
-                });
+                    }
+                })
+                .sort((a, b) => numComp(b.v, a.v))
+                .forEach(s => lines.push(s));
             const width = lines.reduce((m, l) => Math.max(m, l.text.length), 0) * 7 + 10
             const x = i2x(di)
             $detail.innerHTML = el('line', {
