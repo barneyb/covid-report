@@ -106,6 +106,7 @@ function render(state) {
             color: hot
                 ? formatHsl(s.hue, 50, 50)
                 : formatHsl(s.hue, ...(s.is_total ? [20, 70] : [10, 80])),
+            detailOnHover: hot,
         });
         const paintChart = (sd, ed) => {
             const [start, end] = rangeToIndices(state.dates, sd, ed);

@@ -333,8 +333,19 @@ const drawLineChart = (series, options) => {
         dates: null,
         dateOverlay: false,
         gridlines: true,
+        detailOnHover: false,
         ...options,
     };
+    series = series.map(s => ({
+        // 'values' is required
+        color: formatHsl(Math.random() * 360, 50, 50),
+        onclick: null,
+        stroke: opts.stroke,
+        title: null,
+        detailOnHover: opts.detailOnHover && !!s.title,
+        ...s,
+    }));
+    opts.detailOnHover = series.some(s => s.detailOnHover);
     const margins = {top: opts.stroke / 2, left: opts.stroke / 2, right: opts.stroke / 2, bottom: opts.stroke / 2};
     let [ymin, ymax] = series.reduce(([min, max], s) => [
         s.values.reduce((a, b) => Math.min(a, b), min),
@@ -369,10 +380,14 @@ const drawLineChart = (series, options) => {
     const chartHeight = opts.height - margins.top - margins.bottom;
     const dy = chartHeight / (ymax - ymin);
     const v2y = v => margins.top + chartHeight - (v - ymin) * dy;
+    const y2v = y => (y - margins.top - chartHeight) / -dy + ymin;
     const chartWidth = opts.width - margins.left - margins.right;
     const len = series[0].values.length
     const dx = chartWidth / (len - 1)
     const i2x = i => margins.left + i * dx;
+    const x2i = x => Math.round((x - margins.left) / dx);
+    series.forEach(s =>
+        s.values = s.values.map((v, i) => [v, i2x(i), v2y(v)]));
     const isRoomBeforeEOM = d => {
         const eom = new Date(d.getFullYear(), d.getMonth() + 1, 0);
         const cutoff = Math.min(today, eom);
@@ -395,9 +410,84 @@ const drawLineChart = (series, options) => {
             const x = i2x(i)
             return [d, x, d.getDate() === 1, doDateLabel(d, x)];
         });
+    const domId = nextId("chart")
+    if (opts.detailOnHover) {
+        let $detail
+        const drawDetail = di => {
+            if ($detail == null)
+                $detail = document.getElementById(domId + "-detail")
+            const lines = [];
+            if (opts.dates) {
+                lines.push({
+                    text: formatDate(opts.dates[di]),
+                    bold: true,
+                })
+            }
+            series.filter(s => s.detailOnHover)
+                .forEach(s => {
+                    lines.push({
+                        text: `${s.title} (${formatNumber(s.values[di][0], 1)})`,
+                        color: s.color,
+                    })
+                });
+            const width = lines.reduce((m, l) => Math.max(m, l.text.length), 0) * 7 + 10
+            const x = i2x(di)
+            $detail.innerHTML = el('line', {
+                x1: x,
+                y1: margins.top,
+                x2: x,
+                y2: margins.top + chartHeight,
+                stroke: "#666",
+                'stroke-width': "1px",
+                'vector-effect': "non-scaling-stroke",
+            }) + el('g', {
+                    transform: `translate(${x + width > chartWidth ? x - width : x}, ${margins.top})`,
+                },
+                el('rect', {
+                    x: 0,
+                    y: 0,
+                    width,
+                    height: lines.length * 14 + 4,
+                    fill: "white",
+                    stroke: "#ccc",
+                }),
+                ...lines.map((l, i) => {
+                    if (!l.color) return;
+                    return el('circle', {
+                        cx: 6,
+                        cy: i * 14 + 9,
+                        r: 4,
+                        fill: l.color,
+                    })
+                }),
+                ...lines.map((l, i) => el('text', {
+                    x: l.color ? 12 : 2,
+                    y: (i + 1) * 14,
+                    'font-weight': l.bold ? "bold" : "normal",
+                }, l.text)));
+        }
+        const onMouseMove = e => {
+            const root = document.getElementById(domId);
+            if (!root) {
+                document.removeEventListener("mousemove", onMouseMove);
+                return;
+            }
+            if (!root.contains(e.target)) return;
+            const i = x2i(e.offsetX);
+            if (i < 0 || i >= len) return;
+            const v = y2v(e.offsetY);
+            if (v < ymin || v > ymax) return;
+            drawDetail(i, v)
+        }
+        document.addEventListener("mousemove", onMouseMove);
+        document.addEventListener("mouseout", () => {
+            if ($detail) $detail.innerHTML = '';
+        });
+    }
     return el(
         'svg',
         {
+            id: domId,
             viewBox: `0 0 ${opts.width} ${opts.height}`,
             'font-size': "12px", // this is a 12x7 character. By fiat.
         },
@@ -455,17 +545,20 @@ const drawLineChart = (series, options) => {
         ),
         series.map(s => el('polyline', {
                 points: s.values
-                    .map((v, i) => i2x(i) + "," + v2y(v))
+                    .map(([ignored, x, y]) => x + "," + y)
                     .join(" "),
                 fill: "none",
-                stroke: s.color || formatHsl(Math.random() * 360, 50, 50),
+                stroke: s.color,
                 onclick: s.onclick,
                 cursor: s.onclick ? "pointer" : null,
-                'stroke-width': (s.stroke || opts.stroke) + "px",
+                'stroke-width': s.stroke + "px",
                 'stroke-linejoin': "round",
                 'stroke-linecap': "round",
             }, s.title && el('title', s.title)),
         ),
+        opts.detailOnHover && el('g', {
+            id: domId + "-detail",
+        }),
         opts.title && el('title', opts.title));
 };
 const $sidebar = $("#sidebar .content");
