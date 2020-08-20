@@ -53,6 +53,9 @@ public class Main implements ApplicationRunner {
     @Autowired
     BlockBuilder blockBuilder;
 
+    @Autowired
+    IndexBuilder indexBuilder;
+
     private long _prev;
     private void logStep(String message) {
         long now = System.currentTimeMillis();
@@ -94,12 +97,12 @@ public class Main implements ApplicationRunner {
             // add a day for the UTC/LocalDate dance
             w.write(theWorld.getTodaysDate().plusDays(1).toString());
         }
+
         blockBuilder.emit(outputDir, theWorld);
         logStep("Blocks emitted");
 
-        if (args.containsOption("hopkins")) {
-            hopkinsTransform.transform(this::logStep);
-        }
+        indexBuilder.emit(outputDir.resolve("index.json"), theWorld);
+        logStep("Index emitted");
     }
 
 }
