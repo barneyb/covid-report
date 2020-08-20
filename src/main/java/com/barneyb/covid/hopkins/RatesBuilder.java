@@ -2,6 +2,7 @@ package com.barneyb.covid.hopkins;
 
 import com.barneyb.covid.hopkins.csv.Demographics;
 import com.barneyb.covid.hopkins.csv.Rates;
+import com.barneyb.covid.util.Transform;
 import com.opencsv.bean.HeaderColumnNameMappingStrategy;
 import com.opencsv.bean.StatefulBeanToCsvBuilder;
 import lombok.SneakyThrows;
@@ -13,9 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -25,28 +24,9 @@ import static com.barneyb.covid.hopkins.IndexedDemographics.WORLDWIDE_KEY;
 
 public class RatesBuilder {
 
-    public static final Function<double[], double[]> ROLLING_AVERAGE = data -> {
-        val next = new double[data.length];
-        Queue<Double> queue = new LinkedList<>();
-        double sum = 0;
-        for (int i = 0, l = next.length; i < l; i++) {
-            queue.add(data[i]);
-            sum += data[i];
-            while (queue.size() > 7) sum -= queue.remove();
-            next[i] = sum / queue.size();
-        }
-        return next;
-    };
+    public static final Function<double[], double[]> ROLLING_AVERAGE = Transform::rollingAverage;
 
-    public static final Function<double[], double[]> DELTA = data -> {
-        val next = new double[data.length];
-        double prev = next[0] = data[0];
-        for (int i = 1, l = next.length; i < l; i++) {
-            next[i] = data[i] - prev;
-            prev = data[i];
-        }
-        return next;
-    };
+    public static final Function<double[], double[]> DELTA = Transform::delta;
 
     public static final BiFunction<Demographics, Double, Double> PER_100K = (d, v) ->
             v / (1.0 * d.getPopulation() / 100_000);
