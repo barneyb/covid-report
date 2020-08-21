@@ -51,4 +51,17 @@ public final class Transform {
         }
         return next;
     }
+
+    public static double[] per100k(long population, int[] data) {
+        return per100k(population, toDouble(data));
+    }
+
+    public static double[] per100k(long population, double[] data) {
+        final var next = new double[data.length];
+        for (int i = 0, l = next.length; i < l; i++) {
+            next[i] = data[i] * 100_000 / population;
+        }
+        return next;
+    }
+
 }

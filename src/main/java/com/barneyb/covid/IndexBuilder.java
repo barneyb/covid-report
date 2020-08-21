@@ -37,19 +37,22 @@ public class IndexBuilder {
                         new Section(scope.getArea().getName(), List.of(
                                 new StatsTile(scope),
                                 new ListTile("Daily Case Rate (per 100k)", scope, s ->
-                                        new Stat(s, Spark.spark(s.getCases(), counts -> {
-                                            var avg = Transform.rollingAverage(Transform.delta(counts));
-                                            var pop = s.getArea().getPopulation();
-                                            for (int i = 0, l = avg.length; i < l; i++) {
-                                                avg[i] = avg[i] * 100_000 / pop;
-                                            }
-                                            return avg;
-                                        }))),
+                                        new Stat(s, Spark.spark(s.getCases(), counts ->
+                                                Transform.per100k(
+                                                        s.getArea().getPopulation(),
+                                                        Transform.rollingAverage(
+                                                                Transform.delta(counts)))))),
                                 new ListTile("Daily Cases (7-day Avg)", scope, s ->
                                         new Stat(s, Spark.spark(s.getCases(), counts ->
                                                 Transform.rollingAverage(Transform.delta(counts))))),
+                                new ListTile("Total Case Rate (per 100k)", scope, s ->
+                                        new Stat(s, Spark.spark(s.getCases(), counts ->
+                                                Transform.per100k(s.getArea().getPopulation(), counts)))),
                                 new ListTile("Total Cases", scope, s ->
                                         new Stat(s, Spark.spark(s.getCases()))),
+                                new ListTile("Total Death Rate (per 100k)", scope, s ->
+                                        new Stat(s, Spark.spark(s.getDeaths(), counts ->
+                                                Transform.per100k(s.getArea().getPopulation(), counts)))),
                                 new ListTile("Total Deaths", scope, s ->
                                         new Stat(s, Spark.spark(s.getDeaths())))
                         ))
@@ -144,7 +147,7 @@ public class IndexBuilder {
         public ListTile(String title, Series series, Function<Series, Stat> toStat) {
             this(title, series.getSegments().stream()
                     .map(toStat)
-                    .filter(s -> !Double.isNaN(s.stat))
+                    .filter(s -> Double.isFinite(s.stat))
                     .sorted(Comparator.reverseOrder())
                     .limit(10)
                     .collect(Collectors.toList()));
