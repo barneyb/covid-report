@@ -28,19 +28,21 @@ public class IndexBuilder {
         final var scopes = new LinkedList<Series>();
         scopes.add(theWorld);
         final var us = theWorld.getSegment("US");
-        scopes.add(theWorld);
+        scopes.add(us);
         final var or = ((AggSeries) us).getSegment("Oregon");
         scopes.add(or);
         final var dash = scopes.stream()
                 .map(scope ->
                         new Section(scope.getArea().getName(), List.of(
                                 new StatsTile(scope),
+                                new ListTile<>("Daily Case Rate (per 100k)", scope, s ->
+                                        new Stat<>(s, (s.getCurrentCases() - s.getCasesDaysAgo(7)) / 7.0 * 100_000 / s.getArea().getPopulation(), Spark::caseRate)),
+                                new ListTile<>("Daily Cases (7-day Avg)", scope, s ->
+                                        new Stat<>(s, (s.getCurrentCases() - s.getCasesDaysAgo(7)) / 7.0, Spark::caseRate)),
                                 new ListTile<>("Total Cases", scope, s ->
                                         new Stat<>(s, s.getCurrentCases(), Spark::caseRate)),
-                                new ListTile<>("Daily Cases", scope, s ->
-                                        new Stat<>(s, (s.getCurrentCases() - s.getCasesDaysAgo(7)) / 7.0, Spark::caseRate)),
-                                new ListTile<>("Daily Case Rate", scope, s ->
-                                        new Stat<>(s, (s.getCurrentCases() - s.getCasesDaysAgo(7)) / 7.0 * 100_000 / s.getArea().getPopulation(), Spark::caseRate))
+                                new ListTile<>("Total Deaths", scope, s ->
+                                        new Stat<>(s, s.getCurrentDeaths(), Spark::deathRate))
                         ))
                 )
                 .collect(Collectors.toList());
@@ -71,13 +73,12 @@ public class IndexBuilder {
     @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
     @AllArgsConstructor
     private static class Section {
-        String title;
+        String label;
         List<Tile> tiles;
     }
 
     private interface Tile {
         String getTitle();
-
         String getType();
     }
 
@@ -86,14 +87,15 @@ public class IndexBuilder {
     private static class StatsTile implements Tile {
 
         String type = "stats";
+        int id;
         String title;
         long population;
         DatumStat cases;
         DatumStat deaths;
 
-
         public StatsTile(Series series) {
             var a = series.getArea();
+            this.id = a.getId();
             this.title = a.getName();
             this.population = a.getPopulation();
             this.cases = new DatumStat(series.getCases());
@@ -132,7 +134,7 @@ public class IndexBuilder {
                     .map(toStat)
                     .filter(s -> !(s.stat instanceof Number) || !Double.isNaN(((Number) s.stat).doubleValue()))
                     .sorted(Comparator.reverseOrder())
-                    .limit(5)
+                    .limit(10)
                     .collect(Collectors.toList()));
         }
 

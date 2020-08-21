@@ -351,6 +351,7 @@ const drawLineChart = (series, options) => {
         s.values.reduce((a, b) => Math.min(a, b), min),
         s.values.reduce((a, b) => Math.max(a, b), max),
     ], [999999999, -999999999])
+    if (ymin === ymax) ymax += 1; // protect against flat series
     let gridpoints, gridLabelPlaces;
     if (opts.gridlines) {
         margins.top += 10;

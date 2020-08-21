@@ -11,11 +11,11 @@ public final class Spark {
     private static final int DEFAULT_DAYS_DAYS = 14;
 
     public static double[] caseRate(Series series) {
-        return caseRate(series, Spark.DEFAULT_DAYS_DAYS);
+        return rate(series.getCases(), DEFAULT_DAYS_DAYS);
     }
 
-    public static double[] caseRate(Series series, int days) {
-        return rate(series.getCases(), days);
+    public static double[] deathRate(Series series) {
+        return rate(series.getDeaths(), DEFAULT_DAYS_DAYS);
     }
 
     public static double[] rate(int[] data, int days) {
@@ -29,5 +29,4 @@ public final class Spark {
                 })
                 .orElseThrow();
     }
-
 }
