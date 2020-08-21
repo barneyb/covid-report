@@ -369,7 +369,8 @@ const drawLineChart = (series, options) => {
         if (d <= 0) throw new Error("what?!");
         gridLabelPlaces = Math.max(0, -Math.floor(Math.log10(d)));
         gridpoints = [];
-        let v = Math.floor(ymin / d) * d; // so we can use it after the loop.
+        let v = Math.floor(ymin / d) * d;
+        ymin = v;
         for (; v < ymax; v += d) {
             gridpoints.push(v);
         }
