@@ -1,6 +1,5 @@
 package com.barneyb.covid;
 
-import com.barneyb.covid.hopkins.DashboardBuilder;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
@@ -69,16 +68,6 @@ public class CovidReportApplication {
                 for (double d : value) {
                     ds.serialize(d, gen, serializers);
                 }
-                gen.writeEndArray();
-            }
-        });
-        module.addSerializer(DashboardBuilder.Segment.class, new JsonSerializer<>() {
-            @Override
-            public void serialize(DashboardBuilder.Segment value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
-                gen.writeStartArray(3);
-                gen.writeString(value.getName());
-                gen.writeNumber(value.getPop());
-                ds.serialize(value.getDelta(), gen, serializers);
                 gen.writeEndArray();
             }
         });

@@ -1,6 +1,5 @@
 package com.barneyb.covid;
 
-import com.barneyb.covid.hopkins.HopkinsTransform;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,9 +36,6 @@ public class Main implements ApplicationRunner {
 
     @Autowired
     Mortality mortality;
-
-    @Autowired
-    HopkinsTransform hopkinsTransform;
 
     @Autowired
     ReportJsonEmitter tableJson;
