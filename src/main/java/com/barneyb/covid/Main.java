@@ -22,9 +22,6 @@ public class Main implements ApplicationRunner {
     Path outputDir;
 
     @Autowired
-    Mortality mortality;
-
-    @Autowired
     Loader loader;
 
     @Autowired
@@ -45,11 +42,11 @@ public class Main implements ApplicationRunner {
     }
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
-    private void prepareTarget(boolean doClean) {
+    private void prepareTarget() {
         var out = outputDir.toFile();
         if (!out.exists()) {
             out.mkdirs();
-        } else if (doClean) {
+        } else {
             // This feels like the wrong way to do it. It does work though.
             for (var f : Objects.requireNonNull(out.listFiles())) {
                 f.delete();
@@ -61,12 +58,7 @@ public class Main implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) throws Exception {
         logStep("enter main");
-        prepareTarget(args.containsOption("clean"));
-
-        if (args.containsOption("mortality")) {
-            mortality.emit(Files.newBufferedWriter(Path.of("mortality.csv")));
-            logStep("mortality data written");
-        }
+        prepareTarget();
 
         var theWorld = loader.loadWorld();
         logStep("World loaded");

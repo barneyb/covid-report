@@ -6,21 +6,16 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import lombok.val;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.FilterType;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.LocalDate;
 
 @SpringBootApplication
-@ComponentScan(excludeFilters =
-        @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = Store.class))
 public class CovidReportApplication {
 
     @Value("${covid-report.output.pretty-print}")
@@ -89,12 +84,6 @@ public class CovidReportApplication {
         return outputPrettyPrint
             ? objectMapper().writerWithDefaultPrettyPrinter()
             : objectMapper().writer();
-    }
-
-    @Bean
-    @Qualifier("us")
-    public Store usStore() {
-        return new Store(outputDir.resolve("database-us.json"));
     }
 
     public static void main(String[] args) {
