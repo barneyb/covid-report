@@ -78,7 +78,6 @@ function init(data) {
             height,
             gridlines: false,
             stroke: width < 100 ? 2 : 3,
-            title: `Average new cases per day (past ${len} days)`,
         })
     };
     const _statHelper = (label, val, title) =>
@@ -100,10 +99,14 @@ function init(data) {
             title);
     const tileRenderers = {
         stats(tile) {
+            const spark = tile.cases.spark
             const kids = [
                 el('header',
                     el('h2', {title: tile.title}, tile.title)),
-                el('div', {className: "spark-container"}, drawSpark(tile.cases.spark)),
+                el('div', {
+                    className: "spark-container",
+                    title: `New cases per day, past ${spark.length <= 21 ? `${spark.length} days` : `${formatNumber(spark.length / 7)} weeks`}`,
+                }, drawSpark(spark)),
                 drawCountStat("Total Cases", tile.cases.total),
                 tile.population && drawRateStat("per 100k", tile.cases.total, tile.population, "Total cases, per 100,000 population"),
                 tile.population && drawOneInStat(tile.cases.total, tile.population, "One case, on average, per this many people"),
@@ -126,7 +129,10 @@ function init(data) {
                     el('h2', {title: tile.title}, tile.title)),
                 el('table', el('tbody',
                 tile.items.map(it => el('tr', [
-                    el('td', {className: "spark-container"}, drawSpark(it.spark, 75, 25)),
+                    el('td', {
+                        className: "spark-container",
+                        title: `past ${it.spark.length} days`
+                    }, drawSpark(it.spark, 75, 25)),
                     el('td', it.name),
                     el('td', {className: "number"}, formatNumber(it.value, places)),
                     // el('div', {className: "spark-container"}, ),

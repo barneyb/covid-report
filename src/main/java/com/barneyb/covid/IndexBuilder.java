@@ -107,7 +107,7 @@ public class IndexBuilder {
     @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
     @AllArgsConstructor
     private static class DatumStat {
-        public static final int SPARK_DAYS = 21;
+        public static final int SPARK_DAYS = 35;
 
         int total;
         double daily;
