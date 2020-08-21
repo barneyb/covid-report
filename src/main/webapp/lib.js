@@ -324,6 +324,15 @@ const drawDateRangeSlider = (dates, startDate, endDate, options) => {
         ),
     ]);
 };
+const line = (x, y, dx=0, dy=0, color="#666", width="0.5px") => el('line', {
+    x1: x,
+    y1: y,
+    x2: x + dx,
+    y2: y + dy,
+    stroke: color,
+    'stroke-width': width,
+    'vector-effect': "non-scaling-stroke",
+});
 const drawLineChart = (series, options) => {
     const opts = {
         width: 200,
@@ -443,15 +452,8 @@ const drawLineChart = (series, options) => {
                 .forEach(s => lines.push(s));
             const width = lines.reduce((m, l) => Math.max(m, l.text.length), 0) * 7 + 10
             const x = i2x(di)
-            $detail.innerHTML = el('line', {
-                x1: x,
-                y1: margins.top,
-                x2: x,
-                y2: margins.top + chartHeight,
-                stroke: "#666",
-                'stroke-width': "1px",
-                'vector-effect': "non-scaling-stroke",
-            }) + el('g', {
+            $detail.innerHTML = line(x, margins.top, 0, chartHeight, "#666", "1px") +
+                el('g', {
                     transform: `translate(${x + width > chartWidth ? x - width : x}, ${margins.top})`,
                 },
                 el('rect', {
@@ -500,25 +502,13 @@ const drawLineChart = (series, options) => {
             viewBox: `0 0 ${opts.width} ${opts.height}`,
             'font-size': "12px", // this is a 12x7 character. By fiat.
         },
-        opts.gridlines && el('g', {},
-            el('line', {
-                x1: margins.left + chartWidth,
-                y1: margins.top,
-                x2: margins.left + chartWidth,
-                y2: margins.top + chartHeight,
-                stroke: "#666",
-                'stroke-width': "0.5px",
-                'vector-effect': "non-scaling-stroke",
-            }),
-            gridpoints.map((v, i) => el('line', {
-                x1: margins.left,
-                y1: v2y(v),
-                x2: margins.left + chartWidth,
-                y2: v2y(v),
-                stroke: i % 2 === 0 ? "#bbb" : "#ddd",
-                'stroke-width': "0.5px",
-                'vector-effect': "non-scaling-stroke",
-            })),
+        opts.gridlines ? el('g', {},
+            // right border
+            line(margins.left + chartWidth, margins.top, 0, chartHeight),
+            // horizontal lines
+            gridpoints.map((v, i) =>
+                line(margins.left, v2y(v), chartWidth, 0, i % 2 === 0 ? "#bbb" : "#ddd")),
+            // y-axis labels
             gridpoints
                 .filter((v, i) => i % 2 === 0)
                 .map(v => el('text', {
@@ -526,19 +516,13 @@ const drawLineChart = (series, options) => {
                     x: margins.left + chartWidth + 2,
                     y: v2y(v) + 3.5,
                 }, formatNumber(v, gridLabelPlaces))),
-        ),
+        ) : el('g', line(margins.left, v2y(ymin), chartWidth, 0, "#ccc")),
         opts.dates && el('g', {},
+            // vertical lines
             datesToDraw.map(([ignored, x, mo, dt]) =>
-                el('line', {
-                    x1: x,
-                    y1: margins.top,
-                    x2: x,
-                    y2: margins.top + chartHeight + (mo || dt ? 15 : 0),
-                    stroke: mo ? "#666" : "#ddd",
-                    'stroke-width': "0.5px",
-                    'vector-effect': "non-scaling-stroke",
-                })
+                line(x, margins.top, 0, chartHeight + (mo || dt ? 15 : 0), mo ? "#666" : "#ddd")
             ),
+            // date/month labels
             datesToDraw.flatMap(([d, x, mo, dt], i) => [
                 (i === 0 || doMonthLabel(d, x)) && el('text', {
                     fill: "#333",
