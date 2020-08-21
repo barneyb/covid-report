@@ -3,7 +3,6 @@ package com.barneyb.covid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -23,25 +22,7 @@ public class Main implements ApplicationRunner {
     Path outputDir;
 
     @Autowired
-    @Qualifier("worldwide")
-    Store wwStore;
-
-    @Autowired
-    @Qualifier("us")
-    Store usStore;
-
-    @Autowired
-    @Qualifier("or")
-    Store orStore;
-
-    @Autowired
     Mortality mortality;
-
-    @Autowired
-    ReportJsonEmitter tableJson;
-
-    @Autowired
-    TsvEmitter tableTsv;
 
     @Autowired
     Loader loader;
