@@ -3,6 +3,7 @@ package com.barneyb.covid;
 import com.barneyb.covid.model.AggSeries;
 import com.barneyb.covid.model.Series;
 import com.barneyb.covid.util.Spark;
+import com.barneyb.covid.util.Transform;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -35,14 +36,22 @@ public class IndexBuilder {
                 .map(scope ->
                         new Section(scope.getArea().getName(), List.of(
                                 new StatsTile(scope),
-                                new ListTile<>("Daily Case Rate (per 100k)", scope, s ->
-                                        new Stat<>(s, (s.getCurrentCases() - s.getCasesDaysAgo(7)) / 7.0 * 100_000 / s.getArea().getPopulation(), Spark::caseRate)),
-                                new ListTile<>("Daily Cases (7-day Avg)", scope, s ->
-                                        new Stat<>(s, (s.getCurrentCases() - s.getCasesDaysAgo(7)) / 7.0, Spark::caseRate)),
-                                new ListTile<>("Total Cases", scope, s ->
-                                        new Stat<>(s, s.getCurrentCases(), Spark::caseRate)),
-                                new ListTile<>("Total Deaths", scope, s ->
-                                        new Stat<>(s, s.getCurrentDeaths(), Spark::deathRate))
+                                new ListTile("Daily Case Rate (per 100k)", scope, s ->
+                                        new Stat(s, Spark.spark(s.getCases(), counts -> {
+                                            var avg = Transform.rollingAverage(Transform.delta(counts));
+                                            var pop = s.getArea().getPopulation();
+                                            for (int i = 0, l = avg.length; i < l; i++) {
+                                                avg[i] = avg[i] * 100_000 / pop;
+                                            }
+                                            return avg;
+                                        }))),
+                                new ListTile("Daily Cases (7-day Avg)", scope, s ->
+                                        new Stat(s, Spark.spark(s.getCases(), counts ->
+                                                Transform.rollingAverage(Transform.delta(counts))))),
+                                new ListTile("Total Cases", scope, s ->
+                                        new Stat(s, Spark.spark(s.getCases()))),
+                                new ListTile("Total Deaths", scope, s ->
+                                        new Stat(s, Spark.spark(s.getDeaths())))
                         ))
                 )
                 .collect(Collectors.toList());
@@ -52,19 +61,22 @@ public class IndexBuilder {
         }
     }
 
-    @Value
-    private static class Stat<T extends Comparable<T>> implements Comparable<Stat<T>> {
+    @Getter
+    @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
+    private static class Stat implements Comparable<Stat> {
         Series series;
-        T stat;
-        Function<Series, double[]> sparkSupplier;
+        double stat;
+        double[] spark;
 
-        @Override
-        public int compareTo(Stat<T> o) {
-            return stat.compareTo(o.stat);
+        public Stat(Series series, double[] spark) {
+            this.series = series;
+            this.stat = spark[spark.length - 1];
+            this.spark = spark;
         }
 
-        public double[] getSpark() {
-            return sparkSupplier.apply(series);
+        @Override
+        public int compareTo(Stat o) {
+            return Double.compare(stat, o.stat);
         }
 
     }
@@ -123,22 +135,22 @@ public class IndexBuilder {
 
     @Getter
     @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
-    private static class ListTile<T extends Comparable<T>> implements Tile {
+    private static class ListTile implements Tile {
 
         String type = "list";
         String title;
-        List<ListItem<T>> items;
+        List<ListItem> items;
 
-        public ListTile(String title, Series series, Function<Series, Stat<T>> toStat) {
+        public ListTile(String title, Series series, Function<Series, Stat> toStat) {
             this(title, series.getSegments().stream()
                     .map(toStat)
-                    .filter(s -> !(s.stat instanceof Number) || !Double.isNaN(((Number) s.stat).doubleValue()))
+                    .filter(s -> !Double.isNaN(s.stat))
                     .sorted(Comparator.reverseOrder())
                     .limit(10)
                     .collect(Collectors.toList()));
         }
 
-        public ListTile(String title, List<Stat<T>> series) {
+        public ListTile(String title, List<Stat> series) {
             this.title = title;
             this.items = series.stream()
                     .map(ListItem::new)
@@ -149,14 +161,14 @@ public class IndexBuilder {
 
     @Getter
     @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
-    private static class ListItem<T extends Comparable<T>> {
+    private static class ListItem {
 
         int id;
         String name;
-        T value;
+        double value;
         double[] spark;
 
-        public ListItem(Stat<T> s) {
+        public ListItem(Stat s) {
             final var a = s.getSeries().getArea();
             this.id = a.getId();
             this.name = a.getName();

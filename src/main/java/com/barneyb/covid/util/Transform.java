@@ -6,13 +6,17 @@ import java.util.Queue;
 public final class Transform {
     private Transform() { throw new UnsupportedOperationException("really?"); }
 
-    public static double[] rollingAverage(int[] data) {
+    public static double[] toDouble(int[] data) {
         var len = data.length;
         var dd = new double[len];
         for (int i = 0; i < len; i++) {
             dd[i] = data[i];
         }
-        return rollingAverage(dd);
+        return dd;
+    }
+
+    public static double[] rollingAverage(int[] data) {
+        return rollingAverage(toDouble(data));
     }
 
     public static double[] rollingAverage(double[] data) {

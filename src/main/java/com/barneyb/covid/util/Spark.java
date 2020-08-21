@@ -1,32 +1,35 @@
 package com.barneyb.covid.util;
 
-import com.barneyb.covid.model.Series;
-
 import java.util.Arrays;
-import java.util.Optional;
+import java.util.function.Function;
 
 public final class Spark {
     private Spark() { throw new UnsupportedOperationException("really?"); }
 
     private static final int DEFAULT_DAYS_DAYS = 14;
 
-    public static double[] caseRate(Series series) {
-        return rate(series.getCases(), DEFAULT_DAYS_DAYS);
-    }
-
-    public static double[] deathRate(Series series) {
-        return rate(series.getDeaths(), DEFAULT_DAYS_DAYS);
-    }
-
     public static double[] rate(int[] data, int days) {
+        return spark(data, days, arr ->
+                Transform.rollingAverage(Transform.delta(arr)));
+    }
+
+    public static double[] spark(int[] data) {
+        return spark(data, DEFAULT_DAYS_DAYS);
+    }
+
+    public static double[] spark(int[] data, int days) {
+        return spark(data, days, Transform::toDouble);
+    }
+
+    public static double[] spark(int[] data, Function<int[], double[]> transform) {
+        return spark(data, DEFAULT_DAYS_DAYS, transform);
+    }
+
+    public static double[] spark(int[] data, int days, Function<int[], double[]> transform) {
         final var len = data.length;
-        return Optional.of(Arrays.copyOfRange(data, len - days - 7, len))
-                .map(Transform::delta)
-                .map(Transform::rollingAverage)
-                .map(d -> {
-                    int l = d.length;
-                    return Arrays.copyOfRange(d, l - days, l);
-                })
-                .orElseThrow();
+        int l = days + 7;
+        var slice = transform.apply(
+                Arrays.copyOfRange(data, len - l, len));
+        return Arrays.copyOfRange(slice, l - days, l);
     }
 }
