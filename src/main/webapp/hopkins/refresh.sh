@@ -15,7 +15,7 @@ echo "----------------------------------------------------------------------"
 git merge origin/master > /dev/null
 cd $OLDPWD
 docker run --rm -v `pwd`:/data -u `id -u` -w /data/covid openjdk:11 \
-  java -Dcovid-report.output.dir=stage -jar covid.jar --clean --hopkins
+  java -Dcovid-report.output.dir=stage -jar covid.jar
 
 cd covid
 rsync -a --delete-after stage/ data/
