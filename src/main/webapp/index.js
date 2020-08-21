@@ -63,7 +63,7 @@ function init(data) {
                 };
             }, {pop: 0, rects: []}).rects)
     }
-    const drawSpark = (values, width=200, height=75) => {
+    const drawSpark = (values, options) => {
         const len = values.length
         const first = values[0]
         const last = values[len - 1]
@@ -74,10 +74,10 @@ function init(data) {
             values,
             color: formatHsl(h, s + 10, l - 10),
         }], {
-            width,
-            height,
+            width: 200,
+            height: 75,
+            ...options,
             gridlines: false,
-            stroke: width < 100 ? 2 : 3,
         })
     };
     const _statHelper = (label, val, title) =>
@@ -124,6 +124,11 @@ function init(data) {
             const max = tile.items.reduce((m, it) => Math.max(m, it.value), 0);
             const min = tile.items.reduce((m, it) => Math.min(m, it.value), max);
             const places = min < 5 ? 2 : min < 10 || max < 100 ? 1 : 0;
+            const maxRange = tile.items.reduce((m, it) => {
+                const max = it.spark.reduce((m, v) => Math.max(m, v), 0);
+                const min = it.spark.reduce((m, v) => Math.min(m, v), max);
+                return Math.max(m, max - min);
+            }, 0);
             return [
                 el('header',
                     el('h2', {title: tile.title}, tile.title)),
@@ -132,7 +137,12 @@ function init(data) {
                     el('td', {
                         className: "spark-container",
                         title: `past ${it.spark.length} days`
-                    }, drawSpark(it.spark, 75, 25)),
+                    }, drawSpark(it.spark, {
+                        width: 75,
+                        height: 25,
+                        stroke: 2,
+                        range: maxRange,
+                    })),
                     el('td', it.name),
                     el('td', {className: "number"}, formatNumber(it.value, places)),
                     // el('div', {className: "spark-container"}, ),

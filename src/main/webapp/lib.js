@@ -328,6 +328,7 @@ const drawLineChart = (series, options) => {
     const opts = {
         width: 200,
         height: 75,
+        range: null,
         stroke: 3,
         title: null,
         dates: null,
@@ -352,6 +353,9 @@ const drawLineChart = (series, options) => {
         s.values.reduce((a, b) => Math.max(a, b), max),
     ], [999999999, -999999999])
     if (ymin === ymax) ymax += 1; // protect against flat series
+    if (options.range) {
+        ymax = Math.max(ymax, ymin + options.range);
+    }
     let gridpoints, gridLabelPlaces;
     if (opts.gridlines) {
         margins.top += 10;
