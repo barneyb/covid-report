@@ -1,27 +1,21 @@
 package com.barneyb.covid;
 
-import com.barneyb.covid.hopkins.DashboardBuilder;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import lombok.val;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.FilterType;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.LocalDate;
 
 @SpringBootApplication
-@ComponentScan(excludeFilters =
-        @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = Store.class))
 public class CovidReportApplication {
 
     @Value("${covid-report.output.pretty-print}")
@@ -72,16 +66,6 @@ public class CovidReportApplication {
                 gen.writeEndArray();
             }
         });
-        module.addSerializer(DashboardBuilder.Segment.class, new JsonSerializer<>() {
-            @Override
-            public void serialize(DashboardBuilder.Segment value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
-                gen.writeStartArray(3);
-                gen.writeString(value.getName());
-                gen.writeNumber(value.getPop());
-                ds.serialize(value.getDelta(), gen, serializers);
-                gen.writeEndArray();
-            }
-        });
         return module;
     }
 
@@ -100,24 +84,6 @@ public class CovidReportApplication {
         return outputPrettyPrint
             ? objectMapper().writerWithDefaultPrettyPrinter()
             : objectMapper().writer();
-    }
-
-    @Bean
-    @Qualifier("worldwide")
-    public Store worldwideStore() {
-	    return new Store(outputDir.resolve("database-ww.json"));
-    }
-
-    @Bean
-    @Qualifier("us")
-    public Store usStore() {
-        return new Store(outputDir.resolve("database-us.json"));
-    }
-
-    @Bean
-    @Qualifier("or")
-    public Store orStore() {
-        return new Store(outputDir.resolve("database-or.json"));
     }
 
     public static void main(String[] args) {

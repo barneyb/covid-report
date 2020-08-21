@@ -36,23 +36,12 @@ public class HopkinsData {
     }
 
     public Collection<UidLookup> loadUidLookup() {
-        return loadUids(UidLookup.class);
+        return streamUidLookup()
+                .collect(Collectors.toList());
     }
 
     public Stream<UidLookup> streamUidLookup() {
         return streamUids(UidLookup.class);
-    }
-
-    /**
-     * I exist as compatibility alias for {@link #loadUidLookup()}. Use that?
-     */
-    public Collection<Demographics> loadDemographics() {
-        return loadUids(Demographics.class);
-    }
-
-    private <T extends UidLookup> Collection<T> loadUids(Class<T> clazz) {
-        return streamUids(clazz)
-                .collect(Collectors.toList());
     }
 
     private <T extends UidLookup> Stream<T> streamUids(Class<T> clazz) {

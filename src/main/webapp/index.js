@@ -1,7 +1,5 @@
 function init(data) {
-    let _state = {
-        expanded: {},
-    };
+    let _state = {};
     const setState = s => {
         if (typeof s === "function") s = s(_state);
         _state = {
@@ -10,6 +8,10 @@ function init(data) {
         };
         render(_state);
     };
+    // noinspection JSMismatchedCollectionQueryUpdate
+    const HSL_ZERO = [0, 0, 40];
+    // noinspection JSMismatchedCollectionQueryUpdate
+    const HSL_INFINITY = [0, 0, 80];
     const colorForDelta = val => {
         const zero = [50, 40, 90]
         if (val > -0.001 && val < 0.001) {
@@ -61,17 +63,21 @@ function init(data) {
                 };
             }, {pop: 0, rects: []}).rects)
     }
-    const drawSpark = values => {
+    const drawSpark = (values, width=200, height=75) => {
         const len = values.length
         const first = values[0]
         const last = values[len - 1]
-        const [h,s,l] = colorForDelta((last - first) / first);
+        const [h,s,l] = first === 0
+            ? last === 0 ? HSL_ZERO : HSL_INFINITY
+            : colorForDelta((last - first) / first);
         return drawLineChart([{
             values,
             color: formatHsl(h, s + 10, l - 10),
         }], {
+            width,
+            height,
             gridlines: false,
-            title: `Average new cases per day (past ${len} days)`,
+            stroke: width < 100 ? 2 : 3,
         })
     };
     const _statHelper = (label, val, title) =>
@@ -79,7 +85,7 @@ function init(data) {
             el('div', {className: "stat-label"}, label),
             el('div', {className: "stat-value"}, val),
         ])
-    const drawCountStat = (label, count, title) =>
+    const drawCountStat = (label, count, title=label) =>
         _statHelper(label, formatNumber(count), title);
     const drawRateStat = (label, count, pop, title) =>
         _statHelper(label, formatNumber(count / pop * HunThou, 1), title);
@@ -91,63 +97,61 @@ function init(data) {
             "1 per",
             count === 0 ? "-" : oneInFormat.format(pop / count),
             title);
-    const isExpanded = (state, section, area) =>
-        state.expanded[section] && state.expanded[section].has(area);
-    window.toggleCard = (section, area) => {
-        setState(s => {
-            const next = new Set(s.expanded[section] || []);
-            if (next.has(area)) next.delete(area);
-            else next.add(area);
-            return {
-                expanded: {
-                    ...s.expanded,
-                    [section]: next,
-                },
-            };
-        });
-    }
+    const tileRenderers = {
+        stats(tile) {
+            const spark = tile.cases.spark
+            const kids = [
+                el('header',
+                    el('h2', {title: tile.title}, tile.title)),
+                el('div', {
+                    className: "spark-container",
+                    title: `New cases per day, past ${spark.length <= 21 ? `${spark.length} days` : `${formatNumber(spark.length / 7)} weeks`}`,
+                }, drawSpark(spark)),
+                drawCountStat("Total Cases", tile.cases.total),
+                tile.population && drawRateStat("per 100k", tile.cases.total, tile.population, "Total cases, per 100,000 population"),
+                tile.population && drawOneInStat(tile.cases.total, tile.population, "One case, on average, per this many people"),
+                drawCountStat("Daily Cases", tile.cases.daily, "New cases per day"),
+                tile.population && drawRateStat("per 100k", tile.cases.daily, tile.population, "New cases per day, per 100,000 population"),
+                tile.population && drawOneInStat(tile.cases.daily, tile.population, "One new case each day, on average, per this many people"),
+                tile.population && drawCountStat("Pop", tile.population, "Population"),
+            ];
+            if (tile.segments && tile.segments.length > 1) {
+                kids.push(el('div', {className: "segment-container"}, drawColumn(tile.segments)));
+            }
+            return kids;
+        },
+        list(tile) {
+            const max = tile.items.reduce((m, it) => Math.max(m, it.value), 0);
+            const min = tile.items.reduce((m, it) => Math.min(m, it.value), max);
+            const places = min < 5 ? 2 : min < 10 || max < 100 ? 1 : 0;
+            return [
+                el('header',
+                    el('h2', {title: tile.title}, tile.title)),
+                el('table', el('tbody',
+                tile.items.map(it => el('tr', [
+                    el('td', {
+                        className: "spark-container",
+                        title: `past ${it.spark.length} days`
+                    }, drawSpark(it.spark, 75, 25)),
+                    el('td', it.name),
+                    el('td', {className: "number"}, formatNumber(it.value, places)),
+                    // el('div', {className: "spark-container"}, ),
+                ]))))
+            ];
+        },
+    };
     const drawSection = (state, section) =>
-        el("section", [
-            el('h1', section.label),
-            el('div', {className: "cards"}, section.areas
-                .map(n => state.lookup[n])
-                .map(a => {
-                    const expanded = isExpanded(state, section.label, a.name);
-                    const kids = [
-                        el('header',[
-                            el('button', {
-                                className: {
-                                    expander: true,
-                                    caretBackground: true,
-                                    expanded,
-                                },
-                                onclick: `toggleCard(&quot;${section.label}&quot;, &quot;${a.name}&quot;)`,
-                            }),
-                            el('h3', {title:a.name}, a.name),
-                        ]),
-                        el('div', {className: "spark-container"}, drawSpark(a.values)),
-                        expanded && drawCountStat("Total Cases", a.total, "Total cases"),
-                        a.pop && drawRateStat(expanded ? "per 100k" : "Case Rate", a.total, a.pop, "Total cases, per 100,000 population"),
-                        expanded && a.pop && drawOneInStat(a.total, a.pop, "One case, on average, per this many people"),
-                        expanded && drawCountStat("Daily Cases", a.daily, "New cases per day"),
-                        a.pop && drawRateStat(expanded ? "per 100k" : "Daily Rate", a.daily, a.pop, "New cases per day, per 100,000 population"),
-                        expanded && a.pop && drawOneInStat(a.daily, a.pop, "One new case each day, on average, per this many people"),
-                        expanded && a.pop && drawCountStat("Pop", a.pop, "Population"),
-                    ];
-                    if (a.segments && a.segments.length > 1) {
-                        kids.push(el('div', {className: "segment-container"}, drawColumn(a.segments)));
-                    }
-                    return el('div',
-                        el('article', {className: "card"}, kids));
-                })
-                .join("\n")),
-        ]);
+        el("section", {className: "cards"}, section.tiles
+            .map(t => el('div',
+                el('article', {className: "card " + t.type}, tileRenderers[t.type](t)))));
     const render = state =>
         $("#areas").innerHTML = state.sections
             .map(s => drawSection(state, s))
-            .join("\n");
-    setState(data);
+            .join(el('hr'));
+    setState({
+        sections: data,
+    });
 }
-fetch("data/dashboard.json")
+fetch("data/index.json")
     .then(r => r.json())
     .then(init)

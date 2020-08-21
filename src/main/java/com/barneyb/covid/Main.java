@@ -1,10 +1,8 @@
 package com.barneyb.covid;
 
-import com.barneyb.covid.hopkins.HopkinsTransform;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -24,34 +22,13 @@ public class Main implements ApplicationRunner {
     Path outputDir;
 
     @Autowired
-    @Qualifier("worldwide")
-    Store wwStore;
-
-    @Autowired
-    @Qualifier("us")
-    Store usStore;
-
-    @Autowired
-    @Qualifier("or")
-    Store orStore;
-
-    @Autowired
-    Mortality mortality;
-
-    @Autowired
-    HopkinsTransform hopkinsTransform;
-
-    @Autowired
-    ReportJsonEmitter tableJson;
-
-    @Autowired
-    TsvEmitter tableTsv;
-
-    @Autowired
     Loader loader;
 
     @Autowired
     BlockBuilder blockBuilder;
+
+    @Autowired
+    IndexBuilder indexBuilder;
 
     private long _prev;
     private void logStep(String message) {
@@ -65,11 +42,11 @@ public class Main implements ApplicationRunner {
     }
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
-    private void prepareTarget(boolean doClean) {
+    private void prepareTarget() {
         var out = outputDir.toFile();
         if (!out.exists()) {
             out.mkdirs();
-        } else if (doClean) {
+        } else {
             // This feels like the wrong way to do it. It does work though.
             for (var f : Objects.requireNonNull(out.listFiles())) {
                 f.delete();
@@ -81,12 +58,7 @@ public class Main implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) throws Exception {
         logStep("enter main");
-        prepareTarget(args.containsOption("clean"));
-
-        if (args.containsOption("mortality")) {
-            mortality.emit(Files.newBufferedWriter(Path.of("mortality.csv")));
-            logStep("mortality data written");
-        }
+        prepareTarget();
 
         var theWorld = loader.loadWorld();
         logStep("World loaded");
@@ -94,12 +66,12 @@ public class Main implements ApplicationRunner {
             // add a day for the UTC/LocalDate dance
             w.write(theWorld.getTodaysDate().plusDays(1).toString());
         }
+
         blockBuilder.emit(outputDir, theWorld);
         logStep("Blocks emitted");
 
-        if (args.containsOption("hopkins")) {
-            hopkinsTransform.transform(this::logStep);
-        }
+        indexBuilder.emit(outputDir.resolve("index.json"), theWorld);
+        logStep("Index emitted");
     }
 
 }
