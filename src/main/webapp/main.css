@@ -140,3 +140,8 @@ button.trigger:hover {
     border-radius: 0.3em;
     color: #330;
 }
+hr {
+    width: 70%;
+    margin: 2em auto;
+    border: 1px solid #cba;
+}

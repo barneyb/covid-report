@@ -147,7 +147,7 @@ function init(data) {
     const render = state =>
         $("#areas").innerHTML = state.sections
             .map(s => drawSection(state, s))
-            .join("\n");
+            .join(el('hr'));
     setState({
         sections: data,
     });
