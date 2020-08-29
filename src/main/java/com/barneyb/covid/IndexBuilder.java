@@ -42,7 +42,7 @@ public class IndexBuilder {
                                                         s.getArea().getPopulation(),
                                                         Transform.rollingAverage(
                                                                 Transform.delta(counts)))))),
-                                new ListTile("Daily Cases (7-day Avg)", scope, s ->
+                                new ListTile("Daily Cases", scope, s ->
                                         new Stat(s, Spark.spark(s.getCases(), counts ->
                                                 Transform.rollingAverage(Transform.delta(counts))))),
                                 new ListTile("Total Case Rate (per 100k)", scope, s ->
