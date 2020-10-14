@@ -87,16 +87,20 @@ function init(data) {
         ])
     const drawCountStat = (label, count, title=label) =>
         _statHelper(label, formatNumber(count), title);
-    const drawRateStat = (label, count, pop, title) =>
-        _statHelper(label, formatNumber(count / pop * HunThou, 1), title);
     const oneInFormat = new Intl.NumberFormat("en-US", {
         maximumSignificantDigits: 2,
     });
-    const drawOneInStat = (count, pop, title) =>
-        _statHelper(
-            "1 per",
-            count === 0 ? "-" : oneInFormat.format(pop / count),
-            title);
+    const drawRateStat = (label, count, pop, title) => {
+        if (count > 0) {
+            title += ` (about 1 per ${oneInFormat.format(pop / count)})`;
+        }
+        const rate = count / pop * HunThou;
+        return _statHelper(label, formatNumber(rate, rate < 0.1 ? 2 : 1), title);
+    };
+    const statBlock = (label, count, pop) => [
+        drawCountStat(label, count),
+        pop && drawRateStat("per 100k", count, pop, label + ", per 100,000 population"),
+    ];
     const tileRenderers = {
         stats(tile) {
             const spark = tile.cases.spark
@@ -107,12 +111,10 @@ function init(data) {
                     className: "spark-container",
                     title: `New cases per day, past ${spark.length <= 21 ? `${spark.length} days` : `${formatNumber(spark.length / 7)} weeks`}`,
                 }, drawSpark(spark)),
-                drawCountStat("Total Cases", tile.cases.total),
-                tile.population && drawRateStat("per 100k", tile.cases.total, tile.population, "Total cases, per 100,000 population"),
-                tile.population && drawOneInStat(tile.cases.total, tile.population, "One case, on average, per this many people"),
-                drawCountStat("Daily Cases", tile.cases.daily, "New cases per day"),
-                tile.population && drawRateStat("per 100k", tile.cases.daily, tile.population, "New cases per day, per 100,000 population"),
-                tile.population && drawOneInStat(tile.cases.daily, tile.population, "One new case each day, on average, per this many people"),
+                ...statBlock("Total Cases", tile.cases.total, tile.population),
+                ...statBlock("Daily Cases", tile.cases.daily, tile.population),
+                ...statBlock("Total Deaths", tile.deaths.total, tile.population),
+                ...statBlock("Daily Deaths", tile.deaths.daily, tile.population),
                 tile.population && drawCountStat("Pop", tile.population, "Population"),
             ];
             if (tile.segments && tile.segments.length > 1) {
