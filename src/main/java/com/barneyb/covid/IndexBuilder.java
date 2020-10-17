@@ -71,10 +71,14 @@ public class IndexBuilder {
         double stat;
         double[] spark;
 
-        public Stat(Series series, double[] spark) {
+        public Stat(Series series, double stat, double[] spark) {
             this.series = series;
-            this.stat = spark[spark.length - 1];
+            this.stat = stat;
             this.spark = spark;
+        }
+
+        public Stat(Series series, double[] spark) {
+            this(series, spark[spark.length - 1], spark);
         }
 
         @Override
