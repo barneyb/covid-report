@@ -220,11 +220,11 @@ function render(state, {columns, columnGroups, bodyRows, totalRows}) {
         if (!state.sortAsc) comp = revComp(comp);
         $tbody.innerHTML = bodyRows
             .sort((a, b) =>
-                comp(a[state.sortCol], b[state.sortCol]))
-            .map((r, rowNum) => el('tr', {},
+                comp(a[sortIdx], b[sortIdx]))
+            .map((r, rowNum, rows) => el('tr', {},
                 el('td', {
                     onclick: `toggleRow(${r.id})`,
-                }, rowNum + 1),
+                }, rowNum === 0 || rows[rowNum][sortIdx] !== rows[rowNum - 1][sortIdx] ? rowNum + 1 : ''),
                 ...columns.map((c, i) => el('td', {
                     className: {
                         newPoint: c.newGroup,
