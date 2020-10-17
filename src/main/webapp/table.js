@@ -73,6 +73,54 @@ jurisdictionSeries = [{
         ? j.total_cases / j.population * HunThou
         : null,
 }, {
+    key: "spread_score",
+    label: "Spread Score",
+    desc: "Score indicating the success of efforts to control spread of COVID-19 from -10 to +10. Zero means spread neither increasing nor decreasing.",
+    calc: j => {
+        const rollWindow = [];
+        const rollSize = 3;
+        const agg = {
+            cases: 0,
+            dir: 0,
+            sum: 0,
+        };
+        for (let i = j.points.length - 1; i >= 0; i--) {
+            const prev = agg.cases;
+            const thisWeek = j.points[i].weekly_cases;
+            rollWindow.push(thisWeek);
+            agg.cases += thisWeek;
+            // undersized, so continue
+            if (rollWindow.length < rollSize) continue;
+            // oversized, so drop the first
+            if (rollWindow.length > rollSize) agg.cases -= rollWindow.shift();
+
+            const curr = agg.cases;
+            const delta = curr - prev;
+            if (prev === 0) {
+                if (curr === 0) continue;
+                agg.dir = 1;
+            } else if (prev > 0 && curr === 0) {
+                // getting to zero is down, regardless of size of jump
+                agg.dir = -1;
+            } else {
+                const pc = delta / prev;
+                if (pc > 0) {
+                    // any increase counts as up
+                    agg.dir = 1;
+                } else if (pc < -0.05) {
+                    // more than 5% decrease is down
+                    agg.dir = -1;
+                } // else "nothing happened"
+            }
+            agg.sum += agg.dir;
+        }
+        return agg.sum === 0
+            ? 0
+            : -agg.sum / (j.points.length - rollSize) * 10;
+    },
+    format: v => formatNumber(v, 1),
+    hot: true,
+}, {
     key: "total_deaths",
     label: "C19 Deaths",
     desc: "Total COVID-19 deaths reported.",
