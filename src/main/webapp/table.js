@@ -74,50 +74,27 @@ jurisdictionSeries = [{
         : null,
 }, {
     key: "spread_score",
-    label: "Spread Score",
-    desc: "Score indicating the success of efforts to control spread of COVID-19 from -10 to +10. Zero means spread neither increasing nor decreasing.",
-    calc: j => {
-        const rollWindow = [];
-        const rollSize = 3;
-        const agg = {
-            cases: 0,
-            dir: 0,
-            sum: 0,
-        };
-        for (let i = j.points.length - 1; i >= 0; i--) {
-            const prev = agg.cases;
-            const thisWeek = j.points[i].weekly_cases;
-            rollWindow.push(thisWeek);
-            agg.cases += thisWeek;
-            // undersized, so continue
-            if (rollWindow.length < rollSize) continue;
-            // oversized, so drop the first
-            if (rollWindow.length > rollSize) agg.cases -= rollWindow.shift();
-
-            const curr = agg.cases;
-            const delta = curr - prev;
-            if (prev === 0) {
-                if (curr === 0) continue;
-                agg.dir = 1;
-            } else if (prev > 0 && curr === 0) {
-                // getting to zero is down, regardless of size of jump
-                agg.dir = -1;
-            } else {
-                const pc = delta / prev;
-                if (pc > 0) {
-                    // any increase counts as up
-                    agg.dir = 1;
-                } else if (pc < -0.05) {
-                    // more than 5% decrease is down
-                    agg.dir = -1;
-                } // else "nothing happened"
-            }
-            agg.sum += agg.dir;
-        }
-        return agg.sum === 0
-            ? 0
-            : -agg.sum / (j.points.length - rollSize) * 10;
-    },
+    label: "Spread",
+    desc: "Overall up/down trend of new cases over time. Lower is better.",
+    calc: j => j.points
+        .map(p => p.weekly_cases)
+        .reverse()
+        .reduce((state, thisWeek) => {
+            // before first case
+            if (thisWeek === 0 && state.window.length === 0) return state;
+            // one point if any cases
+            if (thisWeek > 0) state.score += 1;
+            // one point of each of the past `size` weeks that had fewer cases
+            state.score += state.window.filter(it => it < thisWeek).length;
+            // set up for the next one
+            state.window.push(thisWeek);
+            while (state.window.length > state.size) state.window.shift();
+            return state;
+        }, {
+            window: [],
+            size: 3,
+            score: 0,
+        }).score,
     format: v => formatNumber(v, 1),
     hot: true,
 }, {
@@ -159,7 +136,7 @@ const setState = useState({
         .filter(s => s.hot)
         .map(s => s.key)),
     hotRows: new Set(),
-    sidebar: location.search === "?sidebar",
+    sidebar: /[?&]sidebar([&=]|$)/.test(location.search),
 }, (state, prev) => {
     toQS(state);
     if (["dates", "rows", "hotDateIdxs", "hotSeries"].some(k => state[k] !== prev[k])) {
