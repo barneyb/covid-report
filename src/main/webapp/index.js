@@ -114,7 +114,7 @@ function init(data) {
                 ...statBlock("Total Cases", tile.cases.total, tile.population),
                 ...statBlock("Daily Cases", tile.cases.daily, tile.population),
                 ...statBlock("Total Deaths", tile.deaths.total, tile.population),
-                ...statBlock("Daily Deaths", tile.deaths.daily, tile.population),
+                _statHelper("Case Mortality", formatPercent(tile.deaths.total / tile.cases.total), "Total COVID-19 deaths per total COVID-19 cases"),
                 tile.population && drawCountStat("Pop", tile.population, "Population"),
             ];
             if (tile.segments && tile.segments.length > 1) {

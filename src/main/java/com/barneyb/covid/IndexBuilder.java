@@ -45,16 +45,12 @@ public class IndexBuilder {
                                 new ListTile("Daily Cases", scope, s ->
                                         new Stat(s, Spark.spark(s.getCases(), counts ->
                                                 Transform.rollingAverage(Transform.delta(counts))))),
-                                new ListTile("Total Case Rate (per 100k)", scope, s ->
-                                        new Stat(s, Spark.spark(s.getCases(), counts ->
-                                                Transform.per100k(s.getArea().getPopulation(), counts)))),
                                 new ListTile("Total Cases", scope, s ->
                                         new Stat(s, Spark.spark(s.getCases()))),
-                                new ListTile("Total Death Rate (per 100k)", scope, s ->
-                                        new Stat(s, Spark.spark(s.getDeaths(), counts ->
-                                                Transform.per100k(s.getArea().getPopulation(), counts)))),
                                 new ListTile("Total Deaths", scope, s ->
-                                        new Stat(s, Spark.spark(s.getDeaths())))
+                                        new Stat(s, Spark.spark(s.getDeaths()))),
+                                new ListTile("Case Mortality (%)", scope, s ->
+                                        new Stat(s, Spark.spark(caseMortality(s))))
                         ))
                 )
                 .collect(Collectors.toList());
@@ -62,6 +58,18 @@ public class IndexBuilder {
         try (val out = Files.newOutputStream(destination)) {
             writer.writeValue(out, dash);
         }
+    }
+
+    private double[] caseMortality(Series s) {
+        double[] cases = Transform.rollingAverage(s.getCases());
+        double[] deaths = Transform.rollingAverage(s.getDeaths());
+        assert cases.length == deaths.length;
+        double[] mortality = new double[cases.length];
+        for (int i = 0, l = cases.length; i < l; i++) {
+            if (cases[i] == 0) continue;
+            mortality[i] = 100.0 * deaths[i] / cases[i];
+        }
+        return mortality;
     }
 
     @Getter

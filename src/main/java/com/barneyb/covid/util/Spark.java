@@ -17,19 +17,30 @@ public final class Spark {
         return spark(data, DEFAULT_DAYS_DAYS);
     }
 
+    public static double[] spark(double[] data) {
+        return spark(data, DEFAULT_DAYS_DAYS);
+    }
+
     public static double[] spark(int[] data, int days) {
         return spark(data, days, Transform::toDouble);
     }
 
+    public static double[] spark(double[] data, int days) {
+        int l = data.length;
+        return Arrays.copyOfRange(data, l - days, l);
+    }
+
+    @Deprecated
     public static double[] spark(int[] data, Function<int[], double[]> transform) {
         return spark(data, DEFAULT_DAYS_DAYS, transform);
     }
 
+    @Deprecated
     public static double[] spark(int[] data, int days, Function<int[], double[]> transform) {
         final var len = data.length;
         int l = days + 7;
         var slice = transform.apply(
                 Arrays.copyOfRange(data, len - l, len));
-        return Arrays.copyOfRange(slice, l - days, l);
+        return spark(slice, days);
     }
 }
