@@ -9,6 +9,7 @@ import com.barneyb.covid.model.Area;
 import com.barneyb.covid.model.RawSeries;
 import com.barneyb.covid.model.Series;
 import com.barneyb.covid.util.UniqueIndex;
+import lombok.Value;
 import lombok.val;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -62,24 +64,34 @@ public class Loader {
         });
     }
 
+    @Value
+    private static class SeriesAndUidLookup<S extends CsvTimeSeries> {
+        S series;
+        Optional<UidLookup> area;
+    }
+
     private <S extends CsvTimeSeries> Collection<RawSeries> zipAreas(
-            Function<S, UidLookup> areaExtractor,
+            Function<S, Optional<UidLookup>> areaExtractor,
             Stream<S> caseStream,
             Stream<S> deathStream
     ) {
         val caseMap = caseStream
+                .map(it -> new SeriesAndUidLookup<>(it, areaExtractor.apply(it)))
+                .filter(pair -> pair.area.isPresent())
                 .collect(Collectors.toMap(
-                        areaExtractor,
-                        s -> s
+                        p -> p.area.get(),
+                        p -> p.series
                 ));
         List<RawSeries> result = deathStream
-                .map(it -> {
-                    val area = areaExtractor.apply(it);
+                .map(it -> new SeriesAndUidLookup<>(it, areaExtractor.apply(it)))
+                .filter(pair -> pair.area.isPresent())
+                .map(pair -> {
+                    final var area = pair.area.get();
                     return new RawSeries(
                             area,
-                            it.getTodaysDate(),
+                            pair.series.getTodaysDate(),
                             caseMap.get(area),
-                            it
+                            pair.series
                     );
                 })
                 .collect(Collectors.toList());
@@ -98,12 +110,12 @@ public class Loader {
         if (rawGlobal != null) return;
         rawGlobal = zipAreas(
                 it -> it.isCountry()
-                        ? uidByCountry.get(it.getCountry())
-                        : uidByCountryState.get(it.getCountry(), it.getState()),
+                        ? uidByCountry.getOptional(it.getCountry())
+                        : uidByCountryState.getOptional(new Pair<>(it.getCountry(), it.getState())),
                 hopkinsData.streamGlobalCases(),
                 hopkinsData.streamGlobalDeaths());
         rawUs = zipAreas(
-                it -> uidByUid.get(it.getUid()),
+                it -> uidByUid.getOptional(it.getUid()),
                 hopkinsData.streamUSCases(),
                 hopkinsData.streamUSDeaths());
 

@@ -6,6 +6,7 @@ import org.apache.commons.collections4.MultiValuedMap;
 import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.springframework.dao.DuplicateKeyException;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -41,6 +42,12 @@ abstract class AbstractIndex<K, V, M> {
             throw new UnknownKeyException("Unknown key: '" + key + "'");
         }
         return getInternal(key);
+    }
+
+    public final Optional<M> getOptional(K key) {
+        return index.containsKey(key)
+                ? Optional.of(getInternal(key))
+                : Optional.empty();
     }
 
     protected abstract M getInternal(K key);
