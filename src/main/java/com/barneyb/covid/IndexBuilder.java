@@ -47,8 +47,6 @@ public class IndexBuilder {
                                                 Transform.rollingAverage(Transform.delta(counts))))),
                                 new ListTile("Total Cases", scope, s ->
                                         new Stat(s, Spark.spark(s.getCases()))),
-                                new ListTile("Total Deaths", scope, s ->
-                                        new Stat(s, Spark.spark(s.getDeaths()))),
                                 new ListTile("Case Mortality (%)", scope, s ->
                                         new Stat(s, Spark.spark(caseMortality(s))))
                         ))
