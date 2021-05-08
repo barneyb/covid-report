@@ -13,7 +13,13 @@ git checkout master
 #    csse_covid_19_data/csse_covid_19_time_series/Errata.csv
 #echo "----------------------------------------------------------------------"
 git merge origin/master >/dev/null
+if [ $(($(date +%u))) == 7 ]; then
+    echo -n "garbage collecting... "
+    git gc > /dev/null
+    echo "done"
+fi
 cd $OLDPWD
+
 docker run --rm -v "$(pwd)":/data -u "$(id -u)" -w /data/covid openjdk:11 \
     java -Dcovid-report.output.dir=stage -jar covid.jar
 
