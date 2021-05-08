@@ -211,8 +211,17 @@ const arrayMax = arr => {
     // arr.reduce(Math.max, 0) doesn't work for some reason?
     return arr.reduce((a, b) => Math.max(a, b), 0);
 };
-const formatHsl = (h, s, l) =>
-    `hsl(${formatNumber(h, 2)},${formatNumber(s, 2)}%,${formatNumber(l, 2)}%)`;
+/**
+ * Formats an HSL color (including optional alpha) to a CSS literal.
+ *
+ * @param h hue angle `[0, 360)`
+ * @param s saturation percentage `[0, 100)` (not `[0, 1)`!)
+ * @param l lightness percentage `[0, 100)` (not `[0, 1)`!)
+ * @param a alpha value `[0, 1)`, default `1`
+ * @returns {string} the CSS literal for the color components
+ */
+const formatHsl = (h, s, l, a=1) =>
+    `hsl(${formatNumber(h, 2)},${formatNumber(s, 2)}%,${formatNumber(l, 2)}%,${formatNumber(a, 2)})`;
 const rangeToIndices = (coll, min, max) => {
     let start = coll.findIndex(d => d >= min);
     if (start < 0) start = 0;
@@ -324,15 +333,22 @@ const drawDateRangeSlider = (dates, startDate, endDate, options) => {
         ),
     ]);
 };
-const line = (x, y, dx=0, dy=0, color="#666", width="0.5px") => el('line', {
-    x1: x,
-    y1: y,
-    x2: x + dx,
-    y2: y + dy,
-    stroke: color,
-    'stroke-width': width,
-    'vector-effect': "non-scaling-stroke",
-});
+const line = (x, y, dx=0, dy=0, colorOrStyle="#666", width="0.5px") => {
+    let attrs = {
+        x1: x,
+        y1: y,
+        x2: x + dx,
+        y2: y + dy,
+        'vector-effect': "non-scaling-stroke",
+    };
+    if (typeof colorOrStyle === "string" && colorOrStyle.indexOf(":") < 0) {
+        attrs.stroke = colorOrStyle;
+        attrs['stroke-width'] = width;
+    } else {
+        attrs.style = colorOrStyle;
+    }
+    return el('line', attrs);
+}
 const drawLineChart = (series, options) => {
     const opts = {
         width: 200,
@@ -454,7 +470,11 @@ const drawLineChart = (series, options) => {
             const x = i2x(di)
             const y = v2y(dv)
             $detail.innerHTML = line(x, margins.top, 0, chartHeight, "#666", "1px") +
-                line(margins.left, y, chartWidth, 0, "#666", "1px") +
+                line(margins.left, y, chartWidth, 0, {
+                    stroke: "#999",
+                    strokeWidth: "1px",
+                    strokeDasharray: "6 4",
+                }) +
                 el('g', {
                     transform: `translate(${x + width > chartWidth ? x - width : x}, ${margins.top})`,
                 },
@@ -538,6 +558,9 @@ const drawLineChart = (series, options) => {
                 }, d.getDate()),
             ])
         ),
+        opts.detailOnHover && el('g', {
+            id: domId + "-detail",
+        }),
         series.map(s => el('polyline', {
                 points: s.values
                     .map(([ignored, x, y]) => x + "," + y)
@@ -551,9 +574,6 @@ const drawLineChart = (series, options) => {
                 'stroke-linecap': "round",
             }, s.title && el('title', s.title)),
         ),
-        opts.detailOnHover && el('g', {
-            id: domId + "-detail",
-        }),
         opts.title && el('title', opts.title));
 };
 const $sidebar = $("#sidebar .content");

@@ -104,7 +104,7 @@ function render(state) {
             onclick: `toggleSegment(${s.id})`,
             color: hot
                 ? formatHsl(s.hue, 50, 50)
-                : formatHsl(s.hue, ...(s.is_total ? [20, 70] : [10, 80])),
+                : formatHsl(s.hue, s.is_total ? 50 : 0, 50, s.is_total ? 0.3 : 0.2),
             detailOnHover: hot,
         });
         const paintChart = (sd, ed) => {
