@@ -428,7 +428,7 @@ const drawLineChart = (series, options) => {
     const domId = nextId("chart")
     if (opts.detailOnHover) {
         let $detail
-        const drawDetail = di => {
+        const drawDetail = (di, dv) => {
             if ($detail == null)
                 $detail = document.getElementById(domId + "-detail");
             if ($detail == null) return;
@@ -452,7 +452,9 @@ const drawLineChart = (series, options) => {
                 .forEach(s => lines.push(s));
             const width = lines.reduce((m, l) => Math.max(m, l.text.length), 0) * 7 + 10
             const x = i2x(di)
+            const y = v2y(dv)
             $detail.innerHTML = line(x, margins.top, 0, chartHeight, "#666", "1px") +
+                line(margins.left, y, chartWidth, 0, "#666", "1px") +
                 el('g', {
                     transform: `translate(${x + width > chartWidth ? x - width : x}, ${margins.top})`,
                 },
