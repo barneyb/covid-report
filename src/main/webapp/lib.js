@@ -469,12 +469,18 @@ const drawLineChart = (series, options) => {
             const width = lines.reduce((m, l) => Math.max(m, l.text.length), 0) * 7 + 10
             const x = i2x(di)
             const y = v2y(dv)
-            $detail.innerHTML = line(x, margins.top, 0, chartHeight, "#666", "1px") +
-                line(margins.left, y, chartWidth, 0, {
-                    stroke: "#999",
-                    strokeWidth: "1px",
-                    strokeDasharray: "6 4",
-                }) +
+            const lineStyle = {
+                stroke: "#666",
+                strokeWidth: "1px",
+                strokeDasharray: "5",
+            };
+            $detail.innerHTML = line(x, margins.top, 0, chartHeight, lineStyle) +
+                line(margins.left, y, chartWidth, 0, lineStyle) +
+                el('text', {
+                    fill: "#000",
+                    x: margins.left + chartWidth + 2,
+                    y: y + 3.5,
+                }, formatNumber(dv, gridLabelPlaces)) +
                 el('g', {
                     transform: `translate(${x + width > chartWidth ? x - width : x}, ${margins.top})`,
                 },
