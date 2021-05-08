@@ -41,7 +41,9 @@ done
 popd
 echo "Processing ${#assets[@]} assets"
 # move all the HTMLs over as-is
-find $SRC_DIR -name "*.html" -exec cp {} "$LOCAL_DIR" \;
+rsync -a \
+    --include *.html \
+    $SRC_DIR/ $LOCAL_DIR/
 # copy each asset over, replace it's refs in the HTMLs
 for a in "${!assets[@]}"; do
     echo "  $a..."
@@ -60,7 +62,7 @@ done
 
 function size() {
     # shellcheck disable=SC2086
-    wc $1/*.$2 | tail -n 1 | tr -s ' ' | cut -d ' ' -f 4
+    wc -c $1/*.$2 | tail -n 1 | cut -d ' ' -f 1
 }
 function savings() {
     echo "reduced $1 from $(size "$SRC_DIR" "$1") to $(size "$LOCAL_DIR" "$1")"
