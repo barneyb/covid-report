@@ -12,3 +12,4 @@ package-lock.json
 /src/main/resources/application-default.yaml
 /cdc-data-*.json
 /src/main/webapp/data
+/data
