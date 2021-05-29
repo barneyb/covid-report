@@ -90,15 +90,18 @@ function init(data) {
     const oneInFormat = new Intl.NumberFormat("en-US", {
         maximumSignificantDigits: 2,
     });
-    const drawRateStat = (label, count, pop, title) => {
+    const addOneIn = (label, count, pop) => {
         if (count > 0) {
-            title += ` (about 1 per ${oneInFormat.format(pop / count)})`;
+            return `${label} (about 1 per ${oneInFormat.format(pop / count)})`;
         }
+        return label;
+    }
+    const drawRateStat = (label, count, pop, title) => {
         const rate = count / pop * HunThou;
-        return _statHelper(label, formatNumber(rate, rate < 0.1 ? 2 : 1), title);
+        return _statHelper(label, formatNumber(rate, rate < 0.1 ? 2 : 1), addOneIn(title, count, pop));
     };
     const statBlock = (label, count, pop) => [
-        drawCountStat(label, count),
+        drawCountStat(label, count, addOneIn(label, count, pop)),
         pop && drawRateStat("per 100k", count, pop, label + ", per 100,000 population"),
     ];
     const tileRenderers = {
