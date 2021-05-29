@@ -195,8 +195,9 @@ public class HopkinsData {
                         default:
                             return true;
                     }
-                });
+                })
                 // Exception type 3, Diamond Princess, US: 84088888; Grand Princess, US: 84099999.
+                .filter(d -> isNotCruiseShip(d.getState()));
     }
 
     public Collection<GlobalTimeSeries> loadGlobalCases() {
@@ -221,7 +222,13 @@ public class HopkinsData {
     }
 
     private boolean isNotCruiseShip(String name) {
-        return !"Diamond Princess".equals(name) && !"MS Zaandam".equals(name);
+        return !isCruiseShip(name);
+    }
+
+    private boolean isCruiseShip(String name) {
+        if ("Grand Princess".equals(name)) return true;
+        if ("Diamond Princess".equals(name)) return true;
+        return "MS Zaandam".equals(name);
     }
 
     private Stream<GlobalTimeSeries> streamGlobal(Path src) {
