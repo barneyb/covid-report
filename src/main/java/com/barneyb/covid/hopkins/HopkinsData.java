@@ -85,7 +85,7 @@ public class HopkinsData {
         };
         /*
          * The Channel Islands are grouped together for reporting, and given the
-         * ISO codes of the UK. Instead, use Guernsey's code, so they cam be
+         * ISO codes of the UK. Instead, use Guernsey's code, so they can be
          * separated from the UK, even though Jersey and Guernsey are still
          * mashed together. Guernsey was selected arbitrarily; just needed
          * something reserved (avoid conflict with new codes) and w/in the
@@ -101,11 +101,23 @@ public class HopkinsData {
             d.setCode3("831");
             return d;
         };
+        /*
+         * The 2020 Summer Olympics are now happening (a year late) and they
+         * are outside any sort of normal geo thing. So fake it?
+         */
+        Function<T, T> olympics = d -> {
+            if (!"Summer Olympics 2020".equals(d.getCountry())) return d;
+            d.setIso2("20");
+            d.setIso3("O20");
+            d.setCode3("O20");
+            return d;
+        };
         return build(uidLookupFile, clazz)
                 .stream()
                 .filter(d -> isNotCruiseShip(d.getCountry()))
                 .map(kansasCity)
-                .map(channelIslands);
+                .map(channelIslands)
+                .map(olympics);
     }
 
     public Collection<USTimeSeries> loadUSCases() {
